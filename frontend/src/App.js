@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { Toaster } from 'sonner';
 import { AuthProvider } from '@/context/AuthContext';
 import { ProtectedRoute, PublicRoute } from '@/components/ProtectedRoute';
+import InstallPWA from '@/components/InstallPWA';
 
 // Public Pages
 import HomePage from '@/pages/HomePage';
@@ -34,6 +35,9 @@ function App() {
     <AuthProvider>
       <BrowserRouter>
         <div className="App">
+          {/* PWA Install Prompt */}
+          <InstallPWA />
+          
           <Routes>
             {/* Public Routes */}
             <Route path="/" element={<HomePage />} />
@@ -91,7 +95,8 @@ function App() {
           style: {
             background: '#1A1A1C',
             border: '1px solid rgba(255,255,255,0.1)',
-            color: '#F5F5F7'
+            color: '#F5F5F7',
+            zIndex: 99999
           }
         }}
       />

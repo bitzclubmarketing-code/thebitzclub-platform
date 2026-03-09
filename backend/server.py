@@ -528,6 +528,9 @@ async def register_user(user_data: UserCreate, background_tasks: BackgroundTasks
     
     await db.users.insert_one(user)
     
+    # Remove _id that MongoDB adds after insert
+    user.pop('_id', None)
+    
     # Send welcome SMS to user
     background_tasks.add_task(MockedSMSService.send_welcome_sms, user)
     

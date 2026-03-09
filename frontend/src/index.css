@@ -176,6 +176,24 @@ code, .mono {
     padding: 1.5rem;
     position: relative;
     overflow: hidden;
+    min-height: 200px;
+}
+
+/* Mobile optimizations for membership card */
+@media (max-width: 480px) {
+    .membership-card {
+        padding: 1rem;
+        border-radius: 10px;
+        min-height: 180px;
+    }
+    
+    .membership-card .member-name {
+        font-size: 1rem;
+    }
+    
+    .membership-card .member-id {
+        font-size: 0.75rem;
+    }
 }
 
 .membership-card::before {
@@ -192,11 +210,32 @@ code, .mono {
         transparent 60%
     );
     animation: shimmer 3s infinite;
+    pointer-events: none;
 }
 
 @keyframes shimmer {
     0% { transform: translateX(-100%) rotate(45deg); }
     100% { transform: translateX(100%) rotate(45deg); }
+}
+
+/* PWA Install Button - Mobile optimizations */
+@media (max-width: 640px) {
+    .pwa-install-prompt {
+        left: 1rem !important;
+        right: 1rem !important;
+        bottom: 5rem !important;
+    }
+}
+
+/* Dialog/Modal fixes for proper overlay cleanup */
+[data-radix-portal] {
+    position: fixed;
+    z-index: 9999;
+}
+
+/* Ensure dialog overlay is properly positioned */
+[data-state="closed"][data-radix-dialog-overlay] {
+    pointer-events: none;
 }
 
 /* Scrollbar */

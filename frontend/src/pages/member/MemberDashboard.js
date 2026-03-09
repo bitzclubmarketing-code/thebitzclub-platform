@@ -16,11 +16,20 @@ const MemberDashboard = () => {
   const [member, setMember] = useState(null);
   const [partners, setPartners] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [qrSize, setQrSize] = useState(64);
   const cardRef = useRef(null);
 
   useEffect(() => {
     fetchMemberData();
     fetchPartners();
+    
+    // Handle responsive QR code size
+    const handleResize = () => {
+      setQrSize(window.innerWidth < 480 ? 50 : 64);
+    };
+    handleResize();
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
   }, []);
 
   const fetchMemberData = async () => {
@@ -175,33 +184,33 @@ const MemberDashboard = () => {
                 <div className="relative z-10 h-full flex flex-col justify-between">
                   <div className="flex items-start justify-between">
                     <div className="flex items-center gap-2">
-                      <Crown className="w-8 h-8 text-[#D4AF37]" />
-                      <span className="text-lg font-bold text-white" style={{ fontFamily: 'Playfair Display, serif' }}>
+                      <Crown className="w-6 h-6 sm:w-8 sm:h-8 text-[#D4AF37]" />
+                      <span className="text-base sm:text-lg font-bold text-white" style={{ fontFamily: 'Playfair Display, serif' }}>
                         BITZ Club
                       </span>
                     </div>
-                    <div className={`px-3 py-1 rounded text-xs uppercase tracking-wider font-semibold ${getStatusColor(member?.status)}`}>
+                    <div className={`px-2 sm:px-3 py-1 rounded text-[10px] sm:text-xs uppercase tracking-wider font-semibold ${getStatusColor(member?.status)}`}>
                       {member?.status || 'Pending'}
                     </div>
                   </div>
                   
-                  <div className="flex items-end justify-between">
-                    <div>
-                      <p className="text-xs text-gray-400 uppercase tracking-wider mb-1">Member</p>
-                      <p className="text-xl font-semibold text-white">{member?.name || user?.name}</p>
-                      <p className="font-mono text-[#D4AF37] text-sm mt-1">{member?.member_id || user?.member_id}</p>
-                      <p className="text-xs text-gray-400 mt-2">
-                        {member?.plan_name || 'Plan'} | Valid till: {
+                  <div className="flex items-end justify-between gap-3">
+                    <div className="flex-1 min-w-0">
+                      <p className="text-[10px] sm:text-xs text-gray-400 uppercase tracking-wider mb-1">Member</p>
+                      <p className="text-base sm:text-xl font-semibold text-white truncate member-name">{member?.name || user?.name}</p>
+                      <p className="font-mono text-[#D4AF37] text-xs sm:text-sm mt-1 member-id">{member?.member_id || user?.member_id}</p>
+                      <p className="text-[10px] sm:text-xs text-gray-400 mt-2">
+                        {member?.plan_name || 'Plan'} | Valid: {
                           member?.membership_end 
                             ? new Date(member.membership_end).toLocaleDateString('en-IN', { month: 'short', year: 'numeric' })
                             : 'N/A'
                         }
                       </p>
                     </div>
-                    <div className="bg-white p-2 rounded">
+                    <div className="bg-white p-1.5 sm:p-2 rounded flex-shrink-0">
                       <QRCode
                         value={member?.member_id || user?.member_id || 'BITZ'}
-                        size={64}
+                        size={qrSize}
                         level="M"
                       />
                     </div>

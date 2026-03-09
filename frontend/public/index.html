@@ -2,42 +2,174 @@
 <html lang="en">
     <head>
         <meta charset="utf-8" />
-        <meta name="viewport" content="width=device-width, initial-scale=1" />
-        <meta name="theme-color" content="#000000" />
-        <meta name="description" content="A product of emergent.sh" />
+        <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+        
+        <!-- PWA Meta Tags -->
+        <meta name="theme-color" content="#D4AF37" />
+        <meta name="background-color" content="#0F0F10" />
+        <meta name="description" content="BITZ Club - Premium Lifestyle Membership. Unlock exclusive privileges at luxury hotels, fine dining, spas, and more." />
+        <meta name="application-name" content="BITZ Club" />
+        
+        <!-- Apple PWA Meta Tags -->
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+        <meta name="apple-mobile-web-app-title" content="BITZ Club" />
+        <link rel="apple-touch-icon" href="%PUBLIC_URL%/icons/apple-touch-icon.png" />
+        
+        <!-- Microsoft PWA Meta Tags -->
+        <meta name="msapplication-TileColor" content="#0F0F10" />
+        <meta name="msapplication-TileImage" content="%PUBLIC_URL%/icons/icon-144x144.png" />
+        <meta name="msapplication-config" content="none" />
+        
+        <!-- Favicon -->
+        <link rel="icon" href="%PUBLIC_URL%/favicon.ico" />
+        <link rel="icon" type="image/png" sizes="32x32" href="%PUBLIC_URL%/icons/icon-72x72.png" />
+        <link rel="icon" type="image/png" sizes="192x192" href="%PUBLIC_URL%/icons/icon-192x192.png" />
+        
+        <!-- PWA Manifest -->
+        <link rel="manifest" href="%PUBLIC_URL%/manifest.json" />
+        
+        <!-- Fonts -->
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
         <link href="https://fonts.googleapis.com/css2?family=Inter:wght@600&display=swap" rel="stylesheet" />
-        <!--
-        manifest.json provides metadata used when your web app is installed on a
-        user's mobile device or desktop. See https://developers.google.com/web/fundamentals/web-app-manifest/
-        -->
-        <!--
-        Notice the use of %PUBLIC_URL% in the tags above.
-        It will be replaced with the URL of the `public` folder during the build.
-        Only files inside the `public` folder can be referenced from the HTML.
-
-        Unlike "/favicon.ico" or "favicon.ico", "%PUBLIC_URL%/favicon.ico" will
-        work correctly both with client-side routing and a non-root public URL.
-        Learn how to configure a non-root public URL by running `npm run build`.
-        -->
-        <title>Emergent | Fullstack App</title>
+        
+        <!-- Splash Screens for iOS -->
+        <link rel="apple-touch-startup-image" href="%PUBLIC_URL%/icons/icon-512x512.png" />
+        
+        <title>BITZ Club - Premium Lifestyle Membership</title>
+        
+        <!-- Splash Screen Styles -->
+        <style>
+            #splash-screen {
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background: linear-gradient(180deg, #0F0F10 0%, #1A1A1C 100%);
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                justify-content: center;
+                z-index: 10000;
+                transition: opacity 0.5s ease-out;
+            }
+            #splash-screen.hidden {
+                opacity: 0;
+                pointer-events: none;
+            }
+            #splash-screen svg {
+                width: 120px;
+                height: 120px;
+                animation: pulse 2s ease-in-out infinite;
+            }
+            #splash-screen h1 {
+                font-family: 'Playfair Display', serif;
+                color: #D4AF37;
+                font-size: 32px;
+                margin: 20px 0 5px;
+                letter-spacing: 2px;
+            }
+            #splash-screen p {
+                color: #A1A1AA;
+                font-size: 14px;
+                text-transform: uppercase;
+                letter-spacing: 3px;
+            }
+            @keyframes pulse {
+                0%, 100% { transform: scale(1); opacity: 1; }
+                50% { transform: scale(1.05); opacity: 0.8; }
+            }
+            #splash-loader {
+                margin-top: 40px;
+                width: 40px;
+                height: 40px;
+                border: 3px solid #27272A;
+                border-top: 3px solid #D4AF37;
+                border-radius: 50%;
+                animation: spin 1s linear infinite;
+            }
+            @keyframes spin {
+                0% { transform: rotate(0deg); }
+                100% { transform: rotate(360deg); }
+            }
+        </style>
+        
         <script>window.addEventListener("error",function(e){if(e.error instanceof DOMException&&e.error.name==="DataCloneError"&&e.message&&e.message.includes("PerformanceServerTiming")){e.stopImmediatePropagation();e.preventDefault()}},true);</script>
         <script src="https://assets.emergent.sh/scripts/emergent-main.js"></script>
     </head>
     <body>
         <noscript>You need to enable JavaScript to run this app.</noscript>
+        
+        <!-- Splash Screen -->
+        <div id="splash-screen">
+            <svg viewBox="0 0 120 120" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <circle cx="60" cy="60" r="58" stroke="#D4AF37" stroke-width="2" fill="#0F0F10"/>
+                <path d="M60 25L70 45L90 40L80 65L40 65L30 40L50 45Z" fill="#D4AF37"/>
+                <rect x="38" y="65" width="44" height="12" rx="3" fill="#D4AF37"/>
+            </svg>
+            <h1>BITZ Club</h1>
+            <p>Premium Lifestyle</p>
+            <div id="splash-loader"></div>
+        </div>
+        
         <div id="root"></div>
-        <!--
-      This HTML file is a template.
-      If you open it directly in the browser, you will see an empty page.
-
-      You can add webfonts, meta tags, or analytics to this file.
-      The build step will place the bundled scripts into the <body> tag.
-
-      To begin the development, run `npm start` or `yarn start`.
-      To create a production bundle, use `npm run build` or `yarn build`.
-    -->
+        
+        <!-- Service Worker Registration -->
+        <script>
+            // Hide splash screen when app loads
+            window.addEventListener('load', function() {
+                setTimeout(function() {
+                    const splash = document.getElementById('splash-screen');
+                    if (splash) {
+                        splash.classList.add('hidden');
+                        setTimeout(function() {
+                            splash.remove();
+                        }, 500);
+                    }
+                }, 1000);
+            });
+            
+            // Register Service Worker
+            if ('serviceWorker' in navigator) {
+                window.addEventListener('load', function() {
+                    navigator.serviceWorker.register('/sw.js')
+                        .then(function(registration) {
+                            console.log('ServiceWorker registered with scope:', registration.scope);
+                            
+                            // Check for updates
+                            registration.addEventListener('updatefound', function() {
+                                const newWorker = registration.installing;
+                                newWorker.addEventListener('statechange', function() {
+                                    if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                                        // New content available, notify user
+                                        console.log('New content available, refresh to update');
+                                    }
+                                });
+                            });
+                        })
+                        .catch(function(error) {
+                            console.log('ServiceWorker registration failed:', error);
+                        });
+                });
+            }
+            
+            // Handle PWA install prompt
+            let deferredPrompt;
+            window.addEventListener('beforeinstallprompt', function(e) {
+                e.preventDefault();
+                deferredPrompt = e;
+                // Store for later use in the app
+                window.deferredPrompt = deferredPrompt;
+            });
+            
+            // Track successful install
+            window.addEventListener('appinstalled', function(e) {
+                console.log('BITZ Club PWA installed successfully');
+                window.deferredPrompt = null;
+            });
+        </script>
         <a
             id="emergent-badge"
             target="_blank"
