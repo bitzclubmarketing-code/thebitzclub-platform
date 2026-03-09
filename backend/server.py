@@ -81,6 +81,7 @@ class MemberCreate(BaseModel):
     date_of_birth: Optional[str] = None
     plan_id: str
     password: Optional[str] = None
+    referral_id: Optional[str] = None  # Employee ID (BITZ-E001) or Associate ID (BITZ-A001)
 
 class MemberUpdate(BaseModel):
     name: Optional[str] = None
@@ -88,6 +89,7 @@ class MemberUpdate(BaseModel):
     address: Optional[str] = None
     date_of_birth: Optional[str] = None
     plan_id: Optional[str] = None
+    referral_id: Optional[str] = None
 
 # Plan Models
 class PlanCreate(BaseModel):
@@ -161,6 +163,24 @@ class PaymentCreate(BaseModel):
     member_id: str
     plan_id: str
     amount: float
+
+# Lead Models
+class LeadCreate(BaseModel):
+    name: str
+    mobile: str
+    city: str
+    interested_in: str  # 'membership' or 'partnership'
+    source: Optional[str] = 'landing_page'
+
+class LeadUpdate(BaseModel):
+    status: Optional[str] = None
+    notes: Optional[str] = None
+
+class LeadStatus:
+    NEW = "new"
+    CONTACTED = "contacted"
+    CONVERTED = "converted"
+    NOT_INTERESTED = "not_interested"
 
 # ==================== UTILITY FUNCTIONS ====================
 
@@ -445,6 +465,7 @@ async def create_member(member: MemberCreate, background_tasks: BackgroundTasks,
         "membership_end": end_date.isoformat(),
         "status": MembershipStatus.PENDING,
         "qr_code": generate_qr_code(member_id),
+        "referral_id": member.referral_id,
         "assigned_telecaller": user["id"] if user["role"] == UserRole.TELECALLER else None,
         "created_by": user["id"],
         "created_at": datetime.now(timezone.utc).isoformat()
@@ -464,6 +485,7 @@ async def get_members(
     plan_id: Optional[str] = None,
     search: Optional[str] = None,
     telecaller_id: Optional[str] = None,
+    referral_id: Optional[str] = None,
     page: int = Query(1, ge=1),
     limit: int = Query(20, ge=1, le=100),
     user: dict = Depends(require_admin_or_telecaller)
@@ -480,12 +502,15 @@ async def get_members(
         query["status"] = status
     if plan_id:
         query["plan_id"] = plan_id
+    if referral_id:
+        query["referral_id"] = {"$regex": referral_id, "$options": "i"}
     if search:
         query["$or"] = [
             {"name": {"$regex": search, "$options": "i"}},
             {"mobile": {"$regex": search, "$options": "i"}},
             {"member_id": {"$regex": search, "$options": "i"}},
-            {"email": {"$regex": search, "$options": "i"}}
+            {"email": {"$regex": search, "$options": "i"}},
+            {"referral_id": {"$regex": search, "$options": "i"}}
         ]
     
     skip = (page - 1) * limit
@@ -919,6 +944,7 @@ async def get_members_report(
     end_date: Optional[str] = None,
     status: Optional[str] = None,
     plan_id: Optional[str] = None,
+    referral_id: Optional[str] = None,
     admin: dict = Depends(require_admin)
 ):
     query = {}
@@ -933,6 +959,8 @@ async def get_members_report(
         query["status"] = status
     if plan_id:
         query["plan_id"] = plan_id
+    if referral_id:
+        query["referral_id"] = {"$regex": referral_id, "$options": "i"}
     
     members = await db.members.find(query, {"_id": 0, "qr_code": 0}).to_list(10000)
     return members
@@ -942,6 +970,7 @@ async def export_members_excel(
     start_date: Optional[str] = None,
     end_date: Optional[str] = None,
     status: Optional[str] = None,
+    referral_id: Optional[str] = None,
     admin: dict = Depends(require_admin)
 ):
     query = {}
@@ -954,6 +983,8 @@ async def export_members_excel(
             query["created_at"] = {"$lte": end_date}
     if status:
         query["status"] = status
+    if referral_id:
+        query["referral_id"] = {"$regex": referral_id, "$options": "i"}
     
     members = await db.members.find(query, {"_id": 0, "qr_code": 0}).to_list(10000)
     
@@ -962,7 +993,7 @@ async def export_members_excel(
     ws.title = "Members Report"
     
     # Headers
-    headers = ["Member ID", "Name", "Mobile", "Email", "Plan", "Status", "Start Date", "End Date", "Created At"]
+    headers = ["Member ID", "Name", "Mobile", "Email", "Plan", "Status", "Referral ID", "Start Date", "End Date", "Created At"]
     ws.append(headers)
     
     # Data
@@ -974,6 +1005,7 @@ async def export_members_excel(
             m.get("email", ""),
             m.get("plan_name", ""),
             m.get("status", ""),
+            m.get("referral_id", ""),
             m.get("membership_start", ""),
             m.get("membership_end", ""),
             m.get("created_at", "")
@@ -987,6 +1019,148 @@ async def export_members_excel(
         output,
         media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         headers={"Content-Disposition": f"attachment; filename=members_report_{datetime.now().strftime('%Y%m%d')}.xlsx"}
+    )
+
+# ==================== LEADS ENDPOINTS ====================
+
+@api_router.post("/leads")
+async def create_lead(lead: LeadCreate, background_tasks: BackgroundTasks):
+    """Public endpoint for lead capture from landing page"""
+    lead_id = str(uuid.uuid4())
+    lead_doc = {
+        "id": lead_id,
+        "name": lead.name,
+        "mobile": lead.mobile,
+        "city": lead.city,
+        "interested_in": lead.interested_in,
+        "source": lead.source,
+        "status": LeadStatus.NEW,
+        "notes": "",
+        "created_at": datetime.now(timezone.utc).isoformat()
+    }
+    await db.leads.insert_one(lead_doc)
+    
+    # Send notification email (mocked)
+    background_tasks.add_task(
+        MockedEmailService.send_email,
+        "admin@bitzclub.com",
+        f"New Lead: {lead.name}",
+        f"Name: {lead.name}\nMobile: {lead.mobile}\nCity: {lead.city}\nInterested In: {lead.interested_in}"
+    )
+    
+    return {"message": "Thank you! We will contact you soon.", "id": lead_id}
+
+@api_router.get("/leads")
+async def get_leads(
+    status: Optional[str] = None,
+    interested_in: Optional[str] = None,
+    search: Optional[str] = None,
+    page: int = Query(1, ge=1),
+    limit: int = Query(20, ge=1, le=100),
+    admin: dict = Depends(require_admin)
+):
+    query = {}
+    if status:
+        query["status"] = status
+    if interested_in:
+        query["interested_in"] = interested_in
+    if search:
+        query["$or"] = [
+            {"name": {"$regex": search, "$options": "i"}},
+            {"mobile": {"$regex": search, "$options": "i"}},
+            {"city": {"$regex": search, "$options": "i"}}
+        ]
+    
+    skip = (page - 1) * limit
+    total = await db.leads.count_documents(query)
+    leads = await db.leads.find(query, {"_id": 0}).sort("created_at", -1).skip(skip).limit(limit).to_list(limit)
+    
+    return {
+        "leads": leads,
+        "total": total,
+        "page": page,
+        "limit": limit,
+        "pages": (total + limit - 1) // limit
+    }
+
+@api_router.get("/leads/stats")
+async def get_leads_stats(admin: dict = Depends(require_admin)):
+    total = await db.leads.count_documents({})
+    new_leads = await db.leads.count_documents({"status": LeadStatus.NEW})
+    contacted = await db.leads.count_documents({"status": LeadStatus.CONTACTED})
+    converted = await db.leads.count_documents({"status": LeadStatus.CONVERTED})
+    membership_leads = await db.leads.count_documents({"interested_in": "membership"})
+    partnership_leads = await db.leads.count_documents({"interested_in": "partnership"})
+    
+    return {
+        "total": total,
+        "new": new_leads,
+        "contacted": contacted,
+        "converted": converted,
+        "membership_leads": membership_leads,
+        "partnership_leads": partnership_leads
+    }
+
+@api_router.put("/leads/{lead_id}")
+async def update_lead(lead_id: str, lead: LeadUpdate, admin: dict = Depends(require_admin)):
+    update_data = {k: v for k, v in lead.model_dump().items() if v is not None}
+    if not update_data:
+        raise HTTPException(status_code=400, detail="No data to update")
+    
+    update_data["updated_at"] = datetime.now(timezone.utc).isoformat()
+    result = await db.leads.update_one({"id": lead_id}, {"$set": update_data})
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Lead not found")
+    
+    return await db.leads.find_one({"id": lead_id}, {"_id": 0})
+
+@api_router.delete("/leads/{lead_id}")
+async def delete_lead(lead_id: str, admin: dict = Depends(require_admin)):
+    result = await db.leads.delete_one({"id": lead_id})
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Lead not found")
+    return {"message": "Lead deleted"}
+
+@api_router.get("/leads/export-excel")
+async def export_leads_excel(
+    status: Optional[str] = None,
+    interested_in: Optional[str] = None,
+    admin: dict = Depends(require_admin)
+):
+    query = {}
+    if status:
+        query["status"] = status
+    if interested_in:
+        query["interested_in"] = interested_in
+    
+    leads = await db.leads.find(query, {"_id": 0}).to_list(10000)
+    
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Leads Report"
+    
+    headers = ["Name", "Mobile", "City", "Interested In", "Status", "Source", "Created At"]
+    ws.append(headers)
+    
+    for l in leads:
+        ws.append([
+            l.get("name", ""),
+            l.get("mobile", ""),
+            l.get("city", ""),
+            l.get("interested_in", ""),
+            l.get("status", ""),
+            l.get("source", ""),
+            l.get("created_at", "")
+        ])
+    
+    output = BytesIO()
+    wb.save(output)
+    output.seek(0)
+    
+    return StreamingResponse(
+        output,
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={"Content-Disposition": f"attachment; filename=leads_report_{datetime.now().strftime('%Y%m%d')}.xlsx"}
     )
 
 # ==================== SEED DATA ====================

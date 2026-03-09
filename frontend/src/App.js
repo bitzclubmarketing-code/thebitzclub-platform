@@ -6,6 +6,7 @@ import { ProtectedRoute, PublicRoute } from '@/components/ProtectedRoute';
 
 // Public Pages
 import HomePage from '@/pages/HomePage';
+import LandingPage from '@/pages/LandingPage';
 import LoginPage from '@/pages/LoginPage';
 import RegisterPage from '@/pages/RegisterPage';
 import VerifyMemberPage from '@/pages/VerifyMemberPage';
@@ -17,6 +18,7 @@ import MemberDashboard from '@/pages/member/MemberDashboard';
 import AdminLayout from '@/pages/admin/AdminLayout';
 import AdminDashboard from '@/pages/admin/AdminDashboard';
 import MembersPage from '@/pages/admin/MembersPage';
+import LeadsPage from '@/pages/admin/LeadsPage';
 import PlansPage from '@/pages/admin/PlansPage';
 import PartnersPage from '@/pages/admin/PartnersPage';
 import TelecallersPage from '@/pages/admin/TelecallersPage';
@@ -35,6 +37,8 @@ function App() {
           <Routes>
             {/* Public Routes */}
             <Route path="/" element={<HomePage />} />
+            <Route path="/landing" element={<LandingPage />} />
+            <Route path="/social" element={<LandingPage />} />
             <Route path="/login" element={
               <PublicRoute>
                 <LoginPage />
@@ -62,6 +66,7 @@ function App() {
             }>
               <Route index element={<AdminDashboard />} />
               <Route path="members" element={<MembersPage />} />
+              <Route path="leads" element={<LeadsPage />} />
               <Route path="plans" element={<PlansPage />} />
               <Route path="partners" element={<PartnersPage />} />
               <Route path="telecallers" element={<TelecallersPage />} />

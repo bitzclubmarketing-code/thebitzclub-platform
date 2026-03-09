@@ -181,7 +181,7 @@ class BITZClubAPITester:
         return False
 
     def test_members_endpoints(self):
-        """Test members CRUD operations"""
+        """Test members CRUD operations with referral ID"""
         print("\n" + "="*50)
         print("TESTING MEMBERS ENDPOINTS")
         print("="*50)
@@ -201,17 +201,18 @@ class BITZClubAPITester:
             
         plan_id = plans_data[0]['id']
         
-        # Create a new member
+        # Create a new member with referral ID
         new_member = {
             "name": "Test Member",
             "mobile": f"98765{datetime.now().strftime('%H%M%S')}",  # Unique mobile
             "email": "testmember@example.com",
             "address": "Test Address",
-            "plan_id": plan_id
+            "plan_id": plan_id,
+            "referral_id": "BITZ-E001"  # Test referral ID
         }
         
         success, member_response = self.run_test(
-            "Create Member",
+            "Create Member with Referral ID",
             "POST",
             "api/members",
             200,
@@ -222,9 +223,13 @@ class BITZClubAPITester:
             member_id = member_response['id']
             print(f"   ✨ Created member with ID: {member_id}")
             print(f"   🔑 Temp password: {member_response.get('temporary_password', 'N/A')}")
+            print(f"   📋 Referral ID: {member_response.get('referral_id', 'N/A')}")
             
             # Get specific member
             self.run_test(f"Get Member {member_id}", "GET", f"api/members/{member_id}", 200)
+            
+            # Test referral ID filtering
+            self.run_test("Filter Members by Referral ID", "GET", "api/members?referral_id=BITZ-E", 200)
             
             return True
         return False
@@ -265,7 +270,7 @@ class BITZClubAPITester:
         return False
 
     def test_reports_endpoints(self):
-        """Test reports endpoints"""
+        """Test reports endpoints with referral ID filtering"""
         print("\n" + "="*50)
         print("TESTING REPORTS ENDPOINTS")
         print("="*50)
@@ -278,9 +283,15 @@ class BITZClubAPITester:
             print(f"   📊 Total Revenue: ₹{stats_data.get('total_revenue', 0)}")
             
         # Get members report
-        self.run_test("Members Report", "GET", "api/reports/members", 200)
+        success1 = self.run_test("Members Report", "GET", "api/reports/members", 200)[0]
         
-        return success
+        # Test referral ID filter in reports
+        success2 = self.run_test("Members Report with Referral Filter", "GET", "api/reports/members?referral_id=BITZ-E", 200)[0]
+        
+        # Test Excel export with referral filter (just check status, won't download)
+        success3 = self.run_test("Excel Export with Referral Filter", "GET", "api/reports/export-excel?referral_id=BITZ-E", 200)[0]
+        
+        return success and success1 and success2 and success3
 
     def test_public_endpoints(self):
         """Test public endpoints that don't require auth"""
@@ -335,6 +346,60 @@ class BITZClubAPITester:
         self.token = saved_token
         return success1 and success2 and success3
 
+    def test_leads_endpoints(self):
+        """Test leads endpoints for landing page functionality"""
+        print("\n" + "="*50)
+        print("TESTING LEADS ENDPOINTS")
+        print("="*50)
+        
+        # Test lead creation (public endpoint)
+        saved_token = self.token
+        self.token = None  # Test public endpoint
+        
+        new_lead = {
+            "name": "Test Lead",
+            "mobile": f"88888{datetime.now().strftime('%H%M%S')}",
+            "city": "Test City",
+            "interested_in": "membership",
+            "source": "landing_page"
+        }
+        
+        success, lead_response = self.run_test(
+            "Create Lead (Public)",
+            "POST",
+            "api/leads",
+            200,
+            data=new_lead
+        )
+        
+        lead_created = success and 'id' in lead_response
+        if lead_created:
+            print(f"   ✨ Created lead with message: {lead_response.get('message', 'N/A')}")
+        
+        # Restore admin token
+        self.token = saved_token
+        
+        # Test admin lead endpoints
+        success1, leads_data = self.run_test("Get All Leads (Admin)", "GET", "api/leads", 200)
+        if success1:
+            print(f"   📋 Found {leads_data.get('total', 0)} leads")
+            
+        # Test lead stats
+        success2, stats_data = self.run_test("Get Lead Stats", "GET", "api/leads/stats", 200)
+        if success2:
+            print(f"   📊 New Leads: {stats_data.get('new', 0)}")
+            print(f"   📊 Membership Interest: {stats_data.get('membership_leads', 0)}")
+            print(f"   📊 Partnership Interest: {stats_data.get('partnership_leads', 0)}")
+        
+        # Test lead filtering
+        success3 = self.run_test("Filter Leads by Interest", "GET", "api/leads?interested_in=membership", 200)[0]
+        success4 = self.run_test("Filter Leads by Status", "GET", "api/leads?status=new", 200)[0]
+        
+        # Test leads Excel export (just check status)
+        success5 = self.run_test("Export Leads to Excel", "GET", "api/leads/export-excel", 200)[0]
+        
+        return lead_created and success1 and success2 and success3 and success4 and success5
+
     def run_all_tests(self):
         """Run all tests"""
         print("🚀 Starting BITZ Club API Tests")
@@ -351,6 +416,7 @@ class BITZClubAPITester:
             ("Partners", self.test_partners_endpoints),
             ("Members", self.test_members_endpoints),
             ("Telecallers", self.test_telecallers_endpoints),
+            ("Leads", self.test_leads_endpoints),
             ("Reports", self.test_reports_endpoints),
             ("Public Endpoints", self.test_public_endpoints)
         ]

@@ -21,7 +21,8 @@ const ReportsPage = () => {
   const [filters, setFilters] = useState({
     start_date: '',
     end_date: '',
-    status: ''
+    status: '',
+    referral_id: ''
   });
   const [stats, setStats] = useState(null);
 
@@ -36,6 +37,7 @@ const ReportsPage = () => {
       if (filters.start_date) params.append('start_date', filters.start_date);
       if (filters.end_date) params.append('end_date', filters.end_date);
       if (filters.status) params.append('status', filters.status);
+      if (filters.referral_id) params.append('referral_id', filters.referral_id);
       
       const response = await axios.get(`${API}/reports/members?${params}`, {
         headers: { Authorization: `Bearer ${token}` }
@@ -66,6 +68,7 @@ const ReportsPage = () => {
       if (filters.start_date) params.append('start_date', filters.start_date);
       if (filters.end_date) params.append('end_date', filters.end_date);
       if (filters.status) params.append('status', filters.status);
+      if (filters.referral_id) params.append('referral_id', filters.referral_id);
       
       const response = await axios.get(`${API}/reports/export-excel?${params}`, {
         headers: { Authorization: `Bearer ${token}` },
@@ -250,6 +253,17 @@ const ReportsPage = () => {
               </SelectContent>
             </Select>
           </div>
+          <div>
+            <label className="input-label">Referral ID</label>
+            <input
+              type="text"
+              placeholder="Filter by referral..."
+              value={filters.referral_id}
+              onChange={(e) => setFilters({ ...filters, referral_id: e.target.value })}
+              className="input-gold bg-[#0F0F10]"
+              data-testid="filter-referral-id"
+            />
+          </div>
         </div>
       </div>
 
@@ -273,6 +287,7 @@ const ReportsPage = () => {
                   <th className="text-left py-3 px-4 text-xs uppercase tracking-wider text-gray-400 font-medium">Name</th>
                   <th className="text-left py-3 px-4 text-xs uppercase tracking-wider text-gray-400 font-medium">Mobile</th>
                   <th className="text-left py-3 px-4 text-xs uppercase tracking-wider text-gray-400 font-medium">Plan</th>
+                  <th className="text-left py-3 px-4 text-xs uppercase tracking-wider text-gray-400 font-medium">Referral ID</th>
                   <th className="text-left py-3 px-4 text-xs uppercase tracking-wider text-gray-400 font-medium">Status</th>
                   <th className="text-left py-3 px-4 text-xs uppercase tracking-wider text-gray-400 font-medium">Created</th>
                 </tr>
@@ -284,6 +299,7 @@ const ReportsPage = () => {
                     <td className="py-3 px-4 text-white">{member.name}</td>
                     <td className="py-3 px-4 text-gray-400">{member.mobile}</td>
                     <td className="py-3 px-4 text-gray-400">{member.plan_name}</td>
+                    <td className="py-3 px-4 font-mono text-gray-300 text-sm">{member.referral_id || '-'}</td>
                     <td className="py-3 px-4">
                       <span className={`px-2 py-1 rounded text-xs uppercase ${getStatusBadge(member.status)}`}>
                         {member.status}

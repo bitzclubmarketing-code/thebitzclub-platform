@@ -29,6 +29,7 @@ const MembersPage = () => {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
+  const [referralFilter, setReferralFilter] = useState('');
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [modalOpen, setModalOpen] = useState(false);
@@ -38,20 +39,22 @@ const MembersPage = () => {
     mobile: '',
     email: '',
     plan_id: '',
-    address: ''
+    address: '',
+    referral_id: ''
   });
 
   useEffect(() => {
     fetchMembers();
     fetchPlans();
     fetchTelecallers();
-  }, [page, search, statusFilter]);
+  }, [page, search, statusFilter, referralFilter]);
 
   const fetchMembers = async () => {
     try {
       const params = new URLSearchParams({ page, limit: 10 });
       if (search) params.append('search', search);
       if (statusFilter) params.append('status', statusFilter);
+      if (referralFilter) params.append('referral_id', referralFilter);
       
       const response = await axios.get(`${API}/members?${params}`, {
         headers: { Authorization: `Bearer ${token}` }
@@ -127,14 +130,15 @@ const MembersPage = () => {
       mobile: member.mobile,
       email: member.email || '',
       plan_id: member.plan_id,
-      address: member.address || ''
+      address: member.address || '',
+      referral_id: member.referral_id || ''
     });
     setModalOpen(true);
   };
 
   const resetForm = () => {
     setSelectedMember(null);
-    setFormData({ name: '', mobile: '', email: '', plan_id: '', address: '' });
+    setFormData({ name: '', mobile: '', email: '', plan_id: '', address: '', referral_id: '' });
   };
 
   const getStatusBadge = (status) => {
@@ -176,13 +180,21 @@ const MembersPage = () => {
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
             <input
               type="text"
-              placeholder="Search by name, mobile, or member ID..."
+              placeholder="Search by name, mobile, member ID, or referral ID..."
               value={search}
               onChange={(e) => { setSearch(e.target.value); setPage(1); }}
               className="input-gold pl-10 bg-[#0F0F10]"
               data-testid="search-members"
             />
           </div>
+          <input
+            type="text"
+            placeholder="Filter by Referral ID"
+            value={referralFilter}
+            onChange={(e) => { setReferralFilter(e.target.value); setPage(1); }}
+            className="input-gold w-48 bg-[#0F0F10]"
+            data-testid="filter-referral"
+          />
           <Select value={statusFilter || "all"} onValueChange={(v) => { setStatusFilter(v === "all" ? "" : v); setPage(1); }}>
             <SelectTrigger className="w-40 bg-[#0F0F10] border-white/10">
               <SelectValue placeholder="All Status" />
@@ -216,6 +228,7 @@ const MembersPage = () => {
                   <th className="text-left py-4 px-4 text-xs uppercase tracking-wider text-gray-400 font-medium">Name</th>
                   <th className="text-left py-4 px-4 text-xs uppercase tracking-wider text-gray-400 font-medium">Mobile</th>
                   <th className="text-left py-4 px-4 text-xs uppercase tracking-wider text-gray-400 font-medium">Plan</th>
+                  <th className="text-left py-4 px-4 text-xs uppercase tracking-wider text-gray-400 font-medium">Referral ID</th>
                   <th className="text-left py-4 px-4 text-xs uppercase tracking-wider text-gray-400 font-medium">Status</th>
                   <th className="text-left py-4 px-4 text-xs uppercase tracking-wider text-gray-400 font-medium">Valid Till</th>
                   <th className="text-right py-4 px-4 text-xs uppercase tracking-wider text-gray-400 font-medium">Actions</th>
@@ -230,6 +243,9 @@ const MembersPage = () => {
                     <td className="py-4 px-4 text-white">{member.name}</td>
                     <td className="py-4 px-4 text-gray-400">{member.mobile}</td>
                     <td className="py-4 px-4 text-gray-400">{member.plan_name}</td>
+                    <td className="py-4 px-4">
+                      <span className="font-mono text-xs text-gray-300">{member.referral_id || '-'}</span>
+                    </td>
                     <td className="py-4 px-4">
                       <span className={`px-2 py-1 rounded text-xs uppercase ${getStatusBadge(member.status)}`}>
                         {member.status}
@@ -346,6 +362,18 @@ const MembersPage = () => {
                   ))}
                 </SelectContent>
               </Select>
+            </div>
+            <div>
+              <label className="input-label">Referral ID</label>
+              <input
+                type="text"
+                value={formData.referral_id}
+                onChange={(e) => setFormData({ ...formData, referral_id: e.target.value })}
+                className="input-gold"
+                placeholder="e.g., BITZ-E001 or BITZ-A001"
+                data-testid="member-referral-input"
+              />
+              <p className="text-xs text-gray-500 mt-1">Employee (BITZ-E***) or Associate (BITZ-A***)</p>
             </div>
             <div>
               <label className="input-label">Address</label>

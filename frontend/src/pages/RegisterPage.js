@@ -15,6 +15,7 @@ const RegisterPage = () => {
     email: '',
     password: '',
     confirmPassword: '',
+    referralId: '',
     planId: searchParams.get('plan') || ''
   });
   const [showPassword, setShowPassword] = useState(false);
@@ -159,6 +160,20 @@ const RegisterPage = () => {
                   className="input-gold"
                   data-testid="register-email"
                 />
+              </div>
+
+              <div>
+                <label className="input-label">Referral ID (Optional)</label>
+                <input
+                  type="text"
+                  name="referralId"
+                  value={formData.referralId}
+                  onChange={handleChange}
+                  placeholder="e.g., BITZ-E001 or BITZ-A001"
+                  className="input-gold"
+                  data-testid="register-referral-id"
+                />
+                <p className="text-xs text-gray-500 mt-1">Employee ID (BITZ-E***) or Associate ID (BITZ-A***)</p>
               </div>
 
               <div>
