@@ -1,53 +1,96 @@
-import { useEffect } from "react";
-import "@/App.css";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
-import axios from "axios";
+import React from 'react';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { Toaster } from 'sonner';
+import { AuthProvider } from '@/context/AuthContext';
+import { ProtectedRoute, PublicRoute } from '@/components/ProtectedRoute';
 
-const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
-const API = `${BACKEND_URL}/api`;
+// Public Pages
+import HomePage from '@/pages/HomePage';
+import LoginPage from '@/pages/LoginPage';
+import RegisterPage from '@/pages/RegisterPage';
+import VerifyMemberPage from '@/pages/VerifyMemberPage';
 
-const Home = () => {
-  const helloWorldApi = async () => {
-    try {
-      const response = await axios.get(`${API}/`);
-      console.log(response.data.message);
-    } catch (e) {
-      console.error(e, `errored out requesting / api`);
-    }
-  };
+// Member Pages
+import MemberDashboard from '@/pages/member/MemberDashboard';
 
-  useEffect(() => {
-    helloWorldApi();
-  }, []);
+// Admin Pages
+import AdminLayout from '@/pages/admin/AdminLayout';
+import AdminDashboard from '@/pages/admin/AdminDashboard';
+import MembersPage from '@/pages/admin/MembersPage';
+import PlansPage from '@/pages/admin/PlansPage';
+import PartnersPage from '@/pages/admin/PartnersPage';
+import TelecallersPage from '@/pages/admin/TelecallersPage';
+import ReportsPage from '@/pages/admin/ReportsPage';
 
-  return (
-    <div>
-      <header className="App-header">
-        <a
-          className="App-link"
-          href="https://emergent.sh"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <img src="https://avatars.githubusercontent.com/in/1201222?s=120&u=2686cf91179bbafbc7a71bfbc43004cf9ae1acea&v=4" />
-        </a>
-        <p className="mt-5">Building something incredible ~!</p>
-      </header>
-    </div>
-  );
-};
+// Telecaller Pages
+import TelecallerDashboard from '@/pages/telecaller/TelecallerDashboard';
+
+import '@/App.css';
 
 function App() {
   return (
-    <div className="App">
+    <AuthProvider>
       <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<Home />}>
-            <Route index element={<Home />} />
-          </Route>
-        </Routes>
+        <div className="App">
+          <Routes>
+            {/* Public Routes */}
+            <Route path="/" element={<HomePage />} />
+            <Route path="/login" element={
+              <PublicRoute>
+                <LoginPage />
+              </PublicRoute>
+            } />
+            <Route path="/register" element={
+              <PublicRoute>
+                <RegisterPage />
+              </PublicRoute>
+            } />
+            <Route path="/verify/:memberId" element={<VerifyMemberPage />} />
+
+            {/* Member Routes */}
+            <Route path="/member" element={
+              <ProtectedRoute allowedRoles={['member']}>
+                <MemberDashboard />
+              </ProtectedRoute>
+            } />
+
+            {/* Admin Routes */}
+            <Route path="/admin" element={
+              <ProtectedRoute allowedRoles={['super_admin']}>
+                <AdminLayout />
+              </ProtectedRoute>
+            }>
+              <Route index element={<AdminDashboard />} />
+              <Route path="members" element={<MembersPage />} />
+              <Route path="plans" element={<PlansPage />} />
+              <Route path="partners" element={<PartnersPage />} />
+              <Route path="telecallers" element={<TelecallersPage />} />
+              <Route path="reports" element={<ReportsPage />} />
+            </Route>
+
+            {/* Telecaller Routes */}
+            <Route path="/telecaller" element={
+              <ProtectedRoute allowedRoles={['telecaller']}>
+                <TelecallerDashboard />
+              </ProtectedRoute>
+            } />
+
+            {/* Fallback */}
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Routes>
+        </div>
       </BrowserRouter>
-    </div>
+      <Toaster 
+        position="top-right" 
+        toastOptions={{
+          style: {
+            background: '#1A1A1C',
+            border: '1px solid rgba(255,255,255,0.1)',
+            color: '#F5F5F7'
+          }
+        }}
+      />
+    </AuthProvider>
   );
 }
 
