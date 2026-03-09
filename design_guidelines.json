@@ -1,0 +1,201 @@
+{
+  "project_name": "BITZ Club Membership Platform",
+  "design_philosophy": {
+    "identity": "Jewel & Luxury",
+    "core_values": [
+      "Exclusivity",
+      "Timelessness",
+      "Privacy",
+      "Effortless Service"
+    ],
+    "emotional_tone": "The feeling of entering a private lounge. Dark, quiet, expensive, and attentive.",
+    "visual_mood": "Minimalist Grandeur. Deep shadows, metallic highlights, and cinematic lighting."
+  },
+  "themes": {
+    "primary": "dark",
+    "secondary": "light",
+    "strategy": "Dark mode is the default experience. Light mode is a secondary option, primarily for high-glare environments or specific admin preferences."
+  },
+  "colors": {
+    "palette": {
+      "primary": {
+        "name": "Luxury Gold",
+        "hex": "#D4AF37",
+        "variants": {
+          "50": "#F9F5E6",
+          "100": "#F2EACC",
+          "200": "#E6D699",
+          "300": "#D9C166",
+          "400": "#D4AF37",
+          "500": "#B89628",
+          "600": "#8F741F",
+          "700": "#665316",
+          "800": "#3D320D",
+          "900": "#141104"
+        },
+        "usage": "CTAs, Borders, Active States, Key Highlights"
+      },
+      "secondary": {
+        "name": "Obsidian",
+        "hex": "#0F0F10",
+        "variants": {
+          "900": "#000000",
+          "800": "#0F0F10",
+          "700": "#1A1A1C",
+          "600": "#27272A"
+        },
+        "usage": "Backgrounds, Cards, Surfaces"
+      },
+      "accent": {
+        "name": "Velvet Red",
+        "hex": "#800020",
+        "usage": "Error states, 'Urgent' notifications, Heart/Like interactions (used sparingly)"
+      },
+      "neutral": {
+        "text_primary": "#F5F5F7",
+        "text_secondary": "#A1A1AA",
+        "text_tertiary": "#52525B",
+        "border": "#27272A"
+      }
+    },
+    "gradients": {
+      "gold_rush": "linear-gradient(135deg, #D4AF37 0%, #B89628 100%)",
+      "midnight_shimmer": "linear-gradient(180deg, rgba(255,255,255,0.03) 0%, rgba(255,255,255,0) 100%)",
+      "glass_surface": "linear-gradient(120deg, rgba(255,255,255,0.1), rgba(255,255,255,0.02))"
+    }
+  },
+  "typography": {
+    "headings": {
+      "font_family": "Playfair Display, serif",
+      "weights": [
+        "400",
+        "600",
+        "700"
+      ],
+      "usage": "Hero titles, Section headers, Membership Tier names",
+      "letter_spacing": "-0.02em"
+    },
+    "body": {
+      "font_family": "Manrope, sans-serif",
+      "weights": [
+        "300",
+        "400",
+        "500",
+        "600"
+      ],
+      "usage": "UI text, Forms, Data tables, Long form content"
+    },
+    "mono": {
+      "font_family": "JetBrains Mono, monospace",
+      "usage": "Membership IDs, Transaction Codes, QR Code labels"
+    }
+  },
+  "layout_strategy": {
+    "spacing_scale": "Tailwind default but shifted up (p-4 becomes p-6 or p-8)",
+    "container_width": "max-w-7xl",
+    "grid_systems": {
+      "marketing_hero": "Bento Grid (Asymmetric) - Hero image takes 2/3, Quick Actions take 1/3",
+      "dashboard_admin": "High Density Grid - 4 columns, tight gaps (gap-4)",
+      "dashboard_member": "Card Grid - 2 or 3 columns, wide gaps (gap-8), focused on visual cards",
+      "mobile": "Single column, comfortable stacking with p-6 padding"
+    },
+    "z_index_hierarchy": {
+      "toast": 50,
+      "modal": 40,
+      "dropdown": 30,
+      "sticky_nav": 20,
+      "default": 1
+    }
+  },
+  "components": {
+    "buttons": {
+      "primary": "bg-primary text-black font-semibold rounded-none hover:bg-primary/90 transition-all uppercase tracking-widest text-sm px-8 py-3",
+      "secondary": "bg-transparent border border-primary/30 text-primary hover:bg-primary/5 transition-all rounded-none uppercase tracking-widest text-sm px-8 py-3",
+      "ghost": "text-neutral-400 hover:text-white hover:bg-white/5"
+    },
+    "cards": {
+      "default": "bg-secondary-800 border border-white/5 rounded-sm p-6",
+      "glass": "backdrop-blur-xl bg-black/40 border border-white/10 shadow-2xl",
+      "interactive": "hover:border-primary/50 transition-colors duration-300 cursor-pointer group"
+    },
+    "inputs": {
+      "style": "bg-secondary-700 border-b border-white/10 focus:border-primary rounded-none px-0 py-3 transition-colors placeholder:text-neutral-600 focus:ring-0",
+      "label": "text-xs uppercase tracking-wider text-neutral-500 mb-1"
+    },
+    "membership_card": {
+      "aspect_ratio": "credit-card (1.586)",
+      "style": "Glassmorphism with Gold border, dynamic shimmer effect on hover",
+      "content": "Member Name, ID, QR Code, Tier Level (Gold/Platinum), Expiry"
+    }
+  },
+  "visual_enhancers": {
+    "borders": "1px solid rgba(212, 175, 55, 0.2) (Subtle Gold)",
+    "shadows": {
+      "glow": "0 0 20px -5px rgba(212, 175, 55, 0.15)",
+      "depth": "0 20px 40px -10px rgba(0,0,0,0.5)"
+    },
+    "textures": "Subtle noise overlay (opacity 0.03) on all dark backgrounds to prevent banding and add 'film' feel",
+    "animations": {
+      "page_transition": "opacity-0 to opacity-100 duration-500 ease-out",
+      "hover_lift": "transform -translate-y-1 duration-300 ease-out"
+    }
+  },
+  "assets": {
+    "images": {
+      "hero_bg": "https://images.unsplash.com/photo-1691120254965-5158046d3929?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NDk1Nzl8MHwxfHNlYXJjaHw0fHxsdXh1cnklMjBjbHViJTIwaW50ZXJpb3IlMjBkYXJrJTIwbW9vZHl8ZW58MHx8fHwxNzczMDgwNzc5fDA&ixlib=rb-4.1.0&q=85",
+      "lounge_interior": "https://images.unsplash.com/photo-1756981168649-0e3c3c8a32f3?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NDk1Nzl8MHwxfHNlYXJjaHwyfHxsdXh1cnklMjBjbHViJTIwaW50ZXJpb3IlMjBkYXJrJTIwbW9vZHl8ZW58MHx8fHwxNzczMDgwNzc5fDA&ixlib=rb-4.1.0&q=85",
+      "cocktail_lifestyle": "https://images.unsplash.com/photo-1728376336159-9ef10b4a8ffe?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjY2NzN8MHwxfHNlYXJjaHwzfHxwcmVtaXVtJTIwbGlmZXN0eWxlJTIwaGFwcHklMjBwZW9wbGUlMjBjb2NrdGFpbHxlbnwwfHx8fDE3NzMwODA3ODB8MA&ixlib=rb-4.1.0&q=85",
+      "gold_texture": "https://images.unsplash.com/photo-1760172287483-02d382f63a6f?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NDk1Nzh8MHwxfHNlYXJjaHwxfHxnb2xkJTIwdGV4dHVyZSUyMGFic3RyYWN0JTIwYmFja2dyb3VuZHxlbnwwfHx8fDE3NzMwODA3ODJ8MA&ixlib=rb-4.1.0&q=85",
+      "vip_section": "https://images.unsplash.com/photo-1750763533241-7c2beccb9eab?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NDk1Nzl8MHwxfHNlYXJjaHwxfHxsdXh1cnklMjBjbHViJTIwaW50ZXJpb3IlMjBkYXJrJTIwbW9vZHl8ZW58MHx8fHwxNzczMDgwNzc5fDA&ixlib=rb-4.1.0&q=85"
+    },
+    "icons": {
+      "library": "lucide-react",
+      "style": "Stroke width 1.5px (Thin/Elegant)",
+      "preferred": [
+        "Crown",
+        "CreditCard",
+        "Users",
+        "GlassWater",
+        "Calendar",
+        "QrCode",
+        "ShieldCheck"
+      ]
+    }
+  },
+  "accessibility": {
+    "rules": [
+      "Gold text must only be used on very dark backgrounds (contrast ratio > 3:1).",
+      "Interactive elements must have a focus ring (use gold ring-offset-2).",
+      "Do not rely on color alone for status (use icons + text)."
+    ]
+  },
+  "instructions_to_main_agent": {
+    "setup": "Install 'lucide-react', 'framer-motion', 'clsx', 'tailwind-merge' immediately.",
+    "routing": "Use React Router. Public routes: /, /login, /register, /verify/:id. Protected routes: /dashboard/*, /admin/*, /telecaller/*.",
+    "layout_implementation": "Wrap the entire app in a Layout component that handles the Dark Mode context (defaulting to dark).",
+    "dashboard_sidebar": "Create a collapsible sidebar with golden active states. Use a thin gold line on the left of the active item.",
+    "forms": "Use Shadcn Form components but heavily customize them to match the 'Input Style' defined above. Remove rounded corners to standard 0 or sm.",
+    "qr_code": "Use 'react-qr-code' library. Render it inside a white square container with padding to ensure scanability against dark backgrounds."
+  },
+  "UNIVERSAL_GUIDELINES_FOR_MAIN_AGENT": [
+    "You tend to converge toward generic, 'on distribution' outputs. In frontend design, this creates what users call the 'AI slop' aesthetic. Avoid this: make creative, distinctive frontends that surprise and delight.",
+    "Dark colors look good when used independently without gradients. DO NOT use dark colors as gradients",
+    "Don't make generic centered layouts, simplistic gradients, and uniform styling.",
+    "Create depth through layered design elements with z-index hierarchy",
+    "Use glass-morphism effects with backdrop filters (12-24px blur)",
+    "You MUST NOT apply universal transition. Eg: 'transition: all'. This results in breaking transforms. Always add transitions for specific interactive elements like button, input excluding transforms",
+    "You MUST NOT center align the app container, ie do not add '.App { text-align: center; }' in the css file. This disrupts the human natural reading flow of text",
+    "Always use modern button styles like pill-shaped, or sharp button with interaction animations & color relevant to the app style",
+    "NEVER: use AI assistant Emoji characters like 🤖🧠💭💡 etc for icons.",
+    "Every interaction needs micro-animations - hover states, transitions, parallax effects, and entrance animations. Static = dead.",
+    "Use 2-3x more spacing than feels comfortable. Cramped designs look cheap.",
+    "Subtle grain textures, noise overlays, custom cursors, selection states, and loading animations: separates good from extraordinary.",
+    "Main agent relies on these image URLs. Missing categories (especially sponsor logos) = main agent will use placeholder text which is FORBIDDEN",
+    "Prioritize using pre-existing components from src/components/ui when applicable",
+    "Create new components that match the style and conventions of existing components when needed",
+    "Examine existing components to understand the project's component patterns before creating new ones",
+    "Components MUST use named exports (export const ComponentName = ...)",
+    "Pages MUST use default exports (export default function PageName() {...})",
+    "Use 'sonner' for toasts"
+  ]
+}
