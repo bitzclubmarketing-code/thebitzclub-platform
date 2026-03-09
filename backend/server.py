@@ -229,6 +229,14 @@ async def require_admin_or_telecaller(current_user: dict = Depends(get_current_u
         raise HTTPException(status_code=403, detail="Admin or Telecaller access required")
     return current_user
 
+# ==================== EMAIL CONFIGURATION ====================
+
+EMAIL_CONFIG = {
+    "LEADS_EMAIL": "leads@bitzclub.com",
+    "ADMIN_EMAIL": "admin@bitzclub.com",
+    "FROM_EMAIL": os.environ.get("SENDER_EMAIL", "noreply@bitzclub.com")
+}
+
 # ==================== MOCKED SERVICES ====================
 
 class MockedPaymentService:
@@ -258,26 +266,218 @@ class MockedPaymentService:
         }
 
 class MockedEmailService:
-    """Mocked SendGrid Service"""
+    """Mocked SendGrid Service - Ready for real integration"""
+    
     @staticmethod
-    async def send_email(to_email: str, subject: str, content: str) -> bool:
-        logger.info(f"[MOCKED EMAIL] To: {to_email}, Subject: {subject}")
+    async def send_email(to_email: str, subject: str, html_content: str) -> bool:
+        """
+        Send email using SendGrid (currently mocked).
+        When SENDGRID_API_KEY is configured with a real key, this will send actual emails.
+        """
+        logger.info(f"[EMAIL] To: {to_email}")
+        logger.info(f"[EMAIL] Subject: {subject}")
+        logger.info(f"[EMAIL] Content Preview: {html_content[:200]}...")
+        
+        # TODO: When real SendGrid key is added, uncomment this:
+        # import sendgrid
+        # from sendgrid.helpers.mail import Mail
+        # sg = sendgrid.SendGridAPIClient(api_key=os.environ.get('SENDGRID_API_KEY'))
+        # message = Mail(
+        #     from_email=EMAIL_CONFIG['FROM_EMAIL'],
+        #     to_emails=to_email,
+        #     subject=subject,
+        #     html_content=html_content
+        # )
+        # response = sg.send(message)
+        # return response.status_code == 202
+        
         return True
     
     @staticmethod
-    async def send_welcome_email(member: dict) -> bool:
+    async def send_lead_notification(lead: dict) -> bool:
+        """Send lead notification to leads@bitzclub.com"""
+        subject = f"New Lead Enquiry: {lead['name']} - {lead['interested_in'].title()}"
+        
+        html_content = f"""
+        <html>
+        <body style="font-family: Arial, sans-serif; padding: 20px; background-color: #f5f5f5;">
+            <div style="max-width: 600px; margin: 0 auto; background: white; padding: 30px; border-radius: 10px;">
+                <div style="text-align: center; margin-bottom: 30px;">
+                    <h1 style="color: #D4AF37; margin: 0;">BITZ Club</h1>
+                    <p style="color: #666; margin-top: 5px;">New Lead Enquiry</p>
+                </div>
+                
+                <div style="background: #f9f9f9; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
+                    <h2 style="color: #333; margin-top: 0; font-size: 18px;">Lead Details</h2>
+                    <table style="width: 100%; border-collapse: collapse;">
+                        <tr>
+                            <td style="padding: 10px 0; border-bottom: 1px solid #eee; color: #666; width: 40%;">Name</td>
+                            <td style="padding: 10px 0; border-bottom: 1px solid #eee; color: #333; font-weight: bold;">{lead['name']}</td>
+                        </tr>
+                        <tr>
+                            <td style="padding: 10px 0; border-bottom: 1px solid #eee; color: #666;">Mobile Number</td>
+                            <td style="padding: 10px 0; border-bottom: 1px solid #eee; color: #333; font-weight: bold;">{lead['mobile']}</td>
+                        </tr>
+                        <tr>
+                            <td style="padding: 10px 0; border-bottom: 1px solid #eee; color: #666;">City</td>
+                            <td style="padding: 10px 0; border-bottom: 1px solid #eee; color: #333; font-weight: bold;">{lead['city']}</td>
+                        </tr>
+                        <tr>
+                            <td style="padding: 10px 0; color: #666;">Interested In</td>
+                            <td style="padding: 10px 0; color: #D4AF37; font-weight: bold; text-transform: uppercase;">{lead['interested_in']}</td>
+                        </tr>
+                    </table>
+                </div>
+                
+                <div style="background: #D4AF37; color: #000; padding: 15px; border-radius: 8px; text-align: center;">
+                    <p style="margin: 0; font-weight: bold;">Source: {lead.get('source', 'Landing Page')}</p>
+                    <p style="margin: 5px 0 0 0; font-size: 12px;">Submitted on {datetime.now().strftime('%d %B %Y at %I:%M %p')}</p>
+                </div>
+                
+                <div style="margin-top: 20px; text-align: center; color: #999; font-size: 12px;">
+                    <p>This lead has been saved in your Admin Dashboard</p>
+                    <p>Please follow up within 24 hours for best conversion</p>
+                </div>
+            </div>
+        </body>
+        </html>
+        """
+        
         return await MockedEmailService.send_email(
-            member.get("email", ""),
-            "Welcome to BITZ Club!",
-            f"Dear {member['name']}, your membership ID is {member['member_id']}"
+            EMAIL_CONFIG['LEADS_EMAIL'],
+            subject,
+            html_content
         )
     
     @staticmethod
-    async def send_payment_receipt(member: dict, payment: dict) -> bool:
+    async def send_membership_notification(member: dict, plan: dict) -> bool:
+        """Send membership registration notification to admin@bitzclub.com"""
+        subject = f"New Membership Registration: {member['name']} - {plan['name']} Plan"
+        
+        join_date = datetime.now().strftime('%d %B %Y')
+        referral_id = member.get('referral_id', 'N/A') or 'N/A'
+        
+        html_content = f"""
+        <html>
+        <body style="font-family: Arial, sans-serif; padding: 20px; background-color: #f5f5f5;">
+            <div style="max-width: 600px; margin: 0 auto; background: white; padding: 30px; border-radius: 10px;">
+                <div style="text-align: center; margin-bottom: 30px;">
+                    <h1 style="color: #D4AF37; margin: 0;">BITZ Club</h1>
+                    <p style="color: #666; margin-top: 5px;">New Membership Registration</p>
+                </div>
+                
+                <div style="background: linear-gradient(135deg, #D4AF37 0%, #8F741F 100%); color: white; padding: 20px; border-radius: 8px; margin-bottom: 20px; text-align: center;">
+                    <h2 style="margin: 0; font-size: 24px;">{plan['name']} Membership</h2>
+                    <p style="margin: 5px 0 0 0; opacity: 0.9;">₹{plan['price']:,.0f} / {plan['duration_months']} months</p>
+                </div>
+                
+                <div style="background: #f9f9f9; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
+                    <h3 style="color: #333; margin-top: 0; font-size: 16px;">Member Details</h3>
+                    <table style="width: 100%; border-collapse: collapse;">
+                        <tr>
+                            <td style="padding: 10px 0; border-bottom: 1px solid #eee; color: #666; width: 40%;">Member Name</td>
+                            <td style="padding: 10px 0; border-bottom: 1px solid #eee; color: #333; font-weight: bold;">{member['name']}</td>
+                        </tr>
+                        <tr>
+                            <td style="padding: 10px 0; border-bottom: 1px solid #eee; color: #666;">Membership ID</td>
+                            <td style="padding: 10px 0; border-bottom: 1px solid #eee; color: #D4AF37; font-weight: bold; font-family: monospace;">{member['member_id']}</td>
+                        </tr>
+                        <tr>
+                            <td style="padding: 10px 0; border-bottom: 1px solid #eee; color: #666;">Membership Plan</td>
+                            <td style="padding: 10px 0; border-bottom: 1px solid #eee; color: #333; font-weight: bold;">{plan['name']}</td>
+                        </tr>
+                        <tr>
+                            <td style="padding: 10px 0; border-bottom: 1px solid #eee; color: #666;">Join Date</td>
+                            <td style="padding: 10px 0; border-bottom: 1px solid #eee; color: #333; font-weight: bold;">{join_date}</td>
+                        </tr>
+                        <tr>
+                            <td style="padding: 10px 0; border-bottom: 1px solid #eee; color: #666;">Referral ID</td>
+                            <td style="padding: 10px 0; border-bottom: 1px solid #eee; color: #333; font-weight: bold;">{referral_id}</td>
+                        </tr>
+                        <tr>
+                            <td style="padding: 10px 0; border-bottom: 1px solid #eee; color: #666;">Mobile</td>
+                            <td style="padding: 10px 0; border-bottom: 1px solid #eee; color: #333;">{member['mobile']}</td>
+                        </tr>
+                        <tr>
+                            <td style="padding: 10px 0; color: #666;">Email</td>
+                            <td style="padding: 10px 0; color: #333;">{member.get('email', 'N/A') or 'N/A'}</td>
+                        </tr>
+                    </table>
+                </div>
+                
+                <div style="background: #e8f5e9; border: 1px solid #4caf50; padding: 15px; border-radius: 8px; text-align: center;">
+                    <p style="margin: 0; color: #2e7d32; font-weight: bold;">Status: Pending Payment</p>
+                    <p style="margin: 5px 0 0 0; color: #666; font-size: 12px;">Member details saved in Admin Dashboard</p>
+                </div>
+                
+                <div style="margin-top: 20px; text-align: center; color: #999; font-size: 12px;">
+                    <p>Registration completed on {datetime.now().strftime('%d %B %Y at %I:%M %p')}</p>
+                </div>
+            </div>
+        </body>
+        </html>
+        """
+        
         return await MockedEmailService.send_email(
-            member.get("email", ""),
+            EMAIL_CONFIG['ADMIN_EMAIL'],
+            subject,
+            html_content
+        )
+    
+    @staticmethod
+    async def send_welcome_email(member: dict) -> bool:
+        """Send welcome email to the new member"""
+        subject = f"Welcome to BITZ Club - Your Membership ID: {member['member_id']}"
+        
+        html_content = f"""
+        <html>
+        <body style="font-family: Arial, sans-serif; padding: 20px; background-color: #f5f5f5;">
+            <div style="max-width: 600px; margin: 0 auto; background: #0F0F10; padding: 30px; border-radius: 10px; color: white;">
+                <div style="text-align: center; margin-bottom: 30px;">
+                    <h1 style="color: #D4AF37; margin: 0;">Welcome to BITZ Club</h1>
+                    <p style="color: #999; margin-top: 5px;">Your Premium Lifestyle Membership</p>
+                </div>
+                
+                <div style="text-align: center; margin-bottom: 30px;">
+                    <p style="font-size: 18px; margin: 0;">Dear <strong>{member['name']}</strong>,</p>
+                    <p style="color: #999;">Thank you for joining the BITZ Club family!</p>
+                </div>
+                
+                <div style="background: linear-gradient(135deg, rgba(212,175,55,0.2) 0%, rgba(0,0,0,0.5) 100%); border: 2px solid #D4AF37; padding: 20px; border-radius: 8px; text-align: center; margin-bottom: 20px;">
+                    <p style="color: #D4AF37; margin: 0; font-size: 12px; text-transform: uppercase; letter-spacing: 2px;">Your Membership ID</p>
+                    <p style="font-size: 28px; font-weight: bold; margin: 10px 0; font-family: monospace; color: #D4AF37;">{member['member_id']}</p>
+                </div>
+                
+                <div style="text-align: center; padding: 20px 0; border-top: 1px solid #333;">
+                    <p style="color: #999; font-size: 14px;">Login to your member dashboard to:</p>
+                    <ul style="list-style: none; padding: 0; color: #ccc;">
+                        <li style="padding: 5px 0;">✓ View your digital membership card</li>
+                        <li style="padding: 5px 0;">✓ Download your QR code</li>
+                        <li style="padding: 5px 0;">✓ Explore partner benefits</li>
+                    </ul>
+                </div>
+                
+                <div style="text-align: center; margin-top: 20px;">
+                    <p style="color: #666; font-size: 12px;">For support, contact us at hello@bitzclub.com</p>
+                </div>
+            </div>
+        </body>
+        </html>
+        """
+        
+        member_email = member.get('email')
+        if member_email:
+            return await MockedEmailService.send_email(member_email, subject, html_content)
+        return True
+    
+    @staticmethod
+    async def send_payment_receipt(member: dict, payment: dict) -> bool:
+        """Send payment receipt to admin and member"""
+        # This would send payment confirmation emails
+        return await MockedEmailService.send_email(
+            member.get("email", EMAIL_CONFIG['ADMIN_EMAIL']),
             "Payment Receipt - BITZ Club",
-            f"Payment of ₹{payment['amount']} received successfully"
+            f"Payment of ₹{payment['amount']} received successfully for {member['name']}"
         )
 
 class MockedSMSService:
@@ -328,10 +528,29 @@ async def register_user(user_data: UserCreate, background_tasks: BackgroundTasks
     
     await db.users.insert_one(user)
     
-    # Send welcome notifications
+    # Send welcome SMS to user
     background_tasks.add_task(MockedSMSService.send_welcome_sms, user)
+    
+    # Send welcome email to user
     if user_data.email:
         background_tasks.add_task(MockedEmailService.send_welcome_email, user)
+    
+    # If this is a member registration, send notification to admin@bitzclub.com
+    if user_data.role == UserRole.MEMBER:
+        # Get default plan for notification (or create a basic notification)
+        default_plan = {"name": "Self-Registered", "price": 0, "duration_months": 0}
+        plans = await db.plans.find({}, {"_id": 0}).to_list(1)
+        if plans:
+            default_plan = plans[0]
+        
+        member_notification = {
+            "member_id": member_id,
+            "name": user_data.name,
+            "mobile": user_data.mobile,
+            "email": user_data.email,
+            "referral_id": None
+        }
+        background_tasks.add_task(MockedEmailService.send_membership_notification, member_notification, default_plan)
     
     token = create_access_token({"sub": user_id, "role": user_data.role})
     user_response = {k: v for k, v in user.items() if k != "password"}
@@ -472,10 +691,15 @@ async def create_member(member: MemberCreate, background_tasks: BackgroundTasks,
     }
     await db.members.insert_one(member_doc)
     
-    # Send notifications
+    # Send welcome SMS to member
     background_tasks.add_task(MockedSMSService.send_welcome_sms, {"mobile": member.mobile, "member_id": member_id})
+    
+    # Send welcome email to member
     if member.email:
         background_tasks.add_task(MockedEmailService.send_welcome_email, {"email": member.email, "name": member.name, "member_id": member_id})
+    
+    # Send membership notification to admin@bitzclub.com
+    background_tasks.add_task(MockedEmailService.send_membership_notification, member_doc, plan)
     
     return {**member_doc, "temporary_password": password, "_id": None}
 
@@ -1040,12 +1264,10 @@ async def create_lead(lead: LeadCreate, background_tasks: BackgroundTasks):
     }
     await db.leads.insert_one(lead_doc)
     
-    # Send notification email (mocked)
+    # Send notification email to leads@bitzclub.com
     background_tasks.add_task(
-        MockedEmailService.send_email,
-        "admin@bitzclub.com",
-        f"New Lead: {lead.name}",
-        f"Name: {lead.name}\nMobile: {lead.mobile}\nCity: {lead.city}\nInterested In: {lead.interested_in}"
+        MockedEmailService.send_lead_notification,
+        lead_doc
     )
     
     return {"message": "Thank you! We will contact you soon.", "id": lead_id}
