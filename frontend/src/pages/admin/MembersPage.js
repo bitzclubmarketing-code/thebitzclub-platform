@@ -40,7 +40,8 @@ const MembersPage = () => {
     email: '',
     plan_id: '',
     address: '',
-    referral_id: ''
+    referral_id: '',
+    date_of_birth: ''
   });
 
   useEffect(() => {
@@ -131,14 +132,15 @@ const MembersPage = () => {
       email: member.email || '',
       plan_id: member.plan_id,
       address: member.address || '',
-      referral_id: member.referral_id || ''
+      referral_id: member.referral_id || '',
+      date_of_birth: member.date_of_birth || ''
     });
     setModalOpen(true);
   };
 
   const resetForm = () => {
     setSelectedMember(null);
-    setFormData({ name: '', mobile: '', email: '', plan_id: '', address: '', referral_id: '' });
+    setFormData({ name: '', mobile: '', email: '', plan_id: '', address: '', referral_id: '', date_of_birth: '' });
   };
 
   const getStatusBadge = (status) => {
@@ -227,6 +229,7 @@ const MembersPage = () => {
                   <th className="text-left py-4 px-4 text-xs uppercase tracking-wider text-gray-400 font-medium">Member ID</th>
                   <th className="text-left py-4 px-4 text-xs uppercase tracking-wider text-gray-400 font-medium">Name</th>
                   <th className="text-left py-4 px-4 text-xs uppercase tracking-wider text-gray-400 font-medium">Mobile</th>
+                  <th className="text-left py-4 px-4 text-xs uppercase tracking-wider text-gray-400 font-medium">DOB</th>
                   <th className="text-left py-4 px-4 text-xs uppercase tracking-wider text-gray-400 font-medium">Plan</th>
                   <th className="text-left py-4 px-4 text-xs uppercase tracking-wider text-gray-400 font-medium">Referral ID</th>
                   <th className="text-left py-4 px-4 text-xs uppercase tracking-wider text-gray-400 font-medium">Status</th>
@@ -242,6 +245,9 @@ const MembersPage = () => {
                     </td>
                     <td className="py-4 px-4 text-white">{member.name}</td>
                     <td className="py-4 px-4 text-gray-400">{member.mobile}</td>
+                    <td className="py-4 px-4 text-gray-400 text-sm">
+                      {member.date_of_birth ? new Date(member.date_of_birth).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : '-'}
+                    </td>
                     <td className="py-4 px-4 text-gray-400">{member.plan_name}</td>
                     <td className="py-4 px-4">
                       <span className="font-mono text-xs text-gray-300">{member.referral_id || '-'}</span>
@@ -343,6 +349,17 @@ const MembersPage = () => {
                 onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                 className="input-gold"
                 data-testid="member-email-input"
+              />
+            </div>
+            <div>
+              <label className="input-label">Date of Birth</label>
+              <input
+                type="date"
+                value={formData.date_of_birth}
+                onChange={(e) => setFormData({ ...formData, date_of_birth: e.target.value })}
+                className="input-gold"
+                max={new Date().toISOString().split('T')[0]}
+                data-testid="member-dob-input"
               />
             </div>
             <div>

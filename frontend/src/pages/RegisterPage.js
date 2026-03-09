@@ -13,6 +13,7 @@ const RegisterPage = () => {
     name: '',
     mobile: '',
     email: '',
+    dateOfBirth: '',
     password: '',
     confirmPassword: '',
     referralId: '',
@@ -70,6 +71,7 @@ const RegisterPage = () => {
         name: formData.name,
         mobile: formData.mobile,
         email: formData.email || null,
+        date_of_birth: formData.dateOfBirth || null,
         password: formData.password,
         role: 'member'
       });
@@ -160,6 +162,20 @@ const RegisterPage = () => {
                   className="input-gold"
                   data-testid="register-email"
                 />
+              </div>
+
+              <div>
+                <label className="input-label">Date of Birth (Optional)</label>
+                <input
+                  type="date"
+                  name="dateOfBirth"
+                  value={formData.dateOfBirth}
+                  onChange={handleChange}
+                  className="input-gold"
+                  max={new Date().toISOString().split('T')[0]}
+                  data-testid="register-dob"
+                />
+                <p className="text-xs text-gray-500 mt-1">We'll send you special birthday offers!</p>
               </div>
 
               <div>

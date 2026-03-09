@@ -112,6 +112,14 @@ Build a membership management web application for BITZ Club with:
 - [x] Landing page fully responsive
 - [x] Member dashboard fully responsive
 
+#### Date of Birth Feature (Latest - March 9, 2026)
+- [x] DOB field in registration form with date picker
+- [x] DOB stored in database with member record
+- [x] DOB displayed in Admin Members table
+- [x] DOB displayed in Reports page
+- [x] DOB included in Excel export
+- [x] Admin can edit DOB in member modal
+
 #### Backend
 - [x] Complete API server with 25+ endpoints
 - [x] Authentication system (JWT)

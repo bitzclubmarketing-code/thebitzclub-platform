@@ -61,6 +61,7 @@ class UserCreate(BaseModel):
     password: str
     name: str
     email: Optional[EmailStr] = None
+    date_of_birth: Optional[str] = None
     role: str = UserRole.MEMBER
 
 class UserLogin(BaseModel):
@@ -521,6 +522,7 @@ async def register_user(user_data: UserCreate, background_tasks: BackgroundTasks
         "password": hashed_password,
         "name": user_data.name,
         "email": user_data.email,
+        "date_of_birth": user_data.date_of_birth,
         "role": user_data.role,
         "is_active": True,
         "created_at": datetime.now(timezone.utc).isoformat()
@@ -1220,7 +1222,7 @@ async def export_members_excel(
     ws.title = "Members Report"
     
     # Headers
-    headers = ["Member ID", "Name", "Mobile", "Email", "Plan", "Status", "Referral ID", "Start Date", "End Date", "Created At"]
+    headers = ["Member ID", "Name", "Mobile", "Email", "Date of Birth", "Plan", "Status", "Referral ID", "Start Date", "End Date", "Created At"]
     ws.append(headers)
     
     # Data
@@ -1230,6 +1232,7 @@ async def export_members_excel(
             m.get("name", ""),
             m.get("mobile", ""),
             m.get("email", ""),
+            m.get("date_of_birth", ""),
             m.get("plan_name", ""),
             m.get("status", ""),
             m.get("referral_id", ""),
@@ -1367,15 +1370,15 @@ async def export_leads_excel(
     headers = ["Name", "Mobile", "City", "Interested In", "Status", "Source", "Created At"]
     ws.append(headers)
     
-    for l in leads:
+    for lead in leads:
         ws.append([
-            l.get("name", ""),
-            l.get("mobile", ""),
-            l.get("city", ""),
-            l.get("interested_in", ""),
-            l.get("status", ""),
-            l.get("source", ""),
-            l.get("created_at", "")
+            lead.get("name", ""),
+            lead.get("mobile", ""),
+            lead.get("city", ""),
+            lead.get("interested_in", ""),
+            lead.get("status", ""),
+            lead.get("source", ""),
+            lead.get("created_at", "")
         ])
     
     output = BytesIO()

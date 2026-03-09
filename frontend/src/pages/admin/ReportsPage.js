@@ -286,6 +286,7 @@ const ReportsPage = () => {
                   <th className="text-left py-3 px-4 text-xs uppercase tracking-wider text-gray-400 font-medium">Member ID</th>
                   <th className="text-left py-3 px-4 text-xs uppercase tracking-wider text-gray-400 font-medium">Name</th>
                   <th className="text-left py-3 px-4 text-xs uppercase tracking-wider text-gray-400 font-medium">Mobile</th>
+                  <th className="text-left py-3 px-4 text-xs uppercase tracking-wider text-gray-400 font-medium">DOB</th>
                   <th className="text-left py-3 px-4 text-xs uppercase tracking-wider text-gray-400 font-medium">Plan</th>
                   <th className="text-left py-3 px-4 text-xs uppercase tracking-wider text-gray-400 font-medium">Referral ID</th>
                   <th className="text-left py-3 px-4 text-xs uppercase tracking-wider text-gray-400 font-medium">Status</th>
@@ -298,6 +299,9 @@ const ReportsPage = () => {
                     <td className="py-3 px-4 font-mono text-[#D4AF37] text-sm">{member.member_id}</td>
                     <td className="py-3 px-4 text-white">{member.name}</td>
                     <td className="py-3 px-4 text-gray-400">{member.mobile}</td>
+                    <td className="py-3 px-4 text-gray-400 text-sm">
+                      {member.date_of_birth ? new Date(member.date_of_birth).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }) : '-'}
+                    </td>
                     <td className="py-3 px-4 text-gray-400">{member.plan_name}</td>
                     <td className="py-3 px-4 font-mono text-gray-300 text-sm">{member.referral_id || '-'}</td>
                     <td className="py-3 px-4">
