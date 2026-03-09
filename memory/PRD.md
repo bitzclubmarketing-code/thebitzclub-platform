@@ -220,8 +220,35 @@ Build a membership management web application for BITZ Club with:
 ## Mocked Integrations Notice
 The following integrations are currently MOCKED and need real API keys for production:
 1. **Razorpay** - Payment processing
-2. **SendGrid** - Email notifications
+2. **SendGrid** - Email notifications (ready for real keys)
 3. **Twilio** - SMS notifications
+
+### Email Configuration (Ready for Production)
+- **Leads Email**: `leads@bitzclub.com` - Receives all landing page enquiries
+- **Admin Email**: `admin@bitzclub.com` - Receives membership registration notifications
+
+**Lead Email Contains:**
+- Name
+- Mobile Number  
+- City
+- Interested In (Membership/Partnership)
+- Source
+- Timestamp
+
+**Membership Email Contains:**
+- Member Name
+- Membership ID
+- Membership Plan
+- Join Date
+- Referral ID
+- Mobile
+- Email
+
+To enable real email sending, add your SendGrid API key to `/app/backend/.env`:
+```
+SENDGRID_API_KEY=your_real_key_here
+SENDER_EMAIL=noreply@bitzclub.com
+```
 
 ## Next Actions
 1. Integrate real Razorpay payment gateway
