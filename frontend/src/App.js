@@ -24,6 +24,7 @@ import PlansPage from '@/pages/admin/PlansPage';
 import PartnersPage from '@/pages/admin/PartnersPage';
 import TelecallersPage from '@/pages/admin/TelecallersPage';
 import ReportsPage from '@/pages/admin/ReportsPage';
+import ContentPage from '@/pages/admin/ContentPage';
 
 // Telecaller Pages
 import TelecallerDashboard from '@/pages/telecaller/TelecallerDashboard';
@@ -75,6 +76,7 @@ function App() {
               <Route path="partners" element={<PartnersPage />} />
               <Route path="telecallers" element={<TelecallersPage />} />
               <Route path="reports" element={<ReportsPage />} />
+              <Route path="content" element={<ContentPage />} />
             </Route>
 
             {/* Telecaller Routes */}

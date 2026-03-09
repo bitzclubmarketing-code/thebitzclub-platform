@@ -183,6 +183,33 @@ class LeadStatus:
     CONVERTED = "converted"
     NOT_INTERESTED = "not_interested"
 
+# Content Management Models
+class ExperienceContent(BaseModel):
+    id: Optional[str] = None
+    title: str
+    image_url: str
+    discount: str
+    description: str
+    icon: str  # Icon name for frontend
+    order: int = 0
+    is_active: bool = True
+
+class GalleryImage(BaseModel):
+    id: Optional[str] = None
+    title: str
+    image_url: str
+    category: str  # e.g., 'hotel', 'dining', 'spa', etc.
+    order: int = 0
+    is_active: bool = True
+
+class WebsiteSettings(BaseModel):
+    hero_title: Optional[str] = None
+    hero_subtitle: Optional[str] = None
+    hero_image: Optional[str] = None
+    contact_phone: Optional[str] = None
+    contact_email: Optional[str] = None
+    contact_address: Optional[str] = None
+
 # ==================== UTILITY FUNCTIONS ====================
 
 def generate_member_id():
@@ -1390,6 +1417,142 @@ async def export_leads_excel(
         media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         headers={"Content-Disposition": f"attachment; filename=leads_report_{datetime.now().strftime('%Y%m%d')}.xlsx"}
     )
+
+# ==================== CONTENT MANAGEMENT ENDPOINTS ====================
+
+@api_router.get("/content/experiences")
+async def get_experiences():
+    """Get all lifestyle experiences for the website"""
+    experiences = await db.experiences.find({}, {"_id": 0}).sort("order", 1).to_list(100)
+    
+    # Return default experiences if none exist
+    if not experiences:
+        default_experiences = [
+            {"id": "exp_hotels", "title": "Luxury Hotels", "image_url": "https://images.unsplash.com/photo-1566073771259-6a8506099945?w=800&q=80", "discount": "Up to 40% Off", "description": "Exclusive rates at 5-star properties", "icon": "Hotel", "order": 1, "is_active": True},
+            {"id": "exp_dining", "title": "Fine Dining", "image_url": "https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=800&q=80", "discount": "Up to 25% Off", "description": "Premium restaurants worldwide", "icon": "UtensilsCrossed", "order": 2, "is_active": True},
+            {"id": "exp_spa", "title": "Spa & Wellness", "image_url": "https://images.unsplash.com/photo-1544161515-4ab6ce6db874?w=800&q=80", "discount": "Up to 35% Off", "description": "Rejuvenate at luxury spas", "icon": "Sparkles", "order": 3, "is_active": True},
+            {"id": "exp_gym", "title": "Premium Gyms", "image_url": "https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=800&q=80", "discount": "Up to 30% Off", "description": "Access elite fitness centers", "icon": "Dumbbell", "order": 4, "is_active": True},
+            {"id": "exp_pool", "title": "Swimming Pool", "image_url": "https://images.unsplash.com/photo-1576013551627-0cc20b96c2a7?w=800&q=80", "discount": "Complimentary", "description": "Premium pool facilities", "icon": "Waves", "order": 5, "is_active": True},
+            {"id": "exp_party", "title": "Party Hall", "image_url": "https://images.unsplash.com/photo-1519671482749-fd09be7ccebf?w=800&q=80", "discount": "Up to 20% Off", "description": "Celebrate in style", "icon": "Music", "order": 6, "is_active": True},
+            {"id": "exp_wedding", "title": "Marriage Venue", "image_url": "https://images.unsplash.com/photo-1519741497674-611481863552?w=800&q=80", "discount": "Special Packages", "description": "Dream wedding destinations", "icon": "PartyPopper", "order": 7, "is_active": True},
+            {"id": "exp_corporate", "title": "Corporate Day Out", "image_url": "https://images.unsplash.com/photo-1511578314322-379afb476865?w=800&q=80", "discount": "Corporate Rates", "description": "Team building at its finest", "icon": "Building2", "order": 8, "is_active": True}
+        ]
+        # Insert default experiences
+        await db.experiences.insert_many(default_experiences)
+        return default_experiences
+    
+    return experiences
+
+@api_router.post("/content/experiences")
+async def create_experience(experience: ExperienceContent, admin: dict = Depends(require_admin)):
+    """Create a new lifestyle experience"""
+    exp_id = f"exp_{uuid.uuid4().hex[:8]}"
+    exp_doc = {
+        "id": exp_id,
+        "title": experience.title,
+        "image_url": experience.image_url,
+        "discount": experience.discount,
+        "description": experience.description,
+        "icon": experience.icon,
+        "order": experience.order,
+        "is_active": experience.is_active,
+        "created_at": datetime.now(timezone.utc).isoformat()
+    }
+    await db.experiences.insert_one(exp_doc)
+    exp_doc.pop("_id", None)
+    return exp_doc
+
+@api_router.put("/content/experiences/{experience_id}")
+async def update_experience(experience_id: str, experience: ExperienceContent, admin: dict = Depends(require_admin)):
+    """Update a lifestyle experience"""
+    update_data = {k: v for k, v in experience.dict().items() if v is not None and k != "id"}
+    update_data["updated_at"] = datetime.now(timezone.utc).isoformat()
+    
+    result = await db.experiences.update_one({"id": experience_id}, {"$set": update_data})
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Experience not found")
+    
+    updated = await db.experiences.find_one({"id": experience_id}, {"_id": 0})
+    return updated
+
+@api_router.delete("/content/experiences/{experience_id}")
+async def delete_experience(experience_id: str, admin: dict = Depends(require_admin)):
+    """Delete a lifestyle experience"""
+    result = await db.experiences.delete_one({"id": experience_id})
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Experience not found")
+    return {"message": "Experience deleted successfully"}
+
+@api_router.get("/content/gallery")
+async def get_gallery_images():
+    """Get all gallery images"""
+    images = await db.gallery.find({}, {"_id": 0}).sort("order", 1).to_list(100)
+    return images
+
+@api_router.post("/content/gallery")
+async def create_gallery_image(image: GalleryImage, admin: dict = Depends(require_admin)):
+    """Add a new gallery image"""
+    img_id = f"img_{uuid.uuid4().hex[:8]}"
+    img_doc = {
+        "id": img_id,
+        "title": image.title,
+        "image_url": image.image_url,
+        "category": image.category,
+        "order": image.order,
+        "is_active": image.is_active,
+        "created_at": datetime.now(timezone.utc).isoformat()
+    }
+    await db.gallery.insert_one(img_doc)
+    img_doc.pop("_id", None)
+    return img_doc
+
+@api_router.put("/content/gallery/{image_id}")
+async def update_gallery_image(image_id: str, image: GalleryImage, admin: dict = Depends(require_admin)):
+    """Update a gallery image"""
+    update_data = {k: v for k, v in image.dict().items() if v is not None and k != "id"}
+    update_data["updated_at"] = datetime.now(timezone.utc).isoformat()
+    
+    result = await db.gallery.update_one({"id": image_id}, {"$set": update_data})
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Image not found")
+    
+    updated = await db.gallery.find_one({"id": image_id}, {"_id": 0})
+    return updated
+
+@api_router.delete("/content/gallery/{image_id}")
+async def delete_gallery_image(image_id: str, admin: dict = Depends(require_admin)):
+    """Delete a gallery image"""
+    result = await db.gallery.delete_one({"id": image_id})
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Image not found")
+    return {"message": "Image deleted successfully"}
+
+@api_router.get("/content/settings")
+async def get_website_settings():
+    """Get website settings"""
+    settings = await db.settings.find_one({"type": "website"}, {"_id": 0})
+    if not settings:
+        # Return default settings
+        return {
+            "hero_title": "Elevate Your Lifestyle",
+            "hero_subtitle": "Join BITZ Club and unlock exclusive access to luxury hotels, fine dining, spas, premium gyms and a world of privileges.",
+            "hero_image": "",
+            "contact_phone": "+91 78129 01118",
+            "contact_email": "hello@bitzclub.com",
+            "contact_address": "Chennai, Tamil Nadu, India"
+        }
+    return settings
+
+@api_router.put("/content/settings")
+async def update_website_settings(settings: WebsiteSettings, admin: dict = Depends(require_admin)):
+    """Update website settings"""
+    update_data = {k: v for k, v in settings.dict().items() if v is not None}
+    update_data["type"] = "website"
+    update_data["updated_at"] = datetime.now(timezone.utc).isoformat()
+    
+    await db.settings.update_one({"type": "website"}, {"$set": update_data}, upsert=True)
+    updated = await db.settings.find_one({"type": "website"}, {"_id": 0})
+    return updated
 
 # ==================== SEED DATA ====================
 

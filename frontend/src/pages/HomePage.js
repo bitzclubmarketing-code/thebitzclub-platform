@@ -27,15 +27,24 @@ import {
 } from 'lucide-react';
 import { API } from '@/context/AuthContext';
 
+// Icon mapping for dynamic content
+const iconMap = {
+  Hotel, UtensilsCrossed, Sparkles, Dumbbell, Waves, Music, PartyPopper, Building2
+};
+
 const HomePage = () => {
   const [plans, setPlans] = useState([]);
   const [partners, setPartners] = useState([]);
+  const [experiences, setExperiences] = useState([]);
+  const [settings, setSettings] = useState({});
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [activeGalleryIndex, setActiveGalleryIndex] = useState(0);
 
   useEffect(() => {
     fetchPlans();
     fetchPartners();
+    fetchExperiences();
+    fetchSettings();
   }, []);
 
   const fetchPlans = async () => {
@@ -56,6 +65,32 @@ const HomePage = () => {
     }
   };
 
+  const fetchExperiences = async () => {
+    try {
+      const response = await axios.get(`${API}/content/experiences`);
+      const activeExperiences = response.data.filter(exp => exp.is_active);
+      setExperiences(activeExperiences);
+    } catch (error) {
+      console.error('Failed to fetch experiences:', error);
+      // Fallback to default experiences
+      setExperiences([
+        { id: '1', title: 'Luxury Hotels', image_url: 'https://images.unsplash.com/photo-1566073771259-6a8506099945?w=800&q=80', discount: 'Up to 40% Off', description: 'Exclusive rates at 5-star properties', icon: 'Hotel' },
+        { id: '2', title: 'Fine Dining', image_url: 'https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=800&q=80', discount: 'Up to 25% Off', description: 'Premium restaurants worldwide', icon: 'UtensilsCrossed' },
+        { id: '3', title: 'Spa & Wellness', image_url: 'https://images.unsplash.com/photo-1544161515-4ab6ce6db874?w=800&q=80', discount: 'Up to 35% Off', description: 'Rejuvenate at luxury spas', icon: 'Sparkles' },
+        { id: '4', title: 'Premium Gyms', image_url: 'https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=800&q=80', discount: 'Up to 30% Off', description: 'Access elite fitness centers', icon: 'Dumbbell' }
+      ]);
+    }
+  };
+
+  const fetchSettings = async () => {
+    try {
+      const response = await axios.get(`${API}/content/settings`);
+      setSettings(response.data);
+    } catch (error) {
+      console.error('Failed to fetch settings:', error);
+    }
+  };
+
   const features = [
     { icon: Crown, title: 'Premium Benefits', description: 'Exclusive access to luxury partners and facilities' },
     { icon: CreditCard, title: 'Digital Membership', description: 'QR-enabled membership card accessible anywhere' },
@@ -63,73 +98,17 @@ const HomePage = () => {
     { icon: ShieldCheck, title: 'Verified Access', description: 'Instant verification at all partner venues' }
   ];
 
-  // Premium lifestyle experiences with high-quality images
-  const lifestyleExperiences = [
-    { 
-      icon: Hotel, 
-      title: 'Luxury Hotels', 
-      image: 'https://images.unsplash.com/photo-1566073771259-6a8506099945?w=800&q=80',
-      desc: 'Exclusive rates at 5-star properties',
-      discount: 'Up to 40% Off'
-    },
-    { 
-      icon: UtensilsCrossed, 
-      title: 'Fine Dining', 
-      image: 'https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=800&q=80',
-      desc: 'Premium restaurants worldwide',
-      discount: 'Up to 25% Off'
-    },
-    { 
-      icon: Sparkles, 
-      title: 'Spa & Wellness', 
-      image: 'https://images.unsplash.com/photo-1544161515-4ab6ce6db874?w=800&q=80',
-      desc: 'Rejuvenate at luxury spas',
-      discount: 'Up to 35% Off'
-    },
-    { 
-      icon: Dumbbell, 
-      title: 'Premium Gyms', 
-      image: 'https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=800&q=80',
-      desc: 'Access elite fitness centers',
-      discount: 'Up to 30% Off'
-    },
-    { 
-      icon: Waves, 
-      title: 'Swimming Pool', 
-      image: 'https://images.unsplash.com/photo-1576013551627-0cc20b96c2a7?w=800&q=80',
-      desc: 'Premium pool facilities',
-      discount: 'Complimentary'
-    },
-    { 
-      icon: Music, 
-      title: 'Party Hall', 
-      image: 'https://images.unsplash.com/photo-1519671482749-fd09be7ccebf?w=800&q=80',
-      desc: 'Celebrate in style',
-      discount: 'Up to 20% Off'
-    },
-    { 
-      icon: PartyPopper, 
-      title: 'Marriage Venue', 
-      image: 'https://images.unsplash.com/photo-1519741497674-611481863552?w=800&q=80',
-      desc: 'Dream wedding destinations',
-      discount: 'Special Packages'
-    },
-    { 
-      icon: Building2, 
-      title: 'Corporate Day Out', 
-      image: 'https://images.unsplash.com/photo-1511578314322-379afb476865?w=800&q=80',
-      desc: 'Team building at its finest',
-      discount: 'Corporate Rates'
-    }
-  ];
-
   // Auto-rotate gallery
   useEffect(() => {
+    if (experiences.length === 0) return;
     const interval = setInterval(() => {
-      setActiveGalleryIndex((prev) => (prev + 1) % lifestyleExperiences.length);
+      setActiveGalleryIndex((prev) => (prev + 1) % experiences.length);
     }, 4000);
     return () => clearInterval(interval);
-  }, []);
+  }, [experiences.length]);
+
+  // Helper to get icon component
+  const getIcon = (iconName) => iconMap[iconName] || Hotel;
 
   return (
     <div className="min-h-screen bg-[#0F0F10]">
@@ -198,9 +177,9 @@ const HomePage = () => {
       <section className="relative min-h-screen flex items-center pt-16">
         {/* Background Image Carousel */}
         <div className="absolute inset-0 overflow-hidden">
-          {lifestyleExperiences.map((exp, index) => (
+          {experiences.map((exp, index) => (
             <div
-              key={exp.title}
+              key={exp.id || exp.title}
               className={`absolute inset-0 transition-opacity duration-1000 ${
                 index === activeGalleryIndex ? 'opacity-100' : 'opacity-0'
               }`}
@@ -208,7 +187,7 @@ const HomePage = () => {
               <div 
                 className="absolute inset-0 bg-cover bg-center"
                 style={{ 
-                  backgroundImage: `url(${exp.image})`,
+                  backgroundImage: `url(${exp.image_url})`,
                   filter: 'brightness(0.25)'
                 }}
               />
@@ -235,12 +214,11 @@ const HomePage = () => {
                 className="text-4xl sm:text-5xl lg:text-7xl font-bold text-white mb-4 sm:mb-6 leading-tight"
                 style={{ fontFamily: 'Playfair Display, serif' }}
               >
-                Elevate Your <br />
-                <span className="text-[#D4AF37]">Lifestyle</span>
+                {settings.hero_title ? settings.hero_title.split(' ').slice(0, 2).join(' ') : 'Elevate Your'} <br />
+                <span className="text-[#D4AF37]">{settings.hero_title ? settings.hero_title.split(' ').slice(2).join(' ') || 'Lifestyle' : 'Lifestyle'}</span>
               </h1>
               <p className="text-base sm:text-xl text-gray-300 mb-6 sm:mb-8 leading-relaxed">
-                Join BITZ Club and unlock exclusive access to luxury hotels, fine dining, 
-                spas, premium gyms and a world of privileges.
+                {settings.hero_subtitle || 'Join BITZ Club and unlock exclusive access to luxury hotels, fine dining, spas, premium gyms and a world of privileges.'}
               </p>
               <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
                 <Link 
@@ -262,51 +240,53 @@ const HomePage = () => {
             </motion.div>
             
             {/* Right - Featured Experience Card (Hidden on mobile, shown on desktop) */}
-            <motion.div
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ duration: 0.8, delay: 0.3 }}
-              className="hidden lg:block"
-            >
-              <div className="relative">
-                <div className="absolute -inset-4 bg-gradient-to-r from-[#D4AF37]/20 to-transparent blur-3xl" />
-                <div className="relative glass-gold rounded-2xl overflow-hidden">
-                  <div className="aspect-[4/3] relative">
-                    <img 
-                      src={lifestyleExperiences[activeGalleryIndex].image}
-                      alt={lifestyleExperiences[activeGalleryIndex].title}
-                      className="w-full h-full object-cover"
-                    />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
-                    <div className="absolute bottom-0 left-0 right-0 p-6">
-                      <div className="flex items-center gap-3 mb-2">
-                        {React.createElement(lifestyleExperiences[activeGalleryIndex].icon, { className: "w-6 h-6 text-[#D4AF37]" })}
-                        <span className="text-[#D4AF37] text-sm font-semibold uppercase tracking-wider">
-                          {lifestyleExperiences[activeGalleryIndex].discount}
-                        </span>
+            {experiences.length > 0 && (
+              <motion.div
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ duration: 0.8, delay: 0.3 }}
+                className="hidden lg:block"
+              >
+                <div className="relative">
+                  <div className="absolute -inset-4 bg-gradient-to-r from-[#D4AF37]/20 to-transparent blur-3xl" />
+                  <div className="relative glass-gold rounded-2xl overflow-hidden">
+                    <div className="aspect-[4/3] relative">
+                      <img 
+                        src={experiences[activeGalleryIndex]?.image_url}
+                        alt={experiences[activeGalleryIndex]?.title}
+                        className="w-full h-full object-cover"
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
+                      <div className="absolute bottom-0 left-0 right-0 p-6">
+                        <div className="flex items-center gap-3 mb-2">
+                          {React.createElement(getIcon(experiences[activeGalleryIndex]?.icon), { className: "w-6 h-6 text-[#D4AF37]" })}
+                          <span className="text-[#D4AF37] text-sm font-semibold uppercase tracking-wider">
+                            {experiences[activeGalleryIndex]?.discount}
+                          </span>
+                        </div>
+                        <h3 className="text-2xl font-bold text-white mb-1" style={{ fontFamily: 'Playfair Display, serif' }}>
+                          {experiences[activeGalleryIndex]?.title}
+                        </h3>
+                        <p className="text-gray-300 text-sm">{experiences[activeGalleryIndex]?.description}</p>
                       </div>
-                      <h3 className="text-2xl font-bold text-white mb-1" style={{ fontFamily: 'Playfair Display, serif' }}>
-                        {lifestyleExperiences[activeGalleryIndex].title}
-                      </h3>
-                      <p className="text-gray-300 text-sm">{lifestyleExperiences[activeGalleryIndex].desc}</p>
                     </div>
                   </div>
+                  
+                  {/* Gallery dots */}
+                  <div className="flex justify-center gap-2 mt-4">
+                    {experiences.map((_, index) => (
+                      <button
+                        key={index}
+                        onClick={() => setActiveGalleryIndex(index)}
+                        className={`w-2 h-2 rounded-full transition-all ${
+                          index === activeGalleryIndex ? 'bg-[#D4AF37] w-6' : 'bg-white/30 hover:bg-white/50'
+                        }`}
+                      />
+                    ))}
+                  </div>
                 </div>
-                
-                {/* Gallery dots */}
-                <div className="flex justify-center gap-2 mt-4">
-                  {lifestyleExperiences.map((_, index) => (
-                    <button
-                      key={index}
-                      onClick={() => setActiveGalleryIndex(index)}
-                      className={`w-2 h-2 rounded-full transition-all ${
-                        index === activeGalleryIndex ? 'bg-[#D4AF37] w-6' : 'bg-white/30 hover:bg-white/50'
-                      }`}
-                    />
-                  ))}
-                </div>
-              </div>
-            </motion.div>
+              </motion.div>
+            )}
           </div>
         </div>
         
@@ -343,44 +323,47 @@ const HomePage = () => {
 
           {/* Image Gallery Grid */}
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4 lg:gap-6">
-            {lifestyleExperiences.map((experience, index) => (
-              <motion.div
-                key={experience.title}
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: index * 0.1 }}
-                className="group relative aspect-[3/4] rounded-xl sm:rounded-2xl overflow-hidden cursor-pointer"
-              >
-                <img 
-                  src={experience.image}
-                  alt={experience.title}
-                  className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
-                  loading="lazy"
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent" />
-                
-                {/* Content */}
-                <div className="absolute bottom-0 left-0 right-0 p-3 sm:p-4 lg:p-6">
-                  <div className="flex items-center gap-2 mb-1 sm:mb-2">
-                    <experience.icon className="w-4 h-4 sm:w-5 sm:h-5 text-[#D4AF37]" />
-                    <span className="text-[#D4AF37] text-[10px] sm:text-xs font-semibold uppercase tracking-wider">
-                      {experience.discount}
-                    </span>
+            {experiences.map((experience, index) => {
+              const IconComponent = getIcon(experience.icon);
+              return (
+                <motion.div
+                  key={experience.id || experience.title}
+                  initial={{ opacity: 0, y: 20 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ delay: index * 0.1 }}
+                  className="group relative aspect-[3/4] rounded-xl sm:rounded-2xl overflow-hidden cursor-pointer"
+                >
+                  <img 
+                    src={experience.image_url}
+                    alt={experience.title}
+                    className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+                    loading="lazy"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent" />
+                  
+                  {/* Content */}
+                  <div className="absolute bottom-0 left-0 right-0 p-3 sm:p-4 lg:p-6">
+                    <div className="flex items-center gap-2 mb-1 sm:mb-2">
+                      <IconComponent className="w-4 h-4 sm:w-5 sm:h-5 text-[#D4AF37]" />
+                      <span className="text-[#D4AF37] text-[10px] sm:text-xs font-semibold uppercase tracking-wider">
+                        {experience.discount}
+                      </span>
+                    </div>
+                    <h3 
+                      className="text-sm sm:text-lg lg:text-xl font-bold text-white mb-0.5 sm:mb-1"
+                      style={{ fontFamily: 'Playfair Display, serif' }}
+                    >
+                      {experience.title}
+                    </h3>
+                    <p className="text-gray-300 text-[10px] sm:text-xs lg:text-sm line-clamp-2">{experience.description}</p>
                   </div>
-                  <h3 
-                    className="text-sm sm:text-lg lg:text-xl font-bold text-white mb-0.5 sm:mb-1"
-                    style={{ fontFamily: 'Playfair Display, serif' }}
-                  >
-                    {experience.title}
-                  </h3>
-                  <p className="text-gray-300 text-[10px] sm:text-xs lg:text-sm line-clamp-2">{experience.desc}</p>
-                </div>
-                
-                {/* Hover overlay */}
-                <div className="absolute inset-0 bg-[#D4AF37]/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-              </motion.div>
-            ))}
+                  
+                  {/* Hover overlay */}
+                  <div className="absolute inset-0 bg-[#D4AF37]/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                </motion.div>
+              );
+            })}
           </div>
         </div>
       </section>
@@ -611,7 +594,7 @@ const HomePage = () => {
                   </div>
                   <div>
                     <p className="text-gray-400 text-xs sm:text-sm">Call Us</p>
-                    <p className="text-white text-sm sm:text-base">+91 78129 01118</p>
+                    <p className="text-white text-sm sm:text-base">{settings.contact_phone || '+91 78129 01118'}</p>
                   </div>
                 </div>
                 <div className="flex items-center gap-4">
@@ -620,7 +603,7 @@ const HomePage = () => {
                   </div>
                   <div>
                     <p className="text-gray-400 text-xs sm:text-sm">Email Us</p>
-                    <p className="text-white text-sm sm:text-base">hello@bitzclub.com</p>
+                    <p className="text-white text-sm sm:text-base">{settings.contact_email || 'hello@bitzclub.com'}</p>
                   </div>
                 </div>
                 <div className="flex items-center gap-4">
@@ -629,7 +612,7 @@ const HomePage = () => {
                   </div>
                   <div>
                     <p className="text-gray-400 text-xs sm:text-sm">Visit Us</p>
-                    <p className="text-white text-sm sm:text-base">Chennai, Tamil Nadu, India</p>
+                    <p className="text-white text-sm sm:text-base">{settings.contact_address || 'Chennai, Tamil Nadu, India'}</p>
                   </div>
                 </div>
               </div>

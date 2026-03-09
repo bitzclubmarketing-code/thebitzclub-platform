@@ -3,7 +3,7 @@ import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Crown, LayoutDashboard, Users, CreditCard, Building2, Phone,
-  BarChart3, Settings, LogOut, Menu, X, ChevronLeft, UserPlus
+  BarChart3, Settings, LogOut, Menu, X, ChevronLeft, UserPlus, Image
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 
@@ -21,6 +21,7 @@ const AdminLayout = () => {
     { icon: Building2, label: 'Partners', path: '/admin/partners' },
     { icon: Phone, label: 'Telecallers', path: '/admin/telecallers' },
     { icon: BarChart3, label: 'Reports', path: '/admin/reports' },
+    { icon: Image, label: 'Content', path: '/admin/content' },
   ];
 
   const handleLogout = () => {

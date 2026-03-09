@@ -120,6 +120,16 @@ Build a membership management web application for BITZ Club with:
 - [x] DOB included in Excel export
 - [x] Admin can edit DOB in member modal
 
+#### Content Management System (CMS) - March 9, 2026
+- [x] Admin → Content page with 3 tabs (Experiences, Gallery, Settings)
+- [x] Manage lifestyle experience sections (8 categories)
+- [x] Add/Edit/Delete experiences with image URLs
+- [x] Gallery image management
+- [x] Website settings (hero text, contact info)
+- [x] Dynamic content on homepage from database
+- [x] Partner venue management (existing)
+- [x] Plan pricing and features management (existing)
+
 #### Backend
 - [x] Complete API server with 25+ endpoints
 - [x] Authentication system (JWT)

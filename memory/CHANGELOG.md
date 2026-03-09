@@ -1,5 +1,37 @@
 # BITZ Club - Changelog
 
+## [2026-03-09] Content Management System (CMS)
+
+### Added
+- New Admin "Content" page with 3 tabs:
+  - **Experiences Tab**: Manage 8 lifestyle categories (Luxury Hotels, Fine Dining, Spa, Gyms, Pool, Party Hall, Wedding, Corporate)
+  - **Gallery Tab**: Manage website gallery images
+  - **Settings Tab**: Edit hero section text, contact information
+- Backend API endpoints for content management:
+  - `GET/POST/PUT/DELETE /api/content/experiences`
+  - `GET/POST/PUT/DELETE /api/content/gallery`
+  - `GET/PUT /api/content/settings`
+- Dynamic homepage content loaded from database
+- Preview Website button for live preview
+
+### Changed
+- HomePage now fetches experiences, settings from database
+- Contact section shows dynamic contact info from settings
+- Hero section text is configurable from admin
+
+---
+
+## [2026-03-09] Date of Birth Feature
+
+### Added
+- Date of Birth field in registration form with date picker
+- DOB column in Admin Members dashboard
+- DOB column in Reports page
+- DOB field in Add/Edit Member modal
+- DOB included in Excel export
+
+---
+
 ## [2026-03-09] PWA Implementation & Mobile Optimization
 
 ### Added
