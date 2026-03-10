@@ -1,4 +1,4 @@
-from fastapi import FastAPI, APIRouter, HTTPException, Depends, Query, BackgroundTasks
+from fastapi import FastAPI, APIRouter, HTTPException, Depends, Query, BackgroundTasks, Request
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from fastapi.responses import StreamingResponse
 from dotenv import load_dotenv
@@ -19,6 +19,8 @@ import base64
 from openpyxl import Workbook
 import random
 import string
+import razorpay
+import httpx
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
@@ -27,6 +29,17 @@ load_dotenv(ROOT_DIR / '.env')
 mongo_url = os.environ['MONGO_URL']
 client = AsyncIOMotorClient(mongo_url)
 db = client[os.environ['DB_NAME']]
+
+# Razorpay client
+razorpay_client = razorpay.Client(auth=(
+    os.environ.get("RAZORPAY_KEY_ID", ""),
+    os.environ.get("RAZORPAY_KEY_SECRET", "")
+))
+
+# SoftSMS Configuration
+SOFTSMS_API_KEY = os.environ.get("SOFTSMS_API_KEY", "")
+SOFTSMS_SENDER_ID = os.environ.get("SOFTSMS_SENDER_ID", "BITZCL")
+SOFTSMS_API_URL = os.environ.get("SOFTSMS_API_URL", "https://softsms.in/app/smsapi/index.php")
 
 # Security
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
@@ -275,24 +288,84 @@ EMAIL_CONFIG = {
     "FROM_EMAIL": os.environ.get("SENDER_EMAIL", "noreply@bitzclub.com")
 }
 
-# ==================== MOCKED SERVICES ====================
+# ==================== RAZORPAY PAYMENT SERVICE ====================
 
+class RazorpayService:
+    """Real Razorpay Payment Integration"""
+    
+    @staticmethod
+    async def create_order(amount: float, member_id: str, plan_id: str = None, notes: dict = None) -> dict:
+        """Create a Razorpay order"""
+        try:
+            order_data = {
+                "amount": int(amount * 100),  # Razorpay expects amount in paise
+                "currency": "INR",
+                "receipt": f"rcpt_{member_id[:8]}_{uuid.uuid4().hex[:8]}",
+                "notes": notes or {"member_id": member_id, "plan_id": plan_id or ""}
+            }
+            
+            order = razorpay_client.order.create(data=order_data)
+            logger.info(f"[RAZORPAY] Order created: {order.get('id')} for amount: {amount}")
+            
+            return {
+                "id": order.get("id"),
+                "amount": order.get("amount"),
+                "amount_due": order.get("amount_due"),
+                "currency": order.get("currency"),
+                "status": order.get("status"),
+                "member_id": member_id,
+                "razorpay_key": os.environ.get("RAZORPAY_KEY_ID")
+            }
+        except Exception as e:
+            logger.error(f"[RAZORPAY ERROR] Failed to create order: {str(e)}")
+            raise HTTPException(status_code=500, detail=f"Payment order creation failed: {str(e)}")
+    
+    @staticmethod
+    def verify_payment_signature(payment_id: str, order_id: str, signature: str) -> bool:
+        """Verify Razorpay payment signature"""
+        try:
+            params_dict = {
+                'razorpay_order_id': order_id,
+                'razorpay_payment_id': payment_id,
+                'razorpay_signature': signature
+            }
+            razorpay_client.utility.verify_payment_signature(params_dict)
+            logger.info(f"[RAZORPAY] Payment signature verified for: {payment_id}")
+            return True
+        except razorpay.errors.SignatureVerificationError as e:
+            logger.error(f"[RAZORPAY ERROR] Signature verification failed: {str(e)}")
+            return False
+        except Exception as e:
+            logger.error(f"[RAZORPAY ERROR] Verification error: {str(e)}")
+            return False
+    
+    @staticmethod
+    async def fetch_payment(payment_id: str) -> dict:
+        """Fetch payment details from Razorpay"""
+        try:
+            payment = razorpay_client.payment.fetch(payment_id)
+            return payment
+        except Exception as e:
+            logger.error(f"[RAZORPAY ERROR] Failed to fetch payment: {str(e)}")
+            return None
+
+# Keep MockedPaymentService for fallback/offline payments
 class MockedPaymentService:
-    """Mocked Razorpay Service"""
+    """Fallback for offline payments"""
     @staticmethod
     async def create_order(amount: float, member_id: str) -> dict:
-        order_id = f"order_{uuid.uuid4().hex[:16]}"
+        order_id = f"offline_{uuid.uuid4().hex[:16]}"
         return {
             "id": order_id,
             "amount": int(amount * 100),
             "currency": "INR",
             "status": "created",
-            "member_id": member_id
+            "member_id": member_id,
+            "payment_type": "offline"
         }
     
     @staticmethod
     async def verify_payment(payment_id: str, order_id: str, signature: str) -> bool:
-        # In production, verify with Razorpay
         return True
     
     @staticmethod
@@ -518,8 +591,71 @@ class MockedEmailService:
             f"Payment of ₹{payment['amount']} received successfully for {member['name']}"
         )
 
+# ==================== SMS SERVICE (SoftSMS) ====================
+
+class SMSService:
+    """Real SoftSMS Integration"""
+    
+    @staticmethod
+    async def send_sms(phone: str, message: str) -> bool:
+        """Send SMS via SoftSMS API"""
+        try:
+            # Format phone number (remove +91 prefix if present)
+            phone = phone.replace("+91", "").replace(" ", "").strip()
+            if len(phone) == 10:
+                phone = "91" + phone
+            
+            params = {
+                "key": SOFTSMS_API_KEY,
+                "campaign": "0",
+                "routeid": "9",
+                "type": "text",
+                "contacts": phone,
+                "senderid": SOFTSMS_SENDER_ID,
+                "msg": message
+            }
+            
+            async with httpx.AsyncClient() as client:
+                response = await client.get(SOFTSMS_API_URL, params=params, timeout=30)
+                logger.info(f"[SMS] To: {phone}, Status: {response.status_code}, Response: {response.text[:100]}")
+                return response.status_code == 200
+        except Exception as e:
+            logger.error(f"[SMS ERROR] Failed to send SMS to {phone}: {str(e)}")
+            return False
+    
+    @staticmethod
+    async def send_registration_sms(member: dict) -> bool:
+        """Send registration confirmation SMS"""
+        message = f"Welcome to BITZ Club! Your Member ID: {member.get('member_id', '')}. Download the app & show your digital card at partner venues. -BITZ Club"
+        return await SMSService.send_sms(member.get("mobile", ""), message)
+    
+    @staticmethod
+    async def send_payment_success_sms(member: dict, amount: float, plan_name: str = "") -> bool:
+        """Send payment success SMS"""
+        message = f"BITZ Club: Payment of Rs.{int(amount)} received successfully for {plan_name or 'membership'}. Your membership is now active. Thank you! -BITZ Club"
+        return await SMSService.send_sms(member.get("mobile", ""), message)
+    
+    @staticmethod
+    async def send_membership_activation_sms(member: dict, plan_name: str, validity_end: str) -> bool:
+        """Send membership activation SMS"""
+        message = f"Congratulations! Your BITZ Club {plan_name} membership is now ACTIVE. Valid till {validity_end}. Enjoy exclusive benefits! -BITZ Club"
+        return await SMSService.send_sms(member.get("mobile", ""), message)
+    
+    @staticmethod
+    async def send_renewal_reminder_sms(member: dict, days_left: int) -> bool:
+        """Send membership renewal reminder SMS"""
+        message = f"BITZ Club: Your membership expires in {days_left} days. Renew now to continue enjoying exclusive benefits. Visit our app or contact us. -BITZ Club"
+        return await SMSService.send_sms(member.get("mobile", ""), message)
+    
+    @staticmethod
+    async def send_telecaller_followup_sms(lead: dict, telecaller_name: str) -> bool:
+        """Send follow-up alert SMS"""
+        message = f"Hi {lead.get('name', '')}, {telecaller_name} from BITZ Club will contact you shortly regarding your inquiry. Thank you for your interest! -BITZ Club"
+        return await SMSService.send_sms(lead.get("mobile", ""), message)
+
+# Keep MockedSMSService for fallback if needed
 class MockedSMSService:
-    """Mocked Twilio Service"""
+    """Fallback Mocked SMS Service"""
     @staticmethod
     async def send_sms(phone: str, message: str) -> bool:
         logger.info(f"[MOCKED SMS] To: {phone}, Message: {message}")
@@ -527,17 +663,11 @@ class MockedSMSService:
     
     @staticmethod
     async def send_welcome_sms(member: dict) -> bool:
-        return await MockedSMSService.send_sms(
-            member["mobile"],
-            f"Welcome to BITZ Club! Your Member ID: {member['member_id']}"
-        )
+        return await SMSService.send_registration_sms(member)
     
     @staticmethod
     async def send_payment_sms(member: dict, amount: float) -> bool:
-        return await MockedSMSService.send_sms(
-            member["mobile"],
-            f"BITZ Club: Payment of Rs.{amount} received. Thank you!"
-        )
+        return await SMSService.send_payment_success_sms(member, amount)
 
 # ==================== AUTH ENDPOINTS ====================
 
@@ -1065,24 +1195,57 @@ async def update_follow_up(follow_up_id: str, follow_up: FollowUpUpdate, user: d
 
 @api_router.post("/payments/create-order")
 async def create_payment_order(payment: PaymentCreate, user: dict = Depends(get_current_user)):
-    member = await db.members.find_one({"id": payment.member_id}, {"_id": 0})
+    """Create a Razorpay order for online payment"""
+    # Get member info
+    member = await db.members.find_one({"member_id": payment.member_id}, {"_id": 0})
     if not member:
-        raise HTTPException(status_code=404, detail="Member not found")
+        # Try finding by id
+        member = await db.members.find_one({"id": payment.member_id}, {"_id": 0})
     
-    order = await MockedPaymentService.create_order(payment.amount, payment.member_id)
+    # Get plan info
+    plan = await db.plans.find_one({"id": payment.plan_id}, {"_id": 0}) if payment.plan_id else None
     
+    # Create Razorpay order
+    notes = {
+        "member_id": payment.member_id,
+        "member_name": member.get("name", "") if member else "",
+        "plan_id": payment.plan_id or "",
+        "plan_name": plan.get("name", "") if plan else ""
+    }
+    
+    order = await RazorpayService.create_order(
+        amount=payment.amount,
+        member_id=payment.member_id,
+        plan_id=payment.plan_id,
+        notes=notes
+    )
+    
+    # Store payment record
     payment_doc = {
         "id": str(uuid.uuid4()),
         "order_id": order["id"],
         "member_id": payment.member_id,
+        "member_name": member.get("name", "") if member else "",
         "plan_id": payment.plan_id,
+        "plan_name": plan.get("name", "") if plan else "",
         "amount": payment.amount,
+        "payment_type": "online",
+        "payment_method": "razorpay",
         "status": "pending",
         "created_at": datetime.now(timezone.utc).isoformat()
     }
     await db.payments.insert_one(payment_doc)
     
-    return {**order, "payment_id": payment_doc["id"]}
+    return {
+        "order_id": order["id"],
+        "amount": order["amount"],
+        "currency": order["currency"],
+        "razorpay_key": order["razorpay_key"],
+        "payment_id": payment_doc["id"],
+        "member_name": member.get("name", "") if member else "",
+        "member_email": member.get("email", "") if member else "",
+        "member_mobile": member.get("mobile", "") if member else ""
+    }
 
 @api_router.post("/payments/verify")
 async def verify_payment(
@@ -1093,49 +1256,169 @@ async def verify_payment(
     background_tasks: BackgroundTasks,
     user: dict = Depends(get_current_user)
 ):
-    # Verify payment (mocked)
-    is_valid = await MockedPaymentService.verify_payment(
+    """Verify Razorpay payment signature and complete the payment"""
+    # Verify payment signature
+    is_valid = RazorpayService.verify_payment_signature(
         razorpay_payment_id, razorpay_order_id, razorpay_signature
     )
     
     if not is_valid:
-        raise HTTPException(status_code=400, detail="Payment verification failed")
+        # Update payment status to failed
+        await db.payments.update_one(
+            {"id": payment_id},
+            {"$set": {"status": "failed", "failed_at": datetime.now(timezone.utc).isoformat()}}
+        )
+        raise HTTPException(status_code=400, detail="Payment verification failed - Invalid signature")
     
-    # Update payment status
+    # Get payment record
     payment = await db.payments.find_one({"id": payment_id})
     if not payment:
         raise HTTPException(status_code=404, detail="Payment not found")
     
+    # Fetch payment details from Razorpay for additional verification
+    razorpay_payment = await RazorpayService.fetch_payment(razorpay_payment_id)
+    
+    # Update payment status
     await db.payments.update_one(
         {"id": payment_id},
         {"$set": {
             "status": "completed",
             "razorpay_payment_id": razorpay_payment_id,
+            "razorpay_order_id": razorpay_order_id,
+            "transaction_id": razorpay_payment_id,
+            "razorpay_details": {
+                "method": razorpay_payment.get("method") if razorpay_payment else None,
+                "bank": razorpay_payment.get("bank") if razorpay_payment else None,
+                "wallet": razorpay_payment.get("wallet") if razorpay_payment else None,
+                "vpa": razorpay_payment.get("vpa") if razorpay_payment else None
+            },
             "completed_at": datetime.now(timezone.utc).isoformat()
         }}
     )
     
-    # Update member status to active
-    member = await db.members.find_one({"id": payment["member_id"]})
+    # Get member and update membership status
+    member = await db.members.find_one({"member_id": payment["member_id"]})
+    if not member:
+        member = await db.members.find_one({"id": payment["member_id"]})
+    
     if member:
-        plan = await db.plans.find_one({"id": payment["plan_id"]})
-        end_date = datetime.now(timezone.utc) + timedelta(days=plan["duration_months"] * 30)
+        plan = await db.plans.find_one({"id": payment.get("plan_id")})
+        duration_days = (plan.get("duration_months", 1) * 30) if plan else 365
+        end_date = datetime.now(timezone.utc) + timedelta(days=duration_days)
         
         await db.members.update_one(
-            {"id": payment["member_id"]},
+            {"id": member["id"]},
             {"$set": {
                 "status": MembershipStatus.ACTIVE,
+                "plan_id": payment.get("plan_id"),
+                "plan_name": plan.get("name") if plan else payment.get("plan_name"),
                 "membership_start": datetime.now(timezone.utc).isoformat(),
                 "membership_end": end_date.isoformat()
             }}
         )
         
-        # Send notifications
-        background_tasks.add_task(MockedSMSService.send_payment_sms, member, payment["amount"])
+        # Send SMS notifications
+        plan_name = plan.get("name") if plan else "Membership"
+        validity_end = end_date.strftime("%d %b %Y")
+        
+        # Payment success SMS
+        background_tasks.add_task(
+            SMSService.send_payment_success_sms, 
+            member, 
+            payment["amount"],
+            plan_name
+        )
+        
+        # Membership activation SMS
+        background_tasks.add_task(
+            SMSService.send_membership_activation_sms,
+            member,
+            plan_name,
+            validity_end
+        )
+        
+        # Email notification
         if member.get("email"):
             background_tasks.add_task(MockedEmailService.send_payment_receipt, member, payment)
     
-    return {"message": "Payment verified successfully", "status": "completed"}
+    return {
+        "message": "Payment verified successfully",
+        "status": "completed",
+        "razorpay_payment_id": razorpay_payment_id,
+        "member_id": payment["member_id"]
+    }
+
+@api_router.post("/payments/offline")
+async def record_offline_payment(
+    payment: PaymentCreate,
+    background_tasks: BackgroundTasks,
+    admin: dict = Depends(require_admin)
+):
+    """Record an offline/cash payment (Admin only)"""
+    # Get member info
+    member = await db.members.find_one({"member_id": payment.member_id}, {"_id": 0})
+    if not member:
+        member = await db.members.find_one({"id": payment.member_id}, {"_id": 0})
+    
+    if not member:
+        raise HTTPException(status_code=404, detail="Member not found")
+    
+    # Get plan info
+    plan = await db.plans.find_one({"id": payment.plan_id}, {"_id": 0}) if payment.plan_id else None
+    
+    # Create offline payment record
+    payment_doc = {
+        "id": str(uuid.uuid4()),
+        "order_id": f"OFFLINE-{uuid.uuid4().hex[:12].upper()}",
+        "member_id": payment.member_id,
+        "member_name": member.get("name", ""),
+        "plan_id": payment.plan_id,
+        "plan_name": plan.get("name", "") if plan else "",
+        "amount": payment.amount,
+        "payment_type": "offline",
+        "payment_method": payment.payment_method or "cash",
+        "transaction_id": payment.transaction_id,
+        "notes": payment.notes,
+        "status": "completed",
+        "created_at": datetime.now(timezone.utc).isoformat(),
+        "completed_at": datetime.now(timezone.utc).isoformat(),
+        "created_by": admin.get("id")
+    }
+    await db.payments.insert_one(payment_doc)
+    
+    # Activate membership
+    if plan:
+        duration_days = plan.get("duration_months", 1) * 30
+        end_date = datetime.now(timezone.utc) + timedelta(days=duration_days)
+        
+        await db.members.update_one(
+            {"id": member["id"]},
+            {"$set": {
+                "status": MembershipStatus.ACTIVE,
+                "plan_id": payment.plan_id,
+                "plan_name": plan.get("name"),
+                "membership_start": datetime.now(timezone.utc).isoformat(),
+                "membership_end": end_date.isoformat()
+            }}
+        )
+        
+        # Send SMS notifications
+        validity_end = end_date.strftime("%d %b %Y")
+        background_tasks.add_task(
+            SMSService.send_payment_success_sms,
+            member,
+            payment.amount,
+            plan.get("name", "Membership")
+        )
+        background_tasks.add_task(
+            SMSService.send_membership_activation_sms,
+            member,
+            plan.get("name", "Membership"),
+            validity_end
+        )
+    
+    payment_doc.pop("_id", None)
+    return {"message": "Offline payment recorded successfully", "payment": payment_doc}
 
 @api_router.get("/payments")
 async def get_payments(
