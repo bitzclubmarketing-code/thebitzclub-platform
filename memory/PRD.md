@@ -130,6 +130,20 @@ Build a membership management web application for BITZ Club with:
 - [x] Partner venue management (existing)
 - [x] Plan pricing and features management (existing)
 
+#### Comprehensive Reports Module - March 10, 2026
+- [x] Dashboard Summary (Total, Active, Expired, Today's registrations, Monthly revenue)
+- [x] Member Reports with filters (Name, Mobile, Member ID, Plan, Status, City, Pincode, Date range, Expiry range, Referral ID)
+- [x] Payment Reports (Amount, Type, Method, Plan, Date/Month/Year filters)
+- [x] Payment Type Report (Online Razorpay vs Offline Cash)
+- [x] Location Report (City-wise, Pincode-wise, Area-wise)
+- [x] Telecaller Performance Report (Leads assigned, contacted, converted, pending, conversion %)
+- [x] Referral Report (Employee, Associate, Member referrals with counts)
+- [x] Birthday Report (Today, 7 days, 30 days)
+- [x] Membership Expiry Report (7 days, 30 days, Expired)
+- [x] Export to Excel (.xlsx)
+- [x] Export to CSV
+- [x] Print report functionality
+
 #### Backend
 - [x] Complete API server with 25+ endpoints
 - [x] Authentication system (JWT)

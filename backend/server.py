@@ -79,6 +79,9 @@ class MemberCreate(BaseModel):
     mobile: str
     email: Optional[EmailStr] = None
     address: Optional[str] = None
+    city: Optional[str] = None
+    pincode: Optional[str] = None
+    area: Optional[str] = None
     date_of_birth: Optional[str] = None
     plan_id: str
     password: Optional[str] = None
@@ -88,6 +91,9 @@ class MemberUpdate(BaseModel):
     name: Optional[str] = None
     email: Optional[EmailStr] = None
     address: Optional[str] = None
+    city: Optional[str] = None
+    pincode: Optional[str] = None
+    area: Optional[str] = None
     date_of_birth: Optional[str] = None
     plan_id: Optional[str] = None
     referral_id: Optional[str] = None
@@ -162,8 +168,12 @@ class FollowUpUpdate(BaseModel):
 # Payment Models
 class PaymentCreate(BaseModel):
     member_id: str
-    plan_id: str
     amount: float
+    payment_type: str = "offline"  # 'online' or 'offline'
+    payment_method: Optional[str] = None  # 'razorpay', 'cash', 'upi', 'card', etc.
+    transaction_id: Optional[str] = None
+    plan_id: Optional[str] = None
+    notes: Optional[str] = None
 
 # Lead Models
 class LeadCreate(BaseModel):
@@ -1156,10 +1166,19 @@ async def get_payments(
 
 @api_router.get("/reports/dashboard-stats")
 async def get_dashboard_stats(admin: dict = Depends(require_admin)):
+    """Dashboard summary stats"""
+    today = datetime.now(timezone.utc).date()
+    today_start = datetime.combine(today, datetime.min.time()).isoformat()
+    
     total_members = await db.members.count_documents({})
     active_members = await db.members.count_documents({"status": MembershipStatus.ACTIVE})
     pending_members = await db.members.count_documents({"status": MembershipStatus.PENDING})
     expired_members = await db.members.count_documents({"status": MembershipStatus.EXPIRED})
+    
+    # Today's registrations
+    today_registrations = await db.members.count_documents({
+        "created_at": {"$gte": today_start}
+    })
     
     # Revenue stats
     payments = await db.payments.find({"status": "completed"}, {"_id": 0}).to_list(10000)
@@ -1172,7 +1191,7 @@ async def get_dashboard_stats(admin: dict = Depends(require_admin)):
     })
     month_payments = await db.payments.find({
         "status": "completed",
-        "completed_at": {"$gte": month_start.isoformat()}
+        "created_at": {"$gte": month_start.isoformat()}
     }, {"_id": 0}).to_list(10000)
     month_revenue = sum(p.get("amount", 0) for p in month_payments)
     
@@ -1186,87 +1205,585 @@ async def get_dashboard_stats(admin: dict = Depends(require_admin)):
         "active_members": active_members,
         "pending_members": pending_members,
         "expired_members": expired_members,
+        "today_registrations": today_registrations,
         "total_revenue": total_revenue,
         "month_members": month_members,
         "month_revenue": month_revenue,
         "plan_distribution": [{"plan": p["_id"], "count": p["count"]} for p in plan_stats if p["_id"]],
         "telecallers_count": await db.users.count_documents({"role": UserRole.TELECALLER}),
-        "partners_count": await db.partners.count_documents({})
+        "partners_count": await db.partners.count_documents({}),
+        "leads_count": await db.leads.count_documents({})
     }
 
 @api_router.get("/reports/members")
 async def get_members_report(
+    search: Optional[str] = None,
+    name: Optional[str] = None,
+    mobile: Optional[str] = None,
+    member_id: Optional[str] = None,
+    plan_id: Optional[str] = None,
+    status: Optional[str] = None,
+    city: Optional[str] = None,
+    pincode: Optional[str] = None,
+    area: Optional[str] = None,
+    referral_id: Optional[str] = None,
     start_date: Optional[str] = None,
     end_date: Optional[str] = None,
-    status: Optional[str] = None,
-    plan_id: Optional[str] = None,
-    referral_id: Optional[str] = None,
+    expiry_start: Optional[str] = None,
+    expiry_end: Optional[str] = None,
     admin: dict = Depends(require_admin)
 ):
+    """Member reports with comprehensive filters"""
     query = {}
-    if start_date:
-        query["created_at"] = {"$gte": start_date}
-    if end_date:
-        if "created_at" in query:
-            query["created_at"]["$lte"] = end_date
-        else:
-            query["created_at"] = {"$lte": end_date}
-    if status:
-        query["status"] = status
+    
+    # Search across name, mobile, member_id
+    if search:
+        query["$or"] = [
+            {"name": {"$regex": search, "$options": "i"}},
+            {"mobile": {"$regex": search, "$options": "i"}},
+            {"member_id": {"$regex": search, "$options": "i"}}
+        ]
+    
+    # Individual filters
+    if name:
+        query["name"] = {"$regex": name, "$options": "i"}
+    if mobile:
+        query["mobile"] = {"$regex": mobile, "$options": "i"}
+    if member_id:
+        query["member_id"] = {"$regex": member_id, "$options": "i"}
     if plan_id:
         query["plan_id"] = plan_id
-    if referral_id:
-        query["referral_id"] = {"$regex": referral_id, "$options": "i"}
-    
-    members = await db.members.find(query, {"_id": 0, "qr_code": 0}).to_list(10000)
-    return members
-
-@api_router.get("/reports/export-excel")
-async def export_members_excel(
-    start_date: Optional[str] = None,
-    end_date: Optional[str] = None,
-    status: Optional[str] = None,
-    referral_id: Optional[str] = None,
-    admin: dict = Depends(require_admin)
-):
-    query = {}
-    if start_date:
-        query["created_at"] = {"$gte": start_date}
-    if end_date:
-        if "created_at" in query:
-            query["created_at"]["$lte"] = end_date
-        else:
-            query["created_at"] = {"$lte": end_date}
     if status:
         query["status"] = status
+    if city:
+        query["city"] = {"$regex": city, "$options": "i"}
+    if pincode:
+        query["pincode"] = pincode
+    if area:
+        query["area"] = {"$regex": area, "$options": "i"}
     if referral_id:
         query["referral_id"] = {"$regex": referral_id, "$options": "i"}
     
-    members = await db.members.find(query, {"_id": 0, "qr_code": 0}).to_list(10000)
+    # Registration date range
+    if start_date or end_date:
+        query["created_at"] = {}
+        if start_date:
+            query["created_at"]["$gte"] = start_date
+        if end_date:
+            query["created_at"]["$lte"] = end_date + "T23:59:59"
     
+    # Expiry date range
+    if expiry_start or expiry_end:
+        query["membership_end"] = {}
+        if expiry_start:
+            query["membership_end"]["$gte"] = expiry_start
+        if expiry_end:
+            query["membership_end"]["$lte"] = expiry_end + "T23:59:59"
+    
+    members = await db.members.find(query, {"_id": 0, "qr_code": 0}).sort("created_at", -1).to_list(10000)
+    return members
+
+@api_router.get("/reports/payments")
+async def get_payments_report(
+    payment_type: Optional[str] = None,
+    payment_method: Optional[str] = None,
+    plan_id: Optional[str] = None,
+    min_amount: Optional[float] = None,
+    max_amount: Optional[float] = None,
+    start_date: Optional[str] = None,
+    end_date: Optional[str] = None,
+    month: Optional[str] = None,
+    year: Optional[str] = None,
+    admin: dict = Depends(require_admin)
+):
+    """Payment reports with filters"""
+    query = {"status": "completed"}
+    
+    if payment_type:
+        query["payment_type"] = payment_type
+    if payment_method:
+        query["payment_method"] = payment_method
+    if plan_id:
+        query["plan_id"] = plan_id
+    
+    if min_amount is not None or max_amount is not None:
+        query["amount"] = {}
+        if min_amount is not None:
+            query["amount"]["$gte"] = min_amount
+        if max_amount is not None:
+            query["amount"]["$lte"] = max_amount
+    
+    if start_date or end_date:
+        query["created_at"] = {}
+        if start_date:
+            query["created_at"]["$gte"] = start_date
+        if end_date:
+            query["created_at"]["$lte"] = end_date + "T23:59:59"
+    
+    if month and year:
+        month_start = f"{year}-{month.zfill(2)}-01"
+        if int(month) == 12:
+            month_end = f"{int(year)+1}-01-01"
+        else:
+            month_end = f"{year}-{str(int(month)+1).zfill(2)}-01"
+        query["created_at"] = {"$gte": month_start, "$lt": month_end}
+    elif year:
+        query["created_at"] = {"$gte": f"{year}-01-01", "$lt": f"{int(year)+1}-01-01"}
+    
+    payments = await db.payments.find(query, {"_id": 0}).sort("created_at", -1).to_list(10000)
+    
+    # Calculate summary
+    total_amount = sum(p.get("amount", 0) for p in payments)
+    online_amount = sum(p.get("amount", 0) for p in payments if p.get("payment_type") == "online")
+    offline_amount = sum(p.get("amount", 0) for p in payments if p.get("payment_type") == "offline")
+    
+    return {
+        "payments": payments,
+        "summary": {
+            "total_count": len(payments),
+            "total_amount": total_amount,
+            "online_amount": online_amount,
+            "offline_amount": offline_amount
+        }
+    }
+
+@api_router.get("/reports/location")
+async def get_location_report(
+    group_by: str = "city",
+    admin: dict = Depends(require_admin)
+):
+    """Location-wise member count"""
+    if group_by == "pincode":
+        stats = await db.members.aggregate([
+            {"$match": {"pincode": {"$exists": True, "$nin": [None, ""]}}},
+            {"$group": {"_id": "$pincode", "count": {"$sum": 1}}},
+            {"$sort": {"count": -1}}
+        ]).to_list(1000)
+    elif group_by == "area":
+        stats = await db.members.aggregate([
+            {"$match": {"area": {"$exists": True, "$nin": [None, ""]}}},
+            {"$group": {"_id": "$area", "count": {"$sum": 1}}},
+            {"$sort": {"count": -1}}
+        ]).to_list(1000)
+    else:  # city
+        stats = await db.members.aggregate([
+            {"$match": {"city": {"$exists": True, "$nin": [None, ""]}}},
+            {"$group": {"_id": "$city", "count": {"$sum": 1}}},
+            {"$sort": {"count": -1}}
+        ]).to_list(1000)
+    
+    return [{"location": s["_id"], "count": s["count"]} for s in stats]
+
+@api_router.get("/reports/telecaller-performance")
+async def get_telecaller_performance(
+    telecaller_id: Optional[str] = None,
+    start_date: Optional[str] = None,
+    end_date: Optional[str] = None,
+    admin: dict = Depends(require_admin)
+):
+    """Telecaller performance report"""
+    telecallers = await db.users.find({"role": UserRole.TELECALLER}, {"_id": 0, "password": 0}).to_list(100)
+    
+    result = []
+    for tc in telecallers:
+        if telecaller_id and tc.get("id") != telecaller_id:
+            continue
+        
+        tc_id = tc.get("id")
+        
+        # Build query for date range
+        lead_query = {"assigned_to": tc_id}
+        member_query = {"created_by": tc_id}
+        
+        if start_date or end_date:
+            date_filter = {}
+            if start_date:
+                date_filter["$gte"] = start_date
+            if end_date:
+                date_filter["$lte"] = end_date + "T23:59:59"
+            lead_query["created_at"] = date_filter
+            member_query["created_at"] = date_filter
+        
+        # Leads stats
+        leads_assigned = await db.leads.count_documents(lead_query)
+        leads_converted = await db.leads.count_documents({**lead_query, "status": "converted"})
+        leads_contacted = await db.leads.count_documents({**lead_query, "status": {"$in": ["contacted", "interested"]}})
+        leads_pending = await db.leads.count_documents({**lead_query, "status": "new"})
+        
+        # Members created by telecaller
+        members_created = await db.members.count_documents(member_query)
+        
+        conversion_rate = (leads_converted / leads_assigned * 100) if leads_assigned > 0 else 0
+        
+        result.append({
+            "telecaller_id": tc_id,
+            "telecaller_name": tc.get("name", "Unknown"),
+            "telecaller_mobile": tc.get("mobile", ""),
+            "leads_assigned": leads_assigned,
+            "leads_contacted": leads_contacted,
+            "leads_converted": leads_converted,
+            "leads_pending": leads_pending,
+            "members_created": members_created,
+            "conversion_rate": round(conversion_rate, 2)
+        })
+    
+    return result
+
+@api_router.get("/reports/referral")
+async def get_referral_report(
+    referral_type: Optional[str] = None,
+    start_date: Optional[str] = None,
+    end_date: Optional[str] = None,
+    admin: dict = Depends(require_admin)
+):
+    """Referral performance report"""
+    query = {"referral_id": {"$exists": True, "$nin": [None, ""]}}
+    
+    if start_date or end_date:
+        query["created_at"] = {}
+        if start_date:
+            query["created_at"]["$gte"] = start_date
+        if end_date:
+            query["created_at"]["$lte"] = end_date + "T23:59:59"
+    
+    # Get all members with referral IDs
+    members = await db.members.find(query, {"_id": 0, "referral_id": 1, "name": 1, "member_id": 1, "created_at": 1, "plan_name": 1}).to_list(10000)
+    
+    # Group by referral ID
+    referral_stats = {}
+    for m in members:
+        ref_id = m.get("referral_id", "")
+        if not ref_id:
+            continue
+        
+        # Determine type based on prefix
+        ref_type = "unknown"
+        if ref_id.startswith("BITZ-E"):
+            ref_type = "employee"
+        elif ref_id.startswith("BITZ-A"):
+            ref_type = "associate"
+        elif ref_id.startswith("BITZ-"):
+            ref_type = "member"
+        
+        if referral_type and ref_type != referral_type:
+            continue
+        
+        if ref_id not in referral_stats:
+            referral_stats[ref_id] = {
+                "referral_id": ref_id,
+                "referral_type": ref_type,
+                "members_referred": [],
+                "count": 0
+            }
+        
+        referral_stats[ref_id]["members_referred"].append({
+            "member_id": m.get("member_id"),
+            "name": m.get("name"),
+            "plan": m.get("plan_name"),
+            "joined_at": m.get("created_at")
+        })
+        referral_stats[ref_id]["count"] += 1
+    
+    # Sort by count
+    result = sorted(referral_stats.values(), key=lambda x: x["count"], reverse=True)
+    
+    summary = {
+        "total_referrals": len(members),
+        "employee_referrals": sum(1 for m in members if m.get("referral_id", "").startswith("BITZ-E")),
+        "associate_referrals": sum(1 for m in members if m.get("referral_id", "").startswith("BITZ-A")),
+        "member_referrals": sum(1 for m in members if m.get("referral_id", "").startswith("BITZ-") and not m.get("referral_id", "").startswith("BITZ-E") and not m.get("referral_id", "").startswith("BITZ-A"))
+    }
+    
+    return {"referrals": result, "summary": summary}
+
+@api_router.get("/reports/birthday")
+async def get_birthday_report(
+    period: str = "today",
+    admin: dict = Depends(require_admin)
+):
+    """Birthday report - today, 7 days, 30 days"""
+    today = datetime.now(timezone.utc).date()
+    
+    # Get all members with DOB
+    members = await db.members.find(
+        {"date_of_birth": {"$exists": True, "$nin": [None, ""]}},
+        {"_id": 0, "qr_code": 0}
+    ).to_list(10000)
+    
+    result = []
+    for m in members:
+        dob_str = m.get("date_of_birth", "")
+        if not dob_str:
+            continue
+        
+        try:
+            dob = datetime.fromisoformat(dob_str.replace("Z", "+00:00")).date() if "T" in dob_str else datetime.strptime(dob_str, "%Y-%m-%d").date()
+            # Create birthday this year
+            birthday_this_year = dob.replace(year=today.year)
+            
+            # If birthday already passed this year, check next year
+            if birthday_this_year < today:
+                birthday_this_year = dob.replace(year=today.year + 1)
+            
+            days_until = (birthday_this_year - today).days
+            
+            if period == "today" and days_until == 0:
+                m["days_until_birthday"] = 0
+                result.append(m)
+            elif period == "7days" and 0 <= days_until <= 7:
+                m["days_until_birthday"] = days_until
+                result.append(m)
+            elif period == "30days" and 0 <= days_until <= 30:
+                m["days_until_birthday"] = days_until
+                result.append(m)
+        except Exception:
+            continue
+    
+    # Sort by days until birthday
+    result.sort(key=lambda x: x.get("days_until_birthday", 999))
+    
+    return result
+
+@api_router.get("/reports/expiry")
+async def get_expiry_report(
+    period: str = "7days",
+    admin: dict = Depends(require_admin)
+):
+    """Membership expiry report"""
+    today = datetime.now(timezone.utc).date()
+    
+    if period == "7days":
+        end_date = today + timedelta(days=7)
+        query = {
+            "membership_end": {"$gte": today.isoformat(), "$lte": end_date.isoformat()},
+            "status": {"$ne": MembershipStatus.EXPIRED}
+        }
+    elif period == "30days":
+        end_date = today + timedelta(days=30)
+        query = {
+            "membership_end": {"$gte": today.isoformat(), "$lte": end_date.isoformat()},
+            "status": {"$ne": MembershipStatus.EXPIRED}
+        }
+    else:  # expired
+        query = {"status": MembershipStatus.EXPIRED}
+    
+    members = await db.members.find(query, {"_id": 0, "qr_code": 0}).sort("membership_end", 1).to_list(10000)
+    
+    # Calculate days until expiry
+    for m in members:
+        end_str = m.get("membership_end", "")
+        if end_str:
+            try:
+                end_date = datetime.fromisoformat(end_str.replace("Z", "+00:00")).date() if "T" in end_str else datetime.strptime(end_str[:10], "%Y-%m-%d").date()
+                m["days_until_expiry"] = (end_date - today).days
+            except Exception:
+                m["days_until_expiry"] = None
+    
+    return members
+
+# Payment CRUD
+@api_router.post("/payments")
+async def create_payment(payment: PaymentCreate, admin: dict = Depends(require_admin)):
+    """Record a payment"""
+    payment_id = f"PAY-{uuid.uuid4().hex[:8].upper()}"
+    
+    # Get member and plan info
+    member = await db.members.find_one({"member_id": payment.member_id})
+    plan = await db.plans.find_one({"id": payment.plan_id}) if payment.plan_id else None
+    
+    payment_doc = {
+        "id": payment_id,
+        "member_id": payment.member_id,
+        "member_name": member.get("name") if member else None,
+        "amount": payment.amount,
+        "payment_type": payment.payment_type,
+        "payment_method": payment.payment_method,
+        "transaction_id": payment.transaction_id,
+        "plan_id": payment.plan_id,
+        "plan_name": plan.get("name") if plan else None,
+        "notes": payment.notes,
+        "status": "completed",
+        "created_at": datetime.now(timezone.utc).isoformat(),
+        "created_by": admin.get("id")
+    }
+    
+    await db.payments.insert_one(payment_doc)
+    payment_doc.pop("_id", None)
+    return payment_doc
+
+@api_router.get("/admin/payments")
+async def get_all_payments(
+    member_id: Optional[str] = None,
+    admin: dict = Depends(require_admin)
+):
+    """Get all payments for admin"""
+    query = {}
+    if member_id:
+        query["member_id"] = member_id
+    
+    payments = await db.payments.find(query, {"_id": 0}).sort("created_at", -1).to_list(10000)
+    return payments
+
+# Export endpoints
+@api_router.get("/reports/export-excel")
+async def export_members_excel(
+    report_type: str = "members",
+    search: Optional[str] = None,
+    status: Optional[str] = None,
+    plan_id: Optional[str] = None,
+    city: Optional[str] = None,
+    pincode: Optional[str] = None,
+    referral_id: Optional[str] = None,
+    start_date: Optional[str] = None,
+    end_date: Optional[str] = None,
+    expiry_start: Optional[str] = None,
+    expiry_end: Optional[str] = None,
+    admin: dict = Depends(require_admin)
+):
+    """Export report to Excel"""
     wb = Workbook()
     ws = wb.active
-    ws.title = "Members Report"
     
-    # Headers
-    headers = ["Member ID", "Name", "Mobile", "Email", "Date of Birth", "Plan", "Status", "Referral ID", "Start Date", "End Date", "Created At"]
-    ws.append(headers)
+    if report_type == "members":
+        ws.title = "Members Report"
+        
+        # Build query
+        query = {}
+        if search:
+            query["$or"] = [
+                {"name": {"$regex": search, "$options": "i"}},
+                {"mobile": {"$regex": search, "$options": "i"}},
+                {"member_id": {"$regex": search, "$options": "i"}}
+            ]
+        if status:
+            query["status"] = status
+        if plan_id:
+            query["plan_id"] = plan_id
+        if city:
+            query["city"] = {"$regex": city, "$options": "i"}
+        if pincode:
+            query["pincode"] = pincode
+        if referral_id:
+            query["referral_id"] = {"$regex": referral_id, "$options": "i"}
+        if start_date or end_date:
+            query["created_at"] = {}
+            if start_date:
+                query["created_at"]["$gte"] = start_date
+            if end_date:
+                query["created_at"]["$lte"] = end_date + "T23:59:59"
+        if expiry_start or expiry_end:
+            query["membership_end"] = {}
+            if expiry_start:
+                query["membership_end"]["$gte"] = expiry_start
+            if expiry_end:
+                query["membership_end"]["$lte"] = expiry_end + "T23:59:59"
+        
+        members = await db.members.find(query, {"_id": 0, "qr_code": 0}).to_list(10000)
+        
+        headers = ["Member ID", "Name", "Mobile", "Email", "DOB", "City", "Pincode", "Area", "Plan", "Status", "Referral ID", "Start Date", "End Date", "Created At"]
+        ws.append(headers)
+        
+        for m in members:
+            ws.append([
+                m.get("member_id", ""),
+                m.get("name", ""),
+                m.get("mobile", ""),
+                m.get("email", ""),
+                m.get("date_of_birth", ""),
+                m.get("city", ""),
+                m.get("pincode", ""),
+                m.get("area", ""),
+                m.get("plan_name", ""),
+                m.get("status", ""),
+                m.get("referral_id", ""),
+                m.get("membership_start", ""),
+                m.get("membership_end", ""),
+                m.get("created_at", "")
+            ])
     
-    # Data
-    for m in members:
-        ws.append([
-            m.get("member_id", ""),
-            m.get("name", ""),
-            m.get("mobile", ""),
-            m.get("email", ""),
-            m.get("date_of_birth", ""),
-            m.get("plan_name", ""),
-            m.get("status", ""),
-            m.get("referral_id", ""),
-            m.get("membership_start", ""),
-            m.get("membership_end", ""),
-            m.get("created_at", "")
-        ])
+    elif report_type == "payments":
+        ws.title = "Payments Report"
+        payments = await db.payments.find({"status": "completed"}, {"_id": 0}).to_list(10000)
+        
+        headers = ["Payment ID", "Member ID", "Member Name", "Amount", "Type", "Method", "Transaction ID", "Plan", "Date"]
+        ws.append(headers)
+        
+        for p in payments:
+            ws.append([
+                p.get("id", ""),
+                p.get("member_id", ""),
+                p.get("member_name", ""),
+                p.get("amount", 0),
+                p.get("payment_type", ""),
+                p.get("payment_method", ""),
+                p.get("transaction_id", ""),
+                p.get("plan_name", ""),
+                p.get("created_at", "")
+            ])
+    
+    elif report_type == "birthday":
+        ws.title = "Birthday Report"
+        # Get members with upcoming birthdays (30 days)
+        members = await db.members.find(
+            {"date_of_birth": {"$exists": True, "$nin": [None, ""]}},
+            {"_id": 0, "qr_code": 0}
+        ).to_list(10000)
+        
+        headers = ["Member ID", "Name", "Mobile", "DOB", "Plan", "Status"]
+        ws.append(headers)
+        
+        for m in members:
+            ws.append([
+                m.get("member_id", ""),
+                m.get("name", ""),
+                m.get("mobile", ""),
+                m.get("date_of_birth", ""),
+                m.get("plan_name", ""),
+                m.get("status", "")
+            ])
+    
+    elif report_type == "expiry":
+        ws.title = "Expiry Report"
+        today = datetime.now(timezone.utc).date()
+        end_date_calc = today + timedelta(days=30)
+        
+        members = await db.members.find(
+            {"membership_end": {"$lte": end_date_calc.isoformat()}},
+            {"_id": 0, "qr_code": 0}
+        ).to_list(10000)
+        
+        headers = ["Member ID", "Name", "Mobile", "Plan", "Status", "Expiry Date"]
+        ws.append(headers)
+        
+        for m in members:
+            ws.append([
+                m.get("member_id", ""),
+                m.get("name", ""),
+                m.get("mobile", ""),
+                m.get("plan_name", ""),
+                m.get("status", ""),
+                m.get("membership_end", "")
+            ])
+    
+    elif report_type == "referral":
+        ws.title = "Referral Report"
+        members = await db.members.find(
+            {"referral_id": {"$exists": True, "$nin": [None, ""]}},
+            {"_id": 0, "qr_code": 0}
+        ).to_list(10000)
+        
+        headers = ["Member ID", "Name", "Mobile", "Plan", "Referral ID", "Joined Date"]
+        ws.append(headers)
+        
+        for m in members:
+            ws.append([
+                m.get("member_id", ""),
+                m.get("name", ""),
+                m.get("mobile", ""),
+                m.get("plan_name", ""),
+                m.get("referral_id", ""),
+                m.get("created_at", "")
+            ])
     
     output = BytesIO()
     wb.save(output)
@@ -1275,7 +1792,51 @@ async def export_members_excel(
     return StreamingResponse(
         output,
         media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-        headers={"Content-Disposition": f"attachment; filename=members_report_{datetime.now().strftime('%Y%m%d')}.xlsx"}
+        headers={"Content-Disposition": f"attachment; filename={report_type}_report_{datetime.now().strftime('%Y%m%d')}.xlsx"}
+    )
+
+@api_router.get("/reports/export-csv")
+async def export_csv(
+    report_type: str = "members",
+    status: Optional[str] = None,
+    admin: dict = Depends(require_admin)
+):
+    """Export report to CSV"""
+    import csv
+    from io import StringIO
+    
+    output = StringIO()
+    writer = csv.writer(output)
+    
+    if report_type == "members":
+        query = {}
+        if status:
+            query["status"] = status
+        members = await db.members.find(query, {"_id": 0, "qr_code": 0}).to_list(10000)
+        
+        writer.writerow(["Member ID", "Name", "Mobile", "Email", "DOB", "City", "Plan", "Status", "Referral ID", "Start Date", "End Date"])
+        for m in members:
+            writer.writerow([
+                m.get("member_id", ""),
+                m.get("name", ""),
+                m.get("mobile", ""),
+                m.get("email", ""),
+                m.get("date_of_birth", ""),
+                m.get("city", ""),
+                m.get("plan_name", ""),
+                m.get("status", ""),
+                m.get("referral_id", ""),
+                m.get("membership_start", ""),
+                m.get("membership_end", "")
+            ])
+    
+    csv_content = output.getvalue()
+    output.close()
+    
+    return StreamingResponse(
+        iter([csv_content]),
+        media_type="text/csv",
+        headers={"Content-Disposition": f"attachment; filename={report_type}_report_{datetime.now().strftime('%Y%m%d')}.csv"}
     )
 
 # ==================== LEADS ENDPOINTS ====================
