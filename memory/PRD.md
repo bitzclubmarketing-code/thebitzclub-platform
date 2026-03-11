@@ -207,10 +207,10 @@ Build a membership management web application for BITZ Club with:
 
 ## Prioritized Backlog
 
-### P0 - Critical (Next Sprint)
-- [ ] Real Razorpay payment integration
-- [ ] Real SendGrid email integration
-- [ ] Real Twilio SMS integration
+### P0 - Critical (Completed March 11, 2026)
+- [x] Real Razorpay payment integration - COMPLETED (test keys configured)
+- [x] Real SMTP email integration - COMPLETED (configured, needs actual password)
+- [x] Real SoftSMS integration - COMPLETED (API configured)
 - [ ] Payment gateway webhook handling
 - [ ] Automatic maintenance reminder system
 
@@ -227,6 +227,7 @@ Build a membership management web application for BITZ Club with:
 - [ ] Push notifications
 - [ ] Monthly membership expiry reminders
 - [ ] Referral commission tracking
+- [ ] Enhance Telecaller Module (assign members/leads, track follow-ups)
 
 ### P3 - Low Priority
 - [ ] Multi-language support
@@ -267,16 +268,29 @@ Build a membership management web application for BITZ Club with:
 
 ## Test Credentials
 - **Admin**: Mobile: 9999999999, Password: admin123
-- **Test Member**: Mobile: 9123456789, Password: V5aRjs5c
-- **PWA Test Member**: Mobile: 7777777777, Password: PWAtest123!
+- **Telecaller**: Mobile: 8888888888, Password: telecaller123
+- **Member**: Mobile: 7777777777, Password: member123
 
-## Mocked Integrations Notice
-The following integrations are currently MOCKED and need real API keys for production:
-1. **Razorpay** - Payment processing
-2. **SendGrid** - Email notifications (ready for real keys)
-3. **Twilio** - SMS notifications
+## Real Integrations Status (March 11, 2026)
+The following integrations are now REAL and configured:
 
-### Email Configuration (Ready for Production)
+### 1. Razorpay (Payment Processing) - ACTIVE
+- Test keys configured in `/app/backend/.env`
+- Creates real orders with Razorpay order IDs
+- Ready for production with live keys
+
+### 2. SoftSMS (SMS Notifications) - ACTIVE
+- API key and sender ID configured
+- Sends real SMS on member registration and payment
+- Uses `https://softsms.in/app/smsapi/index.php`
+
+### 3. SMTP Email - CONFIGURED (Password Needed)
+- Host: `mail.bitzclub.com`
+- Port: 465 (SSL)
+- Username: `noreply@bitzclub.com`
+- **ACTION REQUIRED**: Update `SMTP_PASSWORD` in `/app/backend/.env` with actual password
+
+### Email Configuration
 - **Leads Email**: `leads@bitzclub.com` - Receives all landing page enquiries
 - **Admin Email**: `admin@bitzclub.com` - Receives membership registration notifications
 
@@ -304,11 +318,10 @@ SENDER_EMAIL=noreply@bitzclub.com
 ```
 
 ## Next Actions
-1. Integrate real Razorpay payment gateway (requires API keys)
-2. Add real SendGrid API key for email notifications
-3. Add real Twilio API key for SMS/WhatsApp notifications
-4. Implement automatic maintenance reminder system
-5. Implement payment webhook handlers
-6. Add member renewal flow
-7. Add password reset functionality
-8. Embed promotional video in landing page
+1. Update SMTP password in `/app/backend/.env` with real webmail password
+2. Implement payment webhook handlers for Razorpay
+3. Implement automatic maintenance reminder system
+4. Add member renewal flow
+5. Add password reset functionality
+6. Embed promotional video in landing page
+7. Enhance Telecaller Module (assign members/leads, track follow-ups)
