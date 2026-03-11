@@ -21,6 +21,10 @@ import random
 import string
 import razorpay
 import httpx
+import smtplib
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
+import ssl
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
@@ -40,6 +44,12 @@ razorpay_client = razorpay.Client(auth=(
 SOFTSMS_API_KEY = os.environ.get("SOFTSMS_API_KEY", "")
 SOFTSMS_SENDER_ID = os.environ.get("SOFTSMS_SENDER_ID", "BITZCL")
 SOFTSMS_API_URL = os.environ.get("SOFTSMS_API_URL", "https://softsms.in/app/smsapi/index.php")
+
+# SMTP Email Configuration
+SMTP_HOST = os.environ.get("SMTP_HOST", "")
+SMTP_PORT = int(os.environ.get("SMTP_PORT", 465))
+SMTP_USERNAME = os.environ.get("SMTP_USERNAME", "")
+SMTP_PASSWORD = os.environ.get("SMTP_PASSWORD", "")
 
 # Security
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
@@ -376,33 +386,47 @@ class MockedPaymentService:
             "amount": amount
         }
 
-class MockedEmailService:
-    """Mocked SendGrid Service - Ready for real integration"""
+class EmailService:
+    """Real SMTP Email Service"""
     
     @staticmethod
     async def send_email(to_email: str, subject: str, html_content: str) -> bool:
         """
-        Send email using SendGrid (currently mocked).
-        When SENDGRID_API_KEY is configured with a real key, this will send actual emails.
+        Send email using SMTP.
+        If SMTP credentials are not configured, it logs the email and returns True.
         """
         logger.info(f"[EMAIL] To: {to_email}")
         logger.info(f"[EMAIL] Subject: {subject}")
-        logger.info(f"[EMAIL] Content Preview: {html_content[:200]}...")
         
-        # TODO: When real SendGrid key is added, uncomment this:
-        # import sendgrid
-        # from sendgrid.helpers.mail import Mail
-        # sg = sendgrid.SendGridAPIClient(api_key=os.environ.get('SENDGRID_API_KEY'))
-        # message = Mail(
-        #     from_email=EMAIL_CONFIG['FROM_EMAIL'],
-        #     to_emails=to_email,
-        #     subject=subject,
-        #     html_content=html_content
-        # )
-        # response = sg.send(message)
-        # return response.status_code == 202
+        # Check if SMTP is configured
+        if not SMTP_HOST or not SMTP_USERNAME or SMTP_PASSWORD == "(webmail password)":
+            logger.warning("[EMAIL] SMTP not fully configured, email logged but not sent")
+            logger.info(f"[EMAIL] Content Preview: {html_content[:200]}...")
+            return True
         
-        return True
+        try:
+            # Create message
+            message = MIMEMultipart("alternative")
+            message["Subject"] = subject
+            message["From"] = EMAIL_CONFIG['FROM_EMAIL']
+            message["To"] = to_email
+            
+            # Attach HTML content
+            html_part = MIMEText(html_content, "html")
+            message.attach(html_part)
+            
+            # Create SSL context and send
+            context = ssl.create_default_context()
+            with smtplib.SMTP_SSL(SMTP_HOST, SMTP_PORT, context=context) as server:
+                server.login(SMTP_USERNAME, SMTP_PASSWORD)
+                server.sendmail(EMAIL_CONFIG['FROM_EMAIL'], to_email, message.as_string())
+            
+            logger.info(f"[EMAIL] Successfully sent to {to_email}")
+            return True
+        except Exception as e:
+            logger.error(f"[EMAIL ERROR] Failed to send email to {to_email}: {str(e)}")
+            # Return True to not break the flow, but log the error
+            return True
     
     @staticmethod
     async def send_lead_notification(lead: dict) -> bool:
@@ -454,7 +478,7 @@ class MockedEmailService:
         </html>
         """
         
-        return await MockedEmailService.send_email(
+        return await EmailService.send_email(
             EMAIL_CONFIG['LEADS_EMAIL'],
             subject,
             html_content
@@ -529,7 +553,7 @@ class MockedEmailService:
         </html>
         """
         
-        return await MockedEmailService.send_email(
+        return await EmailService.send_email(
             EMAIL_CONFIG['ADMIN_EMAIL'],
             subject,
             html_content
@@ -578,14 +602,14 @@ class MockedEmailService:
         
         member_email = member.get('email')
         if member_email:
-            return await MockedEmailService.send_email(member_email, subject, html_content)
+            return await EmailService.send_email(member_email, subject, html_content)
         return True
     
     @staticmethod
     async def send_payment_receipt(member: dict, payment: dict) -> bool:
         """Send payment receipt to admin and member"""
         # This would send payment confirmation emails
-        return await MockedEmailService.send_email(
+        return await EmailService.send_email(
             member.get("email", EMAIL_CONFIG['ADMIN_EMAIL']),
             "Payment Receipt - BITZ Club",
             f"Payment of ₹{payment['amount']} received successfully for {member['name']}"
@@ -701,11 +725,11 @@ async def register_user(user_data: UserCreate, background_tasks: BackgroundTasks
     user.pop('_id', None)
     
     # Send welcome SMS to user
-    background_tasks.add_task(MockedSMSService.send_welcome_sms, user)
+    background_tasks.add_task(SMSService.send_registration_sms, {"mobile": user_data.mobile, "member_id": member_id})
     
     # Send welcome email to user
     if user_data.email:
-        background_tasks.add_task(MockedEmailService.send_welcome_email, user)
+        background_tasks.add_task(EmailService.send_welcome_email, user)
     
     # If this is a member registration, send notification to admin@bitzclub.com
     if user_data.role == UserRole.MEMBER:
@@ -722,7 +746,7 @@ async def register_user(user_data: UserCreate, background_tasks: BackgroundTasks
             "email": user_data.email,
             "referral_id": None
         }
-        background_tasks.add_task(MockedEmailService.send_membership_notification, member_notification, default_plan)
+        background_tasks.add_task(EmailService.send_membership_notification, member_notification, default_plan)
     
     token = create_access_token({"sub": user_id, "role": user_data.role})
     user_response = {k: v for k, v in user.items() if k != "password"}
@@ -864,14 +888,14 @@ async def create_member(member: MemberCreate, background_tasks: BackgroundTasks,
     await db.members.insert_one(member_doc)
     
     # Send welcome SMS to member
-    background_tasks.add_task(MockedSMSService.send_welcome_sms, {"mobile": member.mobile, "member_id": member_id})
+    background_tasks.add_task(SMSService.send_registration_sms, {"mobile": member.mobile, "member_id": member_id})
     
     # Send welcome email to member
     if member.email:
-        background_tasks.add_task(MockedEmailService.send_welcome_email, {"email": member.email, "name": member.name, "member_id": member_id})
+        background_tasks.add_task(EmailService.send_welcome_email, {"email": member.email, "name": member.name, "member_id": member_id})
     
     # Send membership notification to admin@bitzclub.com
-    background_tasks.add_task(MockedEmailService.send_membership_notification, member_doc, plan)
+    background_tasks.add_task(EmailService.send_membership_notification, member_doc, plan)
     
     return {**member_doc, "temporary_password": password, "_id": None}
 
@@ -1339,7 +1363,7 @@ async def verify_payment(
         
         # Email notification
         if member.get("email"):
-            background_tasks.add_task(MockedEmailService.send_payment_receipt, member, payment)
+            background_tasks.add_task(EmailService.send_payment_receipt, member, payment)
     
     return {
         "message": "Payment verified successfully",
@@ -2143,7 +2167,7 @@ async def create_lead(lead: LeadCreate, background_tasks: BackgroundTasks):
     
     # Send notification email to leads@bitzclub.com
     background_tasks.add_task(
-        MockedEmailService.send_lead_notification,
+        EmailService.send_lead_notification,
         lead_doc
     )
     

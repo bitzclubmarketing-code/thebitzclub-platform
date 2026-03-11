@@ -11,7 +11,7 @@ import time
 from datetime import datetime
 
 class EmailNotificationTester:
-    def __init__(self, base_url="https://membership-app-test.preview.emergentagent.com"):
+    def __init__(self, base_url="https://bitz-membership-fix.preview.emergentagent.com"):
         self.base_url = base_url
         self.token = None
         self.tests_run = 0

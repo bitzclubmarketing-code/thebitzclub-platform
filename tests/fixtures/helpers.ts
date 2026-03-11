@@ -29,11 +29,11 @@ export async function login(page: Page, mobile: string, password: string) {
   await page.waitForLoadState('domcontentloaded');
   
   // Wait for form to be ready
-  await expect(page.getByTestId('login-mobile')).toBeVisible({ timeout: 10000 });
+  await expect(page.getByTestId('login-identifier')).toBeVisible({ timeout: 10000 });
   
-  await page.getByTestId('login-mobile').fill(mobile);
+  await page.getByTestId('login-identifier').fill(mobile);
   await page.getByTestId('login-password').fill(password);
-  await page.getByTestId('login-btn').click();
+  await page.getByTestId('login-submit').click();
 }
 
 export async function removeEmergentBadge(page: Page) {
