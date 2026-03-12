@@ -27,12 +27,22 @@ from email.mime.multipart import MIMEMultipart
 import ssl
 
 ROOT_DIR = Path(__file__).parent
-load_dotenv(ROOT_DIR / '.env')
 
-# MongoDB connection
-mongo_url = os.environ['MONGO_URL']
+# Load environment variables from .env file
+env_path = ROOT_DIR / '.env'
+if env_path.exists():
+    load_dotenv(env_path)
+    print(f"Loaded .env from {env_path}")
+else:
+    load_dotenv()  # Try default locations
+    print("Using default .env loading")
+
+# MongoDB connection with fallback defaults
+mongo_url = os.environ.get('MONGO_URL', 'mongodb://localhost:27017')
+db_name = os.environ.get('DB_NAME', 'bitz_club')
 client = AsyncIOMotorClient(mongo_url)
-db = client[os.environ['DB_NAME']]
+db = client[db_name]
+print(f"Connected to MongoDB: {mongo_url}, Database: {db_name}")
 
 # Razorpay client
 razorpay_client = razorpay.Client(auth=(
