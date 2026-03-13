@@ -1134,9 +1134,15 @@ async def get_telecallers(admin: dict = Depends(require_admin)):
         {"_id": 0, "password": 0}
     ).to_list(100)
     
-    # Get assigned member counts
+    # Get assigned member counts using aggregation (optimized)
+    pipeline = [
+        {"$group": {"_id": "$assigned_telecaller", "count": {"$sum": 1}}}
+    ]
+    counts_cursor = db.members.aggregate(pipeline)
+    counts = {doc["_id"]: doc["count"] async for doc in counts_cursor}
+    
     for tc in telecallers:
-        tc["assigned_count"] = await db.members.count_documents({"assigned_telecaller": tc["id"]})
+        tc["assigned_count"] = counts.get(tc["id"], 0)
     
     return telecallers
 
