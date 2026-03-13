@@ -1015,6 +1015,36 @@ async def assign_telecaller(member_id: str, telecaller_id: str, admin: dict = De
         raise HTTPException(status_code=404, detail="Member not found")
     return {"message": "Telecaller assigned"}
 
+
+@api_router.get("/members/{member_id}/payments")
+async def get_member_payments(member_id: str, admin: dict = Depends(require_admin)):
+    """Get payment history for a specific member"""
+    payments = await db.payments.find(
+        {"member_id": member_id},
+        {"_id": 0}
+    ).sort("created_at", -1).to_list(100)
+    return payments
+
+class AssignTelecallerRequest(BaseModel):
+    telecaller_id: Optional[str] = None
+
+@api_router.put("/members/{member_id}/assign")
+async def assign_member_telecaller(member_id: str, request: AssignTelecallerRequest, admin: dict = Depends(require_admin)):
+    result = await db.members.update_one(
+        {"member_id": member_id},
+        {"$set": {"assigned_telecaller": request.telecaller_id, "updated_at": datetime.now(timezone.utc).isoformat()}}
+    )
+    if result.matched_count == 0:
+        # Try with id field
+        result = await db.members.update_one(
+            {"id": member_id},
+            {"$set": {"assigned_telecaller": request.telecaller_id, "updated_at": datetime.now(timezone.utc).isoformat()}}
+        )
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Member not found")
+    return {"message": "Telecaller assigned successfully"}
+
+
 # ==================== MEMBER VERIFICATION (PUBLIC) ====================
 
 @api_router.get("/verify/{member_id}")

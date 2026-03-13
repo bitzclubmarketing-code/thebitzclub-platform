@@ -28,6 +28,7 @@ import ContentPage from '@/pages/admin/ContentPage';
 import RenewalPage from '@/pages/admin/RenewalPage';
 import CouponsPage from '@/pages/admin/CouponsPage';
 import MemberSearchPage from '@/pages/admin/MemberSearchPage';
+import MemberReportPage from '@/pages/admin/MemberReportPage';
 
 // Telecaller Pages
 import TelecallerDashboard from '@/pages/telecaller/TelecallerDashboard';
@@ -74,6 +75,7 @@ function App() {
             }>
               <Route index element={<AdminDashboard />} />
               <Route path="members" element={<MembersPage />} />
+              <Route path="members/:memberId" element={<MemberReportPage />} />
               <Route path="leads" element={<LeadsPage />} />
               <Route path="plans" element={<PlansPage />} />
               <Route path="partners" element={<PartnersPage />} />

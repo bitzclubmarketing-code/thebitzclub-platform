@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import axios from 'axios';
 import {
   Search, Plus, Edit, Trash2, Eye, Loader2, ChevronLeft, ChevronRight,
-  Filter, Download, UserPlus
+  Filter, Download, UserPlus, FileText
 } from 'lucide-react';
 import { useAuth, API } from '@/context/AuthContext';
 import { toast } from 'sonner';
@@ -22,6 +23,7 @@ import {
 } from '@/components/ui/select';
 
 const MembersPage = () => {
+  const navigate = useNavigate();
   const { token } = useAuth();
   const [members, setMembers] = useState([]);
   const [plans, setPlans] = useState([]);
@@ -262,6 +264,14 @@ const MembersPage = () => {
                     </td>
                     <td className="py-4 px-4">
                       <div className="flex items-center justify-end gap-2">
+                        <button
+                          onClick={() => navigate(`/admin/members/${member.member_id}`)}
+                          className="p-2 text-gray-400 hover:text-blue-400 transition-colors"
+                          title="View Report"
+                          data-testid={`view-member-${member.id}`}
+                        >
+                          <FileText className="w-4 h-4" />
+                        </button>
                         <button
                           onClick={() => openEditModal(member)}
                           className="p-2 text-gray-400 hover:text-[#D4AF37] transition-colors"
