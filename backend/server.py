@@ -2535,6 +2535,180 @@ async def seed_data():
     
     return {"message": "Seed data created successfully", "admin_credentials": {"mobile": "9999999999", "password": "admin123"}}
 
+
+# =====================
+# COUPON ENDPOINTS
+# =====================
+
+class CouponCreate(BaseModel):
+    code: str
+    discount_type: str = "percentage"  # percentage or fixed
+    discount_value: float
+    min_amount: Optional[float] = None
+    max_uses: Optional[int] = None
+    valid_from: Optional[str] = None
+    valid_until: Optional[str] = None
+    applicable_plans: Optional[List[str]] = []
+    is_active: bool = True
+
+@api_router.get("/coupons")
+async def get_coupons(admin: dict = Depends(require_admin)):
+    coupons = await db.coupons.find({}, {"_id": 0}).to_list(100)
+    return coupons
+
+@api_router.post("/coupons")
+async def create_coupon(coupon: CouponCreate, admin: dict = Depends(require_admin)):
+    # Check if code already exists
+    existing = await db.coupons.find_one({"code": coupon.code.upper()})
+    if existing:
+        raise HTTPException(status_code=400, detail="Coupon code already exists")
+    
+    coupon_doc = {
+        "id": str(uuid.uuid4()),
+        "code": coupon.code.upper(),
+        "discount_type": coupon.discount_type,
+        "discount_value": coupon.discount_value,
+        "min_amount": coupon.min_amount,
+        "max_uses": coupon.max_uses,
+        "valid_from": coupon.valid_from,
+        "valid_until": coupon.valid_until,
+        "applicable_plans": coupon.applicable_plans,
+        "is_active": coupon.is_active,
+        "times_used": 0,
+        "created_at": datetime.now(timezone.utc).isoformat()
+    }
+    await db.coupons.insert_one(coupon_doc)
+    coupon_doc.pop("_id", None)
+    return coupon_doc
+
+@api_router.put("/coupons/{coupon_id}")
+async def update_coupon(coupon_id: str, coupon: CouponCreate, admin: dict = Depends(require_admin)):
+    result = await db.coupons.update_one(
+        {"id": coupon_id},
+        {"$set": {
+            "code": coupon.code.upper(),
+            "discount_type": coupon.discount_type,
+            "discount_value": coupon.discount_value,
+            "min_amount": coupon.min_amount,
+            "max_uses": coupon.max_uses,
+            "valid_from": coupon.valid_from,
+            "valid_until": coupon.valid_until,
+            "applicable_plans": coupon.applicable_plans,
+            "is_active": coupon.is_active,
+            "updated_at": datetime.now(timezone.utc).isoformat()
+        }}
+    )
+    if result.modified_count == 0:
+        raise HTTPException(status_code=404, detail="Coupon not found")
+    return {"message": "Coupon updated"}
+
+@api_router.delete("/coupons/{coupon_id}")
+async def delete_coupon(coupon_id: str, admin: dict = Depends(require_admin)):
+    result = await db.coupons.delete_one({"id": coupon_id})
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Coupon not found")
+    return {"message": "Coupon deleted"}
+
+@api_router.post("/coupons/validate")
+async def validate_coupon(code: str, amount: float, plan_id: Optional[str] = None):
+    coupon = await db.coupons.find_one({"code": code.upper(), "is_active": True})
+    if not coupon:
+        raise HTTPException(status_code=404, detail="Invalid coupon code")
+    
+    # Check validity dates
+    now = datetime.now(timezone.utc)
+    if coupon.get("valid_from") and datetime.fromisoformat(coupon["valid_from"].replace("Z", "+00:00")) > now:
+        raise HTTPException(status_code=400, detail="Coupon not yet valid")
+    if coupon.get("valid_until") and datetime.fromisoformat(coupon["valid_until"].replace("Z", "+00:00")) < now:
+        raise HTTPException(status_code=400, detail="Coupon has expired")
+    
+    # Check usage limit
+    if coupon.get("max_uses") and coupon.get("times_used", 0) >= coupon["max_uses"]:
+        raise HTTPException(status_code=400, detail="Coupon usage limit reached")
+    
+    # Check min amount
+    if coupon.get("min_amount") and amount < coupon["min_amount"]:
+        raise HTTPException(status_code=400, detail=f"Minimum order amount is ₹{coupon['min_amount']}")
+    
+    # Calculate discount
+    if coupon["discount_type"] == "percentage":
+        discount = amount * (coupon["discount_value"] / 100)
+    else:
+        discount = coupon["discount_value"]
+    
+    discount = min(discount, amount)  # Discount cannot exceed amount
+    
+    return {
+        "valid": True,
+        "code": coupon["code"],
+        "discount_type": coupon["discount_type"],
+        "discount_value": coupon["discount_value"],
+        "discount_amount": discount,
+        "final_amount": amount - discount
+    }
+
+# =====================
+# RENEWAL ENDPOINTS
+# =====================
+
+class RenewalRequest(BaseModel):
+    plan_id: str
+
+@api_router.post("/members/{member_id}/renew")
+async def renew_membership(member_id: str, renewal: RenewalRequest, admin: dict = Depends(require_admin)):
+    member = await db.members.find_one({"member_id": member_id})
+    if not member:
+        raise HTTPException(status_code=404, detail="Member not found")
+    
+    plan = await db.plans.find_one({"id": renewal.plan_id})
+    if not plan:
+        raise HTTPException(status_code=404, detail="Plan not found")
+    
+    # Calculate new membership dates
+    current_end = member.get("membership_end")
+    if current_end:
+        try:
+            start_date = datetime.fromisoformat(current_end.replace("Z", "+00:00"))
+            if start_date < datetime.now(timezone.utc):
+                start_date = datetime.now(timezone.utc)
+        except Exception:
+            start_date = datetime.now(timezone.utc)
+    else:
+        start_date = datetime.now(timezone.utc)
+    
+    end_date = start_date + timedelta(days=plan.get("duration_months", 12) * 30)
+    
+    # Update member
+    await db.members.update_one(
+        {"member_id": member_id},
+        {"$set": {
+            "plan_id": plan["id"],
+            "plan_name": plan["name"],
+            "membership_start": start_date.isoformat(),
+            "membership_end": end_date.isoformat(),
+            "status": "active",
+            "updated_at": datetime.now(timezone.utc).isoformat()
+        }}
+    )
+    
+    # Create payment record
+    payment_doc = {
+        "id": str(uuid.uuid4()),
+        "member_id": member_id,
+        "member_name": member.get("name", ""),
+        "plan_id": plan["id"],
+        "plan_name": plan["name"],
+        "amount": plan["price"],
+        "payment_type": "renewal",
+        "payment_method": "offline",
+        "status": "completed",
+        "created_at": datetime.now(timezone.utc).isoformat()
+    }
+    await db.payments.insert_one(payment_doc)
+    
+    return {"message": "Membership renewed successfully", "new_end_date": end_date.isoformat()}
+
+
 # Include router
 app.include_router(api_router)
 

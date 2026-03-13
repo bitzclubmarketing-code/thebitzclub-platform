@@ -25,6 +25,9 @@ import PartnersPage from '@/pages/admin/PartnersPage';
 import TelecallersPage from '@/pages/admin/TelecallersPage';
 import ReportsPage from '@/pages/admin/ReportsPage';
 import ContentPage from '@/pages/admin/ContentPage';
+import RenewalPage from '@/pages/admin/RenewalPage';
+import CouponsPage from '@/pages/admin/CouponsPage';
+import MemberSearchPage from '@/pages/admin/MemberSearchPage';
 
 // Telecaller Pages
 import TelecallerDashboard from '@/pages/telecaller/TelecallerDashboard';
@@ -77,6 +80,9 @@ function App() {
               <Route path="telecallers" element={<TelecallersPage />} />
               <Route path="reports" element={<ReportsPage />} />
               <Route path="content" element={<ContentPage />} />
+              <Route path="renewals" element={<RenewalPage />} />
+              <Route path="coupons" element={<CouponsPage />} />
+              <Route path="search" element={<MemberSearchPage />} />
             </Route>
 
             {/* Telecaller Routes */}
