@@ -1,0 +1,589 @@
+================================================================================
+                    BITZ CLUB - COMPLETE DEPLOYMENT GUIDE
+                         Version 1.0 | March 2026
+================================================================================
+
+TABLE OF CONTENTS
+-----------------
+1. Project Overview
+2. Server Requirements
+3. Initial Server Setup
+4. Backend Deployment
+5. Frontend Deployment
+6. Nginx Configuration
+7. SSL Certificate Setup
+8. Database Setup
+9. Environment Variables
+10. Login Credentials
+11. API Endpoints
+12. Verification & Testing
+13. Troubleshooting
+14. Maintenance Commands
+
+================================================================================
+1. PROJECT OVERVIEW
+================================================================================
+
+Project Name:       BITZ Club - Premium Lifestyle Membership Platform
+GitHub Repository:  https://github.com/bitzclubmarketing-code/thebitzclub-platform
+Domain:             thebitzclub.com
+
+Tech Stack:
+- Frontend:         React 19, TailwindCSS, ShadCN UI
+- Backend:          FastAPI (Python 3.11)
+- Database:         MongoDB 6.0
+- Web Server:       Nginx
+- Payment Gateway:  Razorpay
+- SMS:              SoftSMS
+- Email:            SMTP
+
+================================================================================
+2. SERVER REQUIREMENTS
+================================================================================
+
+Minimum Requirements:
+- OS:               Ubuntu 22.04 LTS
+- RAM:              2GB (4GB recommended)
+- Storage:          20GB SSD
+- CPU:              1 vCPU (2 vCPU recommended)
+
+Required Software:
+- Node.js 18+
+- Python 3.11+
+- MongoDB 6.0+
+- Nginx
+- Certbot (for SSL)
+
+================================================================================
+3. INITIAL SERVER SETUP
+================================================================================
+
+Step 3.1: Update System
+-----------------------
+sudo apt update
+sudo apt upgrade -y
+
+Step 3.2: Install Node.js 18
+----------------------------
+curl -fsSL https://deb.nodesource.com/setup_18.x | sudo -E bash -
+sudo apt install -y nodejs
+sudo npm install -g yarn
+
+Verify:
+node --version    # Should show v18.x.x
+yarn --version    # Should show 1.22.x
+
+Step 3.3: Install Python 3.11
+-----------------------------
+sudo apt install -y python3.11 python3.11-venv python3-pip
+
+Verify:
+python3.11 --version    # Should show Python 3.11.x
+
+Step 3.4: Install MongoDB
+-------------------------
+curl -fsSL https://pgp.mongodb.com/server-6.0.asc | sudo gpg -o /usr/share/keyrings/mongodb-server-6.0.gpg --dearmor
+
+echo "deb [ signed-by=/usr/share/keyrings/mongodb-server-6.0.gpg ] https://repo.mongodb.org/apt/ubuntu jammy/mongodb-org/6.0 multiverse" | sudo tee /etc/apt/sources.list.d/mongodb-org-6.0.list
+
+sudo apt update
+sudo apt install -y mongodb-org
+
+sudo systemctl enable mongod
+sudo systemctl start mongod
+
+Verify:
+sudo systemctl status mongod    # Should show "active (running)"
+
+Step 3.5: Install Nginx & Certbot
+---------------------------------
+sudo apt install -y nginx certbot python3-certbot-nginx
+
+sudo systemctl enable nginx
+sudo systemctl start nginx
+
+================================================================================
+4. BACKEND DEPLOYMENT
+================================================================================
+
+Step 4.1: Clone Repository
+--------------------------
+sudo mkdir -p /var/www/bitzclub
+cd /var/www/bitzclub
+sudo git clone https://github.com/bitzclubmarketing-code/thebitzclub-platform.git .
+
+Step 4.2: Create Python Virtual Environment
+-------------------------------------------
+cd /var/www/bitzclub/backend
+python3.11 -m venv venv
+source venv/bin/activate
+
+Step 4.3: Install Python Dependencies
+-------------------------------------
+pip install --upgrade pip
+pip install -r requirements.txt
+
+Step 4.4: Create Backend Environment File
+-----------------------------------------
+Create file: /var/www/bitzclub/backend/.env
+
+Contents:
+---------
+MONGO_URL=mongodb://localhost:27017
+DB_NAME=bitz_club
+CORS_ORIGINS=https://thebitzclub.com,https://www.thebitzclub.com
+JWT_SECRET=bitz-club-production-secret-key-2024-change-this-to-random-string
+RAZORPAY_KEY_ID=rzp_test_SPTJ4NnuWHDYRG
+RAZORPAY_KEY_SECRET=yvGZt4INIrclxMAdi4uFMnKS
+SOFTSMS_API_KEY=56531040ad016
+SOFTSMS_SENDER_ID=BITZCL
+SOFTSMS_API_URL=https://softsms.in/app/smsapi/index.php
+SENDER_EMAIL=noreply@bitzclub.com
+SMTP_HOST=mail.bitzclub.com
+SMTP_PORT=465
+SMTP_USERNAME=noreply@bitzclub.com
+SMTP_PASSWORD=your_actual_email_password
+---------
+
+Command to create:
+cat > /var/www/bitzclub/backend/.env << 'EOF'
+MONGO_URL=mongodb://localhost:27017
+DB_NAME=bitz_club
+CORS_ORIGINS=https://thebitzclub.com,https://www.thebitzclub.com
+JWT_SECRET=bitz-club-production-secret-key-2024-change-this-to-random-string
+RAZORPAY_KEY_ID=rzp_test_SPTJ4NnuWHDYRG
+RAZORPAY_KEY_SECRET=yvGZt4INIrclxMAdi4uFMnKS
+SOFTSMS_API_KEY=56531040ad016
+SOFTSMS_SENDER_ID=BITZCL
+SOFTSMS_API_URL=https://softsms.in/app/smsapi/index.php
+SENDER_EMAIL=noreply@bitzclub.com
+SMTP_HOST=mail.bitzclub.com
+SMTP_PORT=465
+SMTP_USERNAME=noreply@bitzclub.com
+SMTP_PASSWORD=your_actual_email_password
+EOF
+
+Step 4.5: Test Backend Manually
+-------------------------------
+cd /var/www/bitzclub/backend
+source venv/bin/activate
+uvicorn server:app --host 0.0.0.0 --port 8001
+
+Test in browser: http://YOUR_SERVER_IP:8001/docs
+Press Ctrl+C to stop
+
+Step 4.6: Create Systemd Service
+--------------------------------
+Create file: /etc/systemd/system/bitzclub.service
+
+Contents:
+---------
+[Unit]
+Description=BITZ Club FastAPI Backend
+After=network.target mongod.service
+Wants=mongod.service
+
+[Service]
+Type=simple
+User=www-data
+Group=www-data
+WorkingDirectory=/var/www/bitzclub/backend
+Environment="PATH=/var/www/bitzclub/backend/venv/bin"
+ExecStart=/var/www/bitzclub/backend/venv/bin/uvicorn server:app --host 0.0.0.0 --port 8001
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target
+---------
+
+Command to create:
+sudo cat > /etc/systemd/system/bitzclub.service << 'EOF'
+[Unit]
+Description=BITZ Club FastAPI Backend
+After=network.target mongod.service
+Wants=mongod.service
+
+[Service]
+Type=simple
+User=www-data
+Group=www-data
+WorkingDirectory=/var/www/bitzclub/backend
+Environment="PATH=/var/www/bitzclub/backend/venv/bin"
+ExecStart=/var/www/bitzclub/backend/venv/bin/uvicorn server:app --host 0.0.0.0 --port 8001
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+Step 4.7: Set Permissions & Start Service
+-----------------------------------------
+sudo chown -R www-data:www-data /var/www/bitzclub
+sudo chmod -R 755 /var/www/bitzclub
+
+sudo systemctl daemon-reload
+sudo systemctl enable bitzclub
+sudo systemctl start bitzclub
+
+Verify:
+sudo systemctl status bitzclub    # Should show "active (running)"
+curl http://localhost:8001/api/plans    # Should return JSON
+
+================================================================================
+5. FRONTEND DEPLOYMENT
+================================================================================
+
+Step 5.1: Install Frontend Dependencies
+---------------------------------------
+cd /var/www/bitzclub/frontend
+yarn install
+
+If you get dependency errors, run:
+yarn install --legacy-peer-deps
+
+Step 5.2: Create Frontend Environment File
+------------------------------------------
+echo "REACT_APP_BACKEND_URL=https://thebitzclub.com" > /var/www/bitzclub/frontend/.env
+
+Step 5.3: Build Frontend
+------------------------
+cd /var/www/bitzclub/frontend
+yarn build
+
+Step 5.4: Deploy to Web Root
+----------------------------
+sudo mkdir -p /var/www/html
+sudo cp -r /var/www/bitzclub/frontend/build/* /var/www/html/
+sudo chown -R www-data:www-data /var/www/html
+sudo chmod -R 755 /var/www/html
+
+================================================================================
+6. NGINX CONFIGURATION
+================================================================================
+
+Step 6.1: Create Nginx Configuration
+------------------------------------
+Create file: /etc/nginx/sites-available/bitzclub
+
+Command:
+sudo cat > /etc/nginx/sites-available/bitzclub << 'EOF'
+server {
+    listen 80;
+    server_name thebitzclub.com www.thebitzclub.com;
+
+    root /var/www/html;
+    index index.html;
+
+    # API Proxy - MUST be before the catch-all location
+    location /api/ {
+        proxy_pass http://127.0.0.1:8001/api/;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_connect_timeout 60s;
+        proxy_read_timeout 60s;
+    }
+
+    # React Router - catch-all for SPA
+    location / {
+        try_files $uri $uri/ /index.html;
+    }
+
+    # Static file caching
+    location ~* \.(js|css|png|jpg|jpeg|gif|ico|svg|woff|woff2)$ {
+        expires 1y;
+        add_header Cache-Control "public, immutable";
+    }
+}
+EOF
+
+Step 6.2: Enable Site & Restart Nginx
+-------------------------------------
+sudo ln -sf /etc/nginx/sites-available/bitzclub /etc/nginx/sites-enabled/
+sudo rm -f /etc/nginx/sites-enabled/default
+sudo nginx -t
+sudo systemctl restart nginx
+
+================================================================================
+7. SSL CERTIFICATE SETUP
+================================================================================
+
+Step 7.1: Ensure Domain Points to Server
+----------------------------------------
+Before running certbot, make sure:
+- A Record: thebitzclub.com -> YOUR_SERVER_IP
+- A Record: www.thebitzclub.com -> YOUR_SERVER_IP
+
+Step 7.2: Obtain SSL Certificate
+--------------------------------
+sudo certbot --nginx -d thebitzclub.com -d www.thebitzclub.com
+
+Follow the prompts:
+- Enter email address
+- Agree to terms
+- Choose option 2 (redirect HTTP to HTTPS)
+
+Step 7.3: Verify SSL Auto-Renewal
+---------------------------------
+sudo certbot renew --dry-run
+
+================================================================================
+8. DATABASE SETUP
+================================================================================
+
+Step 8.1: Seed Initial Data
+---------------------------
+curl -X POST http://localhost:8001/api/seed
+
+This creates:
+- Admin user (9999999999 / admin123)
+- Default membership plans (Silver, Gold, Platinum)
+- Sample partners and experiences
+
+Step 8.2: Verify Database
+-------------------------
+mongosh bitz_club --eval "db.getCollectionNames()"
+mongosh bitz_club --eval "db.users.countDocuments({})"
+mongosh bitz_club --eval "db.plans.find().pretty()"
+
+Step 8.3: Restore from Backup (Optional)
+----------------------------------------
+If you have a database dump:
+mongorestore --db bitz_club /path/to/dump/bitz_club
+
+================================================================================
+9. ENVIRONMENT VARIABLES REFERENCE
+================================================================================
+
+BACKEND ENVIRONMENT VARIABLES (/var/www/bitzclub/backend/.env)
+--------------------------------------------------------------
+
+Variable              | Description                    | Example Value
+----------------------|--------------------------------|---------------------------
+MONGO_URL             | MongoDB connection string      | mongodb://localhost:27017
+DB_NAME               | Database name                  | bitz_club
+CORS_ORIGINS          | Allowed frontend origins       | https://thebitzclub.com
+JWT_SECRET            | Secret for JWT tokens          | random-32-char-string
+RAZORPAY_KEY_ID       | Razorpay API Key ID            | rzp_test_xxx or rzp_live_xxx
+RAZORPAY_KEY_SECRET   | Razorpay API Secret            | your_razorpay_secret
+SOFTSMS_API_KEY       | SoftSMS API Key                | your_softsms_key
+SOFTSMS_SENDER_ID     | SMS Sender ID                  | BITZCL
+SOFTSMS_API_URL       | SoftSMS API Endpoint           | https://softsms.in/app/smsapi/index.php
+SENDER_EMAIL          | From email address             | noreply@bitzclub.com
+SMTP_HOST             | SMTP server hostname           | mail.bitzclub.com
+SMTP_PORT             | SMTP port                      | 465
+SMTP_USERNAME         | SMTP username                  | noreply@bitzclub.com
+SMTP_PASSWORD         | SMTP password                  | your_email_password
+
+FRONTEND ENVIRONMENT VARIABLES (/var/www/bitzclub/frontend/.env)
+----------------------------------------------------------------
+
+Variable                  | Description           | Example Value
+--------------------------|----------------------|---------------------------
+REACT_APP_BACKEND_URL     | Backend API URL      | https://thebitzclub.com
+
+================================================================================
+10. LOGIN CREDENTIALS
+================================================================================
+
+DEFAULT ADMIN ACCOUNT
+---------------------
+Mobile Number:    9999999999
+Password:         admin123
+Role:             Super Admin
+Access:           Full system access
+
+DEFAULT TELECALLER ACCOUNT
+--------------------------
+Mobile Number:    8888888888
+Password:         telecaller123
+Role:             Telecaller
+Access:           Assigned members and leads
+
+DEFAULT MEMBER ACCOUNT
+----------------------
+Mobile Number:    7777777777
+Password:         member123
+Role:             Member
+Access:           Personal dashboard only
+
+IMPORTANT: Change these passwords after first login!
+
+================================================================================
+11. API ENDPOINTS
+================================================================================
+
+PUBLIC ENDPOINTS
+----------------
+GET  /api/plans                    - List membership plans
+GET  /api/partners                 - List partner venues
+POST /api/leads                    - Submit enquiry form
+POST /api/auth/login               - User login
+POST /api/auth/register            - New member registration
+
+AUTHENTICATED ENDPOINTS
+-----------------------
+GET  /api/members/me               - Get current member profile
+POST /api/payments/create-order    - Create Razorpay payment order
+POST /api/payments/verify          - Verify payment
+
+ADMIN ENDPOINTS
+---------------
+GET  /api/admin/members            - List all members
+POST /api/admin/members            - Create new member
+GET  /api/admin/plans              - List all plans
+POST /api/admin/plans              - Create new plan
+GET  /api/admin/reports/*          - Various reports
+
+API DOCUMENTATION
+-----------------
+Swagger UI:     https://thebitzclub.com/api/docs
+ReDoc:          https://thebitzclub.com/api/redoc
+
+================================================================================
+12. VERIFICATION & TESTING
+================================================================================
+
+Step 12.1: Check All Services
+-----------------------------
+sudo systemctl status mongod       # MongoDB
+sudo systemctl status bitzclub     # Backend
+sudo systemctl status nginx        # Web server
+
+Step 12.2: Test Backend API
+---------------------------
+# Test locally
+curl http://localhost:8001/api/plans
+
+# Test via domain
+curl https://thebitzclub.com/api/plans
+
+Expected: JSON array with plans
+
+Step 12.3: Test Frontend Routes
+-------------------------------
+Open in browser:
+- https://thebitzclub.com              (Homepage)
+- https://thebitzclub.com/register     (Registration)
+- https://thebitzclub.com/login        (Login)
+- https://thebitzclub.com/admin        (Admin - after login)
+
+Step 12.4: Test Login
+---------------------
+curl -X POST https://thebitzclub.com/api/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"identifier":"9999999999","password":"admin123"}'
+
+Expected: JSON with access_token
+
+Step 12.5: Test Razorpay
+------------------------
+Use test card: 4111 1111 1111 1111
+Expiry: Any future date
+CVV: Any 3 digits
+
+================================================================================
+13. TROUBLESHOOTING
+================================================================================
+
+ISSUE: Backend not starting
+---------------------------
+Check logs:
+sudo journalctl -u bitzclub -n 50
+
+Common fixes:
+- Ensure MongoDB is running: sudo systemctl start mongod
+- Check .env file exists and has correct values
+- Verify Python venv: source /var/www/bitzclub/backend/venv/bin/activate
+
+ISSUE: API returns HTML instead of JSON
+---------------------------------------
+Nginx proxy not configured correctly.
+
+Fix:
+- Ensure /api/ location is BEFORE / location in nginx config
+- Check: sudo nginx -t
+- Restart: sudo systemctl restart nginx
+
+ISSUE: 502 Bad Gateway
+----------------------
+Backend not running.
+
+Fix:
+sudo systemctl restart bitzclub
+sudo systemctl status bitzclub
+
+ISSUE: Permission denied errors
+-------------------------------
+Fix:
+sudo chown -R www-data:www-data /var/www/bitzclub
+sudo chown -R www-data:www-data /var/www/html
+sudo chmod -R 755 /var/www/bitzclub
+sudo chmod -R 755 /var/www/html
+
+ISSUE: MongoDB connection refused
+---------------------------------
+Fix:
+sudo systemctl start mongod
+sudo systemctl enable mongod
+
+ISSUE: SSL certificate error
+----------------------------
+Fix:
+sudo certbot renew
+sudo systemctl restart nginx
+
+================================================================================
+14. MAINTENANCE COMMANDS
+================================================================================
+
+RESTART ALL SERVICES
+--------------------
+sudo systemctl restart mongod bitzclub nginx
+
+VIEW LOGS
+---------
+# Backend logs
+sudo journalctl -u bitzclub -f
+
+# Nginx error logs
+sudo tail -f /var/log/nginx/error.log
+
+# Nginx access logs
+sudo tail -f /var/log/nginx/access.log
+
+REBUILD FRONTEND
+----------------
+cd /var/www/bitzclub/frontend
+yarn build
+sudo cp -r build/* /var/www/html/
+sudo systemctl restart nginx
+
+UPDATE FROM GIT
+---------------
+cd /var/www/bitzclub
+git pull origin main
+# Rebuild frontend
+cd frontend && yarn build && sudo cp -r build/* /var/www/html/
+# Restart backend
+sudo systemctl restart bitzclub nginx
+
+DATABASE BACKUP
+---------------
+mongodump --db bitz_club --out /backup/mongodb/$(date +%Y%m%d)
+
+DATABASE RESTORE
+----------------
+mongorestore --db bitz_club /backup/mongodb/YYYYMMDD/bitz_club
+
+================================================================================
+                              END OF DOCUMENT
+================================================================================
+
+For support, contact the development team.
+Document Version: 1.0
+Last Updated: March 2026
