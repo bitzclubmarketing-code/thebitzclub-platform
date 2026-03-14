@@ -25,10 +25,9 @@ import PartnersPage from '@/pages/admin/PartnersPage';
 import TelecallersPage from '@/pages/admin/TelecallersPage';
 import ReportsPage from '@/pages/admin/ReportsPage';
 import ContentPage from '@/pages/admin/ContentPage';
-import RenewalPage from '@/pages/admin/RenewalPage';
+import PaymentsPage from '@/pages/admin/PaymentsPage';
 import CouponsPage from '@/pages/admin/CouponsPage';
-import MemberSearchPage from '@/pages/admin/MemberSearchPage';
-import MemberReportPage from '@/pages/admin/MemberReportPage';
+import MaintenancePage from '@/pages/admin/MaintenancePage';
 
 // Telecaller Pages
 import TelecallerDashboard from '@/pages/telecaller/TelecallerDashboard';
@@ -75,16 +74,15 @@ function App() {
             }>
               <Route index element={<AdminDashboard />} />
               <Route path="members" element={<MembersPage />} />
-              <Route path="members/:memberId" element={<MemberReportPage />} />
               <Route path="leads" element={<LeadsPage />} />
               <Route path="plans" element={<PlansPage />} />
               <Route path="partners" element={<PartnersPage />} />
               <Route path="telecallers" element={<TelecallersPage />} />
+              <Route path="payments" element={<PaymentsPage />} />
+              <Route path="coupons" element={<CouponsPage />} />
+              <Route path="maintenance" element={<MaintenancePage />} />
               <Route path="reports" element={<ReportsPage />} />
               <Route path="content" element={<ContentPage />} />
-              <Route path="renewals" element={<RenewalPage />} />
-              <Route path="coupons" element={<CouponsPage />} />
-              <Route path="search" element={<MemberSearchPage />} />
             </Route>
 
             {/* Telecaller Routes */}

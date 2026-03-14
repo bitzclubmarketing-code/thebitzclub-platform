@@ -220,6 +220,61 @@ class PaymentCreate(BaseModel):
     transaction_id: Optional[str] = None
     plan_id: Optional[str] = None
     notes: Optional[str] = None
+    coupon_code: Optional[str] = None
+    gst_amount: Optional[float] = None
+    discount_amount: Optional[float] = None
+
+class PaymentUpdate(BaseModel):
+    amount: Optional[float] = None
+    payment_method: Optional[str] = None
+    status: Optional[str] = None
+    transaction_id: Optional[str] = None
+    notes: Optional[str] = None
+
+# Coupon/Discount Models
+class CouponCreate(BaseModel):
+    code: str
+    discount_type: str  # 'percentage' or 'fixed'
+    discount_value: float
+    min_amount: float = 0
+    max_discount: Optional[float] = None
+    valid_from: str
+    valid_until: str
+    usage_limit: int = 0  # 0 means unlimited
+    applicable_plans: List[str] = []  # Empty means all plans
+    is_active: bool = True
+
+class CouponUpdate(BaseModel):
+    discount_type: Optional[str] = None
+    discount_value: Optional[float] = None
+    min_amount: Optional[float] = None
+    max_discount: Optional[float] = None
+    valid_from: Optional[str] = None
+    valid_until: Optional[str] = None
+    usage_limit: Optional[int] = None
+    applicable_plans: Optional[List[str]] = None
+    is_active: Optional[bool] = None
+
+# Maintenance Fee Models
+class MaintenanceFeeCreate(BaseModel):
+    member_id: str
+    amount: float
+    fee_type: str  # 'monthly', 'quarterly', 'yearly'
+    due_date: str
+    payment_method: Optional[str] = None
+    transaction_id: Optional[str] = None
+    notes: Optional[str] = None
+
+class MaintenanceFeeUpdate(BaseModel):
+    amount: Optional[float] = None
+    status: Optional[str] = None
+    payment_method: Optional[str] = None
+    paid_date: Optional[str] = None
+    transaction_id: Optional[str] = None
+    notes: Optional[str] = None
+
+# GST Configuration
+GST_RATE = 0.18  # 18% GST
 
 # Lead Models
 class LeadCreate(BaseModel):
@@ -2995,16 +3050,40 @@ async def validate_coupon(code: str, amount: float, plan_id: Optional[str] = Non
 
 class RenewalRequest(BaseModel):
     plan_id: str
+    payment_method: str = "cash"
+    amount: Optional[float] = None
+    notes: Optional[str] = None
+    coupon_code: Optional[str] = None
 
 @api_router.post("/members/{member_id}/renew")
 async def renew_membership(member_id: str, renewal: RenewalRequest, admin: dict = Depends(require_admin)):
     member = await db.members.find_one({"member_id": member_id})
+    if not member:
+        member = await db.members.find_one({"id": member_id})
     if not member:
         raise HTTPException(status_code=404, detail="Member not found")
     
     plan = await db.plans.find_one({"id": renewal.plan_id})
     if not plan:
         raise HTTPException(status_code=404, detail="Plan not found")
+    
+    # Calculate amount with GST
+    base_amount = renewal.amount if renewal.amount else plan["price"]
+    gst_amount = round(base_amount * GST_RATE, 2)
+    discount_amount = 0
+    
+    # Apply coupon if provided
+    if renewal.coupon_code:
+        coupon = await db.coupons.find_one({"code": renewal.coupon_code.upper(), "is_active": True})
+        if coupon:
+            if coupon["discount_type"] == "percentage":
+                discount_amount = round(base_amount * (coupon["discount_value"] / 100), 2)
+                if coupon.get("max_discount"):
+                    discount_amount = min(discount_amount, coupon["max_discount"])
+            else:
+                discount_amount = coupon["discount_value"]
+    
+    total_amount = base_amount + gst_amount - discount_amount
     
     # Calculate new membership dates
     current_end = member.get("membership_end")
@@ -3022,7 +3101,7 @@ async def renew_membership(member_id: str, renewal: RenewalRequest, admin: dict 
     
     # Update member
     await db.members.update_one(
-        {"member_id": member_id},
+        {"member_id": member.get("member_id", member_id)},
         {"$set": {
             "plan_id": plan["id"],
             "plan_name": plan["name"],
@@ -3033,22 +3112,387 @@ async def renew_membership(member_id: str, renewal: RenewalRequest, admin: dict 
         }}
     )
     
-    # Create payment record
+    # Create payment record with GST
     payment_doc = {
         "id": str(uuid.uuid4()),
-        "member_id": member_id,
+        "order_id": f"RENEW-{datetime.now().strftime('%Y%m%d%H%M%S')}",
+        "member_id": member.get("member_id", member_id),
         "member_name": member.get("name", ""),
         "plan_id": plan["id"],
         "plan_name": plan["name"],
-        "amount": plan["price"],
+        "base_amount": base_amount,
+        "gst_amount": gst_amount,
+        "gst_rate": GST_RATE * 100,
+        "discount_amount": discount_amount,
+        "coupon_code": renewal.coupon_code,
+        "amount": total_amount,
         "payment_type": "renewal",
-        "payment_method": "offline",
+        "payment_method": renewal.payment_method,
+        "notes": renewal.notes,
         "status": "completed",
         "created_at": datetime.now(timezone.utc).isoformat()
     }
     await db.payments.insert_one(payment_doc)
     
-    return {"message": "Membership renewed successfully", "new_end_date": end_date.isoformat()}
+    return {
+        "message": "Membership renewed successfully", 
+        "new_end_date": end_date.isoformat(),
+        "payment": {
+            "base_amount": base_amount,
+            "gst_amount": gst_amount,
+            "discount_amount": discount_amount,
+            "total_amount": total_amount
+        }
+    }
+
+
+# =====================
+# MAINTENANCE FEE ENDPOINTS
+# =====================
+
+@api_router.get("/maintenance-fees")
+async def get_maintenance_fees(
+    member_id: Optional[str] = None,
+    status: Optional[str] = None,
+    admin: dict = Depends(require_admin)
+):
+    """Get all maintenance fees with optional filters"""
+    query = {}
+    if member_id:
+        query["member_id"] = member_id
+    if status:
+        query["status"] = status
+    
+    fees = await db.maintenance_fees.find(query, {"_id": 0}).sort("due_date", -1).to_list(500)
+    return fees
+
+@api_router.post("/maintenance-fees")
+async def create_maintenance_fee(fee: MaintenanceFeeCreate, admin: dict = Depends(require_admin)):
+    """Create a new maintenance fee record"""
+    member = await db.members.find_one({"member_id": fee.member_id})
+    if not member:
+        raise HTTPException(status_code=404, detail="Member not found")
+    
+    fee_doc = {
+        "id": str(uuid.uuid4()),
+        "member_id": fee.member_id,
+        "member_name": member.get("name", ""),
+        "amount": fee.amount,
+        "fee_type": fee.fee_type,
+        "due_date": fee.due_date,
+        "status": "pending",
+        "payment_method": fee.payment_method,
+        "transaction_id": fee.transaction_id,
+        "notes": fee.notes,
+        "created_at": datetime.now(timezone.utc).isoformat()
+    }
+    await db.maintenance_fees.insert_one(fee_doc)
+    return {"message": "Maintenance fee created", "id": fee_doc["id"]}
+
+@api_router.put("/maintenance-fees/{fee_id}")
+async def update_maintenance_fee(fee_id: str, update: MaintenanceFeeUpdate, admin: dict = Depends(require_admin)):
+    """Update maintenance fee (mark as paid, etc.)"""
+    update_data = {k: v for k, v in update.dict().items() if v is not None}
+    if update_data.get("status") == "paid" and not update_data.get("paid_date"):
+        update_data["paid_date"] = datetime.now(timezone.utc).isoformat()
+    update_data["updated_at"] = datetime.now(timezone.utc).isoformat()
+    
+    result = await db.maintenance_fees.update_one({"id": fee_id}, {"$set": update_data})
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Maintenance fee not found")
+    return {"message": "Maintenance fee updated"}
+
+@api_router.delete("/maintenance-fees/{fee_id}")
+async def delete_maintenance_fee(fee_id: str, admin: dict = Depends(require_admin)):
+    """Delete a maintenance fee record"""
+    result = await db.maintenance_fees.delete_one({"id": fee_id})
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Maintenance fee not found")
+    return {"message": "Maintenance fee deleted"}
+
+# =====================
+# ENHANCED PAYMENT ENDPOINTS
+# =====================
+
+@api_router.post("/payments/manual")
+async def create_manual_payment(payment: PaymentCreate, admin: dict = Depends(require_admin)):
+    """Create a manual/offline payment record"""
+    member = await db.members.find_one({"member_id": payment.member_id})
+    if not member:
+        raise HTTPException(status_code=404, detail="Member not found")
+    
+    plan = None
+    if payment.plan_id:
+        plan = await db.plans.find_one({"id": payment.plan_id})
+    
+    # Calculate GST
+    base_amount = payment.amount
+    gst_amount = payment.gst_amount if payment.gst_amount else round(base_amount * GST_RATE, 2)
+    total_amount = base_amount + gst_amount
+    
+    # Apply discount if coupon provided
+    discount_amount = 0
+    if payment.coupon_code:
+        coupon = await db.coupons.find_one({"code": payment.coupon_code.upper(), "is_active": True})
+        if coupon:
+            if coupon["discount_type"] == "percentage":
+                discount_amount = round(base_amount * (coupon["discount_value"] / 100), 2)
+                if coupon.get("max_discount"):
+                    discount_amount = min(discount_amount, coupon["max_discount"])
+            else:
+                discount_amount = coupon["discount_value"]
+            total_amount -= discount_amount
+    
+    payment_doc = {
+        "id": str(uuid.uuid4()),
+        "order_id": f"OFFLINE-{datetime.now().strftime('%Y%m%d%H%M%S')}",
+        "member_id": payment.member_id,
+        "member_name": member.get("name", ""),
+        "plan_id": payment.plan_id,
+        "plan_name": plan["name"] if plan else None,
+        "base_amount": base_amount,
+        "gst_amount": gst_amount,
+        "gst_rate": GST_RATE * 100,
+        "discount_amount": discount_amount,
+        "coupon_code": payment.coupon_code,
+        "amount": total_amount,
+        "payment_type": payment.payment_type,
+        "payment_method": payment.payment_method or "cash",
+        "transaction_id": payment.transaction_id,
+        "notes": payment.notes,
+        "status": "completed",
+        "created_at": datetime.now(timezone.utc).isoformat(),
+        "completed_at": datetime.now(timezone.utc).isoformat()
+    }
+    await db.payments.insert_one(payment_doc)
+    
+    # Update member status if plan provided
+    if plan:
+        start_date = datetime.now(timezone.utc)
+        end_date = start_date + timedelta(days=plan.get("duration_months", 12) * 30)
+        await db.members.update_one(
+            {"member_id": payment.member_id},
+            {"$set": {
+                "plan_id": plan["id"],
+                "plan_name": plan["name"],
+                "membership_start": start_date.isoformat(),
+                "membership_end": end_date.isoformat(),
+                "status": "active",
+                "updated_at": datetime.now(timezone.utc).isoformat()
+            }}
+        )
+    
+    return {
+        "message": "Payment recorded successfully",
+        "payment_id": payment_doc["id"],
+        "base_amount": base_amount,
+        "gst_amount": gst_amount,
+        "discount_amount": discount_amount,
+        "total_amount": total_amount
+    }
+
+@api_router.put("/payments/{payment_id}")
+async def update_payment(payment_id: str, update: PaymentUpdate, admin: dict = Depends(require_admin)):
+    """Update a payment record"""
+    update_data = {k: v for k, v in update.dict().items() if v is not None}
+    update_data["updated_at"] = datetime.now(timezone.utc).isoformat()
+    
+    result = await db.payments.update_one({"id": payment_id}, {"$set": update_data})
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Payment not found")
+    return {"message": "Payment updated"}
+
+# =====================
+# ENHANCED REPORTS ENDPOINTS
+# =====================
+
+@api_router.get("/reports/payments")
+async def get_payment_reports(
+    start_date: Optional[str] = None,
+    end_date: Optional[str] = None,
+    payment_type: Optional[str] = None,
+    payment_method: Optional[str] = None,
+    plan_id: Optional[str] = None,
+    min_amount: Optional[float] = None,
+    max_amount: Optional[float] = None,
+    status: Optional[str] = None,
+    admin: dict = Depends(require_admin)
+):
+    """Get payment reports with comprehensive filters"""
+    query = {}
+    
+    if start_date:
+        query["created_at"] = {"$gte": start_date}
+    if end_date:
+        if "created_at" in query:
+            query["created_at"]["$lte"] = end_date
+        else:
+            query["created_at"] = {"$lte": end_date}
+    if payment_type:
+        query["payment_type"] = payment_type
+    if payment_method:
+        query["payment_method"] = payment_method
+    if plan_id:
+        query["plan_id"] = plan_id
+    if status:
+        query["status"] = status
+    if min_amount:
+        query["amount"] = {"$gte": min_amount}
+    if max_amount:
+        if "amount" in query:
+            query["amount"]["$lte"] = max_amount
+        else:
+            query["amount"] = {"$lte": max_amount}
+    
+    payments = await db.payments.find(query, {"_id": 0}).sort("created_at", -1).to_list(1000)
+    
+    # Calculate totals
+    total_amount = sum(p.get("amount", 0) for p in payments)
+    total_gst = sum(p.get("gst_amount", 0) for p in payments)
+    total_discount = sum(p.get("discount_amount", 0) for p in payments)
+    
+    return {
+        "payments": payments,
+        "summary": {
+            "total_payments": len(payments),
+            "total_amount": round(total_amount, 2),
+            "total_gst": round(total_gst, 2),
+            "total_discount": round(total_discount, 2),
+            "online_count": len([p for p in payments if p.get("payment_type") == "online"]),
+            "offline_count": len([p for p in payments if p.get("payment_type") == "offline"]),
+            "renewal_count": len([p for p in payments if p.get("payment_type") == "renewal"])
+        }
+    }
+
+@api_router.get("/reports/maintenance")
+async def get_maintenance_reports(
+    start_date: Optional[str] = None,
+    end_date: Optional[str] = None,
+    status: Optional[str] = None,
+    fee_type: Optional[str] = None,
+    admin: dict = Depends(require_admin)
+):
+    """Get maintenance fee reports with filters"""
+    query = {}
+    
+    if start_date:
+        query["due_date"] = {"$gte": start_date}
+    if end_date:
+        if "due_date" in query:
+            query["due_date"]["$lte"] = end_date
+        else:
+            query["due_date"] = {"$lte": end_date}
+    if status:
+        query["status"] = status
+    if fee_type:
+        query["fee_type"] = fee_type
+    
+    fees = await db.maintenance_fees.find(query, {"_id": 0}).sort("due_date", -1).to_list(1000)
+    
+    total_amount = sum(f.get("amount", 0) for f in fees)
+    paid_amount = sum(f.get("amount", 0) for f in fees if f.get("status") == "paid")
+    pending_amount = sum(f.get("amount", 0) for f in fees if f.get("status") == "pending")
+    
+    return {
+        "fees": fees,
+        "summary": {
+            "total_records": len(fees),
+            "total_amount": round(total_amount, 2),
+            "paid_amount": round(paid_amount, 2),
+            "pending_amount": round(pending_amount, 2),
+            "paid_count": len([f for f in fees if f.get("status") == "paid"]),
+            "pending_count": len([f for f in fees if f.get("status") == "pending"])
+        }
+    }
+
+@api_router.get("/reports/referrals")
+async def get_referral_reports(
+    referral_id: Optional[str] = None,
+    start_date: Optional[str] = None,
+    end_date: Optional[str] = None,
+    admin: dict = Depends(require_admin)
+):
+    """Get referral reports showing members by referral ID"""
+    query = {}
+    
+    if referral_id:
+        query["referral_id"] = referral_id
+    else:
+        query["referral_id"] = {"$exists": True, "$ne": None, "$ne": ""}
+    
+    if start_date:
+        query["created_at"] = {"$gte": start_date}
+    if end_date:
+        if "created_at" in query:
+            query["created_at"]["$lte"] = end_date
+        else:
+            query["created_at"] = {"$lte": end_date}
+    
+    members = await db.members.find(query, {"_id": 0}).to_list(1000)
+    
+    # Group by referral ID
+    referral_stats = {}
+    for member in members:
+        ref_id = member.get("referral_id", "Unknown")
+        if ref_id not in referral_stats:
+            referral_stats[ref_id] = {"count": 0, "members": []}
+        referral_stats[ref_id]["count"] += 1
+        referral_stats[ref_id]["members"].append({
+            "member_id": member.get("member_id"),
+            "name": member.get("name"),
+            "plan_name": member.get("plan_name"),
+            "created_at": member.get("created_at")
+        })
+    
+    return {
+        "total_referrals": len(members),
+        "referral_breakdown": referral_stats
+    }
+
+@api_router.get("/reports/telecallers")
+async def get_telecaller_reports(
+    telecaller_id: Optional[str] = None,
+    start_date: Optional[str] = None,
+    end_date: Optional[str] = None,
+    admin: dict = Depends(require_admin)
+):
+    """Get telecaller performance reports"""
+    telecallers = await db.users.find({"role": "telecaller"}, {"_id": 0, "password": 0}).to_list(100)
+    
+    reports = []
+    for tc in telecallers:
+        if telecaller_id and tc["id"] != telecaller_id:
+            continue
+        
+        # Get assigned members
+        query = {"assigned_telecaller": tc["id"]}
+        if start_date:
+            query["created_at"] = {"$gte": start_date}
+        if end_date:
+            if "created_at" in query:
+                query["created_at"]["$lte"] = end_date
+            else:
+                query["created_at"] = {"$lte": end_date}
+        
+        assigned_members = await db.members.count_documents(query)
+        
+        # Get follow-ups
+        followups = await db.followups.find({"telecaller_id": tc["id"]}, {"_id": 0}).to_list(500)
+        completed_followups = len([f for f in followups if f.get("status") == "completed"])
+        pending_followups = len([f for f in followups if f.get("status") == "pending"])
+        
+        reports.append({
+            "telecaller_id": tc["id"],
+            "name": tc.get("name"),
+            "mobile": tc.get("mobile"),
+            "email": tc.get("email"),
+            "assigned_members": assigned_members,
+            "total_followups": len(followups),
+            "completed_followups": completed_followups,
+            "pending_followups": pending_followups
+        })
+    
+    return reports
 
 
 # Include router
