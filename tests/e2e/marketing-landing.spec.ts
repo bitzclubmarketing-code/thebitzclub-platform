@@ -376,3 +376,239 @@ test.describe('Marketing Landing Page - Benefits & Content', () => {
     await expect(page.locator('footer').getByText('BITZ Club').first()).toBeVisible({ timeout: 5000 });
   });
 });
+
+
+test.describe('Marketing Landing Page - Enhanced Features (Country & Referral)', () => {
+  test.beforeEach(async ({ page }) => {
+    await page.addInitScript(() => {
+      const observer = new MutationObserver(() => {
+        const badge = document.querySelector('[class*="emergent"], [id*="emergent"]');
+        if (badge) badge.remove();
+      });
+      observer.observe(document.body, { childList: true, subtree: true });
+    });
+  });
+
+  test('Country code selector is visible with default India (+91)', async ({ page }) => {
+    await page.goto('/join', { waitUntil: 'domcontentloaded' });
+    
+    // Country selector should be visible
+    const countrySelector = page.getByTestId('country-selector');
+    await expect(countrySelector).toBeVisible();
+    
+    // Should show India flag and +91 by default
+    await expect(countrySelector).toContainText('+91');
+  });
+
+  test('Country code selector dropdown shows all 15 countries', async ({ page }) => {
+    await page.goto('/join', { waitUntil: 'domcontentloaded' });
+    
+    // Click country selector to open dropdown
+    await page.getByTestId('country-selector').click();
+    
+    // Wait for dropdown to appear
+    await page.waitForSelector('.absolute.top-full');
+    
+    // Check that multiple countries are visible
+    await expect(page.getByText('India', { exact: true }).first()).toBeVisible();
+    await expect(page.getByText('United States')).toBeVisible();
+    await expect(page.getByText('United Kingdom')).toBeVisible();
+    await expect(page.getByText('UAE')).toBeVisible();
+    await expect(page.getByText('Singapore')).toBeVisible();
+  });
+
+  test('Selecting UAE country code updates form', async ({ page }) => {
+    await page.goto('/join', { waitUntil: 'domcontentloaded' });
+    
+    // Click country selector
+    await page.getByTestId('country-selector').click();
+    
+    // Select UAE
+    await page.getByText('UAE').click();
+    
+    // Verify country selector shows UAE code
+    await expect(page.getByTestId('country-selector')).toContainText('+971');
+    
+    // Mobile input placeholder should update for 9 digits (UAE)
+    const mobileInput = page.getByTestId('step1-mobile');
+    await expect(mobileInput).toHaveAttribute('placeholder', '9-digit number');
+  });
+
+  test('Selecting US country code updates placeholder', async ({ page }) => {
+    await page.goto('/join', { waitUntil: 'domcontentloaded' });
+    
+    // Click country selector
+    await page.getByTestId('country-selector').click();
+    
+    // Select US
+    await page.getByText('United States').click();
+    
+    // Verify country selector shows US code
+    await expect(page.getByTestId('country-selector')).toContainText('+1');
+    
+    // Mobile input placeholder should update for 10 digits
+    await expect(page.getByTestId('step1-mobile')).toHaveAttribute('placeholder', '10-digit number');
+  });
+
+  test('Referral code auto-populates from ?referral= URL param', async ({ page }) => {
+    await page.goto('/join?referral=FRIEND2024', { waitUntil: 'domcontentloaded' });
+    
+    // Referral field should have the value
+    await expect(page.getByTestId('step1-referral')).toHaveValue('FRIEND2024');
+  });
+
+  test('Referral code auto-populates from ?code= URL param', async ({ page }) => {
+    await page.goto('/join?code=DISCOUNT10', { waitUntil: 'domcontentloaded' });
+    
+    await expect(page.getByTestId('step1-referral')).toHaveValue('DISCOUNT10');
+  });
+
+  test('Referral code auto-populates from ?promo= URL param', async ({ page }) => {
+    await page.goto('/join?promo=SPRING2024', { waitUntil: 'domcontentloaded' });
+    
+    await expect(page.getByTestId('step1-referral')).toHaveValue('SPRING2024');
+  });
+
+  test('Referral code auto-populates from ?utm_campaign= URL param', async ({ page }) => {
+    await page.goto('/join?utm_campaign=EMAIL_BLAST', { waitUntil: 'domcontentloaded' });
+    
+    await expect(page.getByTestId('step1-referral')).toHaveValue('EMAIL_BLAST');
+  });
+
+  test('Referral code from ?ref= is applied correctly', async ({ page }) => {
+    await page.goto('/join?ref=TESTOFFER', { waitUntil: 'domcontentloaded' });
+    
+    // Referral field should have the value (primary check)
+    await expect(page.getByTestId('step1-referral')).toHaveValue('TESTOFFER');
+    
+    // Toast notification is optional - just verify field is populated
+  });
+
+  test('International user (UAE) validation accepts 9 digits', async ({ page }) => {
+    await page.goto('/join', { waitUntil: 'domcontentloaded' });
+    
+    // Select UAE
+    await page.getByTestId('country-selector').click();
+    await page.getByText('UAE').click();
+    
+    const timestamp = Date.now();
+    
+    // Fill form with 9 digit UAE mobile
+    await page.getByTestId('step1-name').fill(`UAE Test User ${timestamp}`);
+    await page.getByTestId('step1-mobile').fill('501234567'); // 9 digits for UAE
+    
+    // Submit should succeed
+    await page.getByTestId('step1-submit').click();
+    
+    // Wait for step 2 or success toast
+    await expect(page.getByText('Complete Your Profile')).toBeVisible({ timeout: 10000 });
+  });
+});
+
+test.describe('Marketing Landing Page - PIN Code Auto-fill (India)', () => {
+  test.beforeEach(async ({ page }) => {
+    await page.addInitScript(() => {
+      const observer = new MutationObserver(() => {
+        const badge = document.querySelector('[class*="emergent"], [id*="emergent"]');
+        if (badge) badge.remove();
+      });
+      observer.observe(document.body, { childList: true, subtree: true });
+    });
+  });
+
+  test('PIN code field is visible for Indian users in Step 2', async ({ page }) => {
+    await page.goto('/join', { waitUntil: 'domcontentloaded' });
+    
+    const timestamp = Date.now();
+    const testMobile = `9${timestamp.toString().slice(-9)}`;
+    
+    // Complete step 1
+    await page.getByTestId('step1-name').fill(`PIN Test User ${timestamp}`);
+    await page.getByTestId('step1-mobile').fill(testMobile);
+    await page.getByTestId('step1-submit').click();
+    
+    // Wait for step 2
+    await expect(page.getByText('Complete Your Profile')).toBeVisible({ timeout: 10000 });
+    
+    // PIN code field should be visible
+    await expect(page.getByTestId('step2-pincode')).toBeVisible();
+    
+    // City and State fields should be visible for India
+    await expect(page.getByTestId('step2-city')).toBeVisible();
+    await expect(page.getByTestId('step2-state')).toBeVisible();
+  });
+
+  test('PIN code auto-fills city and state for valid Indian PIN', async ({ page }) => {
+    await page.goto('/join', { waitUntil: 'domcontentloaded' });
+    
+    const timestamp = Date.now();
+    const testMobile = `8${timestamp.toString().slice(-9)}`;
+    
+    // Complete step 1
+    await page.getByTestId('step1-name').fill(`PIN AutoFill User ${timestamp}`);
+    await page.getByTestId('step1-mobile').fill(testMobile);
+    await page.getByTestId('step1-submit').click();
+    
+    // Wait for step 2
+    await expect(page.getByText('Complete Your Profile')).toBeVisible({ timeout: 10000 });
+    
+    // Enter valid Indian PIN code (Mumbai)
+    await page.getByTestId('step2-pincode').fill('400001');
+    
+    // Wait for auto-fill to complete (API call + toast)
+    await expect(page.locator('[data-sonner-toast]').first()).toContainText(/location found/i, { timeout: 10000 });
+    
+    // City should be auto-filled with Mumbai
+    await expect(page.getByTestId('step2-city')).toHaveValue(/Mumbai/i);
+    
+    // State should be auto-filled with Maharashtra
+    await expect(page.getByTestId('step2-state')).toHaveValue(/Maharashtra/i);
+  });
+
+  test('Invalid PIN code shows error toast', async ({ page }) => {
+    await page.goto('/join', { waitUntil: 'domcontentloaded' });
+    
+    const timestamp = Date.now();
+    const testMobile = `7${timestamp.toString().slice(-9)}`;
+    
+    // Complete step 1
+    await page.getByTestId('step1-name').fill(`Invalid PIN User ${timestamp}`);
+    await page.getByTestId('step1-mobile').fill(testMobile);
+    await page.getByTestId('step1-submit').click();
+    
+    // Wait for step 2
+    await expect(page.getByText('Complete Your Profile')).toBeVisible({ timeout: 10000 });
+    
+    // Enter invalid PIN code
+    await page.getByTestId('step2-pincode').fill('000000');
+    
+    // Should show error toast
+    await expect(page.locator('[data-sonner-toast][data-type="error"]').first()).toContainText(/invalid/i, { timeout: 10000 });
+  });
+
+  test('International user (UAE) does not see state field', async ({ page }) => {
+    await page.goto('/join', { waitUntil: 'domcontentloaded' });
+    
+    // Select UAE
+    await page.getByTestId('country-selector').click();
+    await page.getByText('UAE').click();
+    
+    const timestamp = Date.now();
+    
+    // Complete step 1 with UAE mobile
+    await page.getByTestId('step1-name').fill(`UAE User ${timestamp}`);
+    await page.getByTestId('step1-mobile').fill('501234567'); // 9 digits for UAE
+    await page.getByTestId('step1-submit').click();
+    
+    // Wait for step 2
+    await expect(page.getByText('Complete Your Profile')).toBeVisible({ timeout: 10000 });
+    
+    // UAE users should see city and country, but state should not be visible
+    await expect(page.getByTestId('step2-city')).toBeVisible();
+    await expect(page.getByTestId('step2-country')).toBeVisible();
+    
+    // State field should NOT be visible for international users
+    await expect(page.getByTestId('step2-state')).not.toBeVisible();
+  });
+});
+

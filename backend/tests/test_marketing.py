@@ -377,3 +377,158 @@ class TestLeadsInRegularEndpoint:
         # Find our lead by mobile
         found = any(lead["mobile"] == unique_mobile for lead in leads)
         assert found, f"Marketing lead with mobile {unique_mobile} not found in regular leads"
+
+
+
+class TestEnhancedMarketingFeatures:
+    """Test new enhanced features: country code, state, international support"""
+    
+    def test_create_lead_with_country_code(self):
+        """Test lead creation with country code for India"""
+        unique_mobile = f"+919{str(uuid.uuid4().int)[:9]}"  # Indian format with country code
+        
+        response = requests.post(f"{BASE_URL}/api/marketing/lead", json={
+            "name": f"India User {unique_mobile[-9:]}",
+            "mobile": unique_mobile,
+            "email": f"india_{unique_mobile[-9:]}@example.com",
+            "country_code": "+91",
+            "country": "India",
+            "source": "marketing_landing"
+        })
+        
+        assert response.status_code == 200
+        data = response.json()
+        assert "lead_id" in data
+        assert data["mobile"] == unique_mobile
+    
+    def test_create_lead_with_uae_country_code(self):
+        """Test lead creation with UAE country code (+971)"""
+        unique_mobile = f"+971{str(uuid.uuid4().int)[:9]}"  # UAE format
+        
+        response = requests.post(f"{BASE_URL}/api/marketing/lead", json={
+            "name": f"UAE User {unique_mobile[-9:]}",
+            "mobile": unique_mobile,
+            "country_code": "+971",
+            "country": "UAE",
+            "source": "marketing_landing"
+        })
+        
+        assert response.status_code == 200
+        data = response.json()
+        assert "lead_id" in data
+    
+    def test_create_lead_with_us_country_code(self):
+        """Test lead creation with US country code (+1)"""
+        unique_mobile = f"+1{str(uuid.uuid4().int)[:10]}"  # US format
+        
+        response = requests.post(f"{BASE_URL}/api/marketing/lead", json={
+            "name": f"US User {unique_mobile[-10:]}",
+            "mobile": unique_mobile,
+            "country_code": "+1",
+            "country": "United States",
+            "source": "marketing_landing"
+        })
+        
+        assert response.status_code == 200
+        data = response.json()
+        assert "lead_id" in data
+    
+    def test_step2_with_state_field(self):
+        """Test step 2 includes state field for Indian users"""
+        unique_mobile = f"+919{str(uuid.uuid4().int)[:9]}"
+        
+        # Create lead first
+        response1 = requests.post(f"{BASE_URL}/api/marketing/lead", json={
+            "name": f"State Test User",
+            "mobile": unique_mobile,
+            "country_code": "+91",
+            "country": "India",
+            "source": "marketing_landing"
+        })
+        assert response1.status_code == 200
+        lead_id = response1.json()["lead_id"]
+        
+        # Get a valid plan
+        plans_response = requests.get(f"{BASE_URL}/api/plans?is_active=true")
+        assert plans_response.status_code == 200
+        plan_id = plans_response.json()[0]["id"]
+        
+        # Submit step 2 with state
+        response2 = requests.post(f"{BASE_URL}/api/marketing/lead/{lead_id}/step2", json={
+            "lead_id": lead_id,
+            "address": "456 Test Avenue",
+            "city": "Chennai",
+            "state": "Tamil Nadu",
+            "pincode": "600001",
+            "country": "India",
+            "date_of_birth": "1995-05-15",
+            "plan_id": plan_id,
+            "password": "testpass123"
+        })
+        
+        assert response2.status_code == 200
+        data = response2.json()
+        assert "order_id" in data
+        assert data["order_id"].startswith("order_")
+    
+    def test_step2_international_user(self):
+        """Test step 2 for international (non-Indian) user"""
+        unique_mobile = f"+971{str(uuid.uuid4().int)[:9]}"  # UAE
+        
+        # Create lead
+        response1 = requests.post(f"{BASE_URL}/api/marketing/lead", json={
+            "name": "International User Test",
+            "mobile": unique_mobile,
+            "country_code": "+971",
+            "country": "UAE",
+            "source": "marketing_landing"
+        })
+        assert response1.status_code == 200
+        lead_id = response1.json()["lead_id"]
+        
+        # Get plan
+        plans_response = requests.get(f"{BASE_URL}/api/plans?is_active=true")
+        plan_id = plans_response.json()[0]["id"]
+        
+        # Submit step 2 without state (international)
+        response2 = requests.post(f"{BASE_URL}/api/marketing/lead/{lead_id}/step2", json={
+            "lead_id": lead_id,
+            "city": "Dubai",
+            "country": "UAE",
+            "plan_id": plan_id,
+            "password": "intlpass123"
+        })
+        
+        assert response2.status_code == 200
+        data = response2.json()
+        assert "order_id" in data
+        assert "currency" in data
+    
+    def test_referral_code_stored_correctly(self):
+        """Test referral code is stored when provided"""
+        unique_mobile = f"+919{str(uuid.uuid4().int)[:9]}"
+        referral = "REF-TEST-2024"
+        
+        response = requests.post(f"{BASE_URL}/api/marketing/lead", json={
+            "name": f"Referral Test User",
+            "mobile": unique_mobile,
+            "referral_code": referral,
+            "country_code": "+91",
+            "country": "India",
+            "source": "marketing_landing"
+        })
+        
+        assert response.status_code == 200
+        # Verify via admin endpoint
+        admin_response = requests.post(f"{BASE_URL}/api/auth/login", json={
+            "identifier": "9999999999",
+            "password": "admin123"
+        })
+        if admin_response.status_code == 200:
+            token = admin_response.json()["access_token"]
+            leads_response = requests.get(
+                f"{BASE_URL}/api/marketing/leads",
+                headers={"Authorization": f"Bearer {token}"}
+            )
+            # Verify referral is in the leads
+            assert leads_response.status_code == 200

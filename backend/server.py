@@ -329,13 +329,17 @@ class MarketingLeadCreate(BaseModel):
     mobile: str
     email: Optional[EmailStr] = None
     referral_code: Optional[str] = None
+    country_code: Optional[str] = '+91'
+    country: Optional[str] = 'India'
     source: str = 'marketing_landing'
 
 class MarketingLeadStep2(BaseModel):
     lead_id: str
     address: Optional[str] = None
     city: Optional[str] = None
+    state: Optional[str] = None
     pincode: Optional[str] = None
+    country: Optional[str] = 'India'
     date_of_birth: Optional[str] = None
     plan_id: str
     password: str
@@ -2763,13 +2767,34 @@ async def export_leads_excel(
 @api_router.post("/marketing/lead")
 async def create_marketing_lead(lead: MarketingLeadCreate, background_tasks: BackgroundTasks):
     """Step 1: Capture lead from marketing landing page"""
-    # Check if mobile already registered as member
-    existing_member = await db.users.find_one({"mobile": lead.mobile})
+    # Normalize mobile number - strip country code for comparison if present
+    mobile_to_check = lead.mobile
+    if mobile_to_check.startswith('+'):
+        # Extract just the number part for India (+91) or other countries
+        for prefix in ['+91', '+1', '+44', '+971', '+65', '+61', '+49', '+33', '+81', '+86', '+966', '+974', '+968', '+973', '+965']:
+            if mobile_to_check.startswith(prefix):
+                mobile_to_check = mobile_to_check[len(prefix):]
+                break
+    
+    # Check if mobile already registered as member (check both with and without country code)
+    existing_member = await db.users.find_one({
+        "$or": [
+            {"mobile": lead.mobile},
+            {"mobile": mobile_to_check},
+            {"mobile": f"+91{mobile_to_check}"}  # Check common Indian format
+        ]
+    })
     if existing_member:
         raise HTTPException(status_code=400, detail="Mobile number already registered. Please login instead.")
     
     # Check if lead already exists with this mobile
-    existing_lead = await db.marketing_leads.find_one({"mobile": lead.mobile, "status": {"$ne": "converted"}})
+    existing_lead = await db.marketing_leads.find_one({
+        "$or": [
+            {"mobile": lead.mobile},
+            {"mobile": mobile_to_check}
+        ],
+        "status": {"$ne": "converted"}
+    })
     if existing_lead:
         # Return existing lead for continuation
         return {
@@ -2786,8 +2811,11 @@ async def create_marketing_lead(lead: MarketingLeadCreate, background_tasks: Bac
         "id": lead_id,
         "name": lead.name,
         "mobile": lead.mobile,
+        "mobile_raw": mobile_to_check,  # Store without country code too
         "email": lead.email,
         "referral_code": lead.referral_code,
+        "country_code": lead.country_code,
+        "country": lead.country,
         "source": lead.source,
         "status": "step1_complete",
         "step": 1,
@@ -2800,11 +2828,11 @@ async def create_marketing_lead(lead: MarketingLeadCreate, background_tasks: Bac
         "id": str(uuid.uuid4()),
         "name": lead.name,
         "mobile": lead.mobile,
-        "city": "",
+        "city": lead.country or "",
         "interested_in": "membership",
         "source": lead.source,
         "status": LeadStatus.NEW,
-        "notes": f"Referral: {lead.referral_code or 'None'}, Email: {lead.email or 'None'}",
+        "notes": f"Referral: {lead.referral_code or 'None'}, Email: {lead.email or 'None'}, Country: {lead.country or 'India'}",
         "marketing_lead_id": lead_id,
         "created_at": datetime.now(timezone.utc).isoformat()
     }
@@ -2813,10 +2841,10 @@ async def create_marketing_lead(lead: MarketingLeadCreate, background_tasks: Bac
     # Send notification
     background_tasks.add_task(
         EmailService.send_lead_notification,
-        {**regular_lead, "city": "Marketing Landing Page"}
+        {**regular_lead, "city": f"Marketing - {lead.country or 'India'}"}
     )
     
-    logger.info(f"[MARKETING] New lead captured: {lead.name} ({lead.mobile}), Referral: {lead.referral_code}")
+    logger.info(f"[MARKETING] New lead captured: {lead.name} ({lead.mobile}), Country: {lead.country}, Referral: {lead.referral_code}")
     
     return {
         "message": "Lead captured successfully",
@@ -2839,13 +2867,15 @@ async def marketing_lead_step2(lead_id: str, data: MarketingLeadStep2):
     if not plan:
         raise HTTPException(status_code=404, detail="Selected plan not found")
     
-    # Update lead with step 2 data
+    # Update lead with step 2 data (including state and country)
     await db.marketing_leads.update_one(
         {"id": lead_id},
         {"$set": {
             "address": data.address,
             "city": data.city,
+            "state": data.state,
             "pincode": data.pincode,
+            "country": data.country or lead.get("country", "India"),
             "date_of_birth": data.date_of_birth,
             "plan_id": data.plan_id,
             "plan_name": plan["name"],
@@ -2857,6 +2887,9 @@ async def marketing_lead_step2(lead_id: str, data: MarketingLeadStep2):
         }}
     )
     
+    # Determine currency based on country (default INR for now, Razorpay handles conversion)
+    currency = "INR"
+    
     # Create Razorpay order
     try:
         order = await RazorpayService.create_order(
@@ -2867,6 +2900,7 @@ async def marketing_lead_step2(lead_id: str, data: MarketingLeadStep2):
                 "marketing_lead_id": lead_id,
                 "name": lead["name"],
                 "mobile": lead["mobile"],
+                "country": data.country or lead.get("country", "India"),
                 "plan_name": plan["name"]
             }
         )
@@ -2880,13 +2914,14 @@ async def marketing_lead_step2(lead_id: str, data: MarketingLeadStep2):
         return {
             "order_id": order["id"],
             "amount": plan["price"],
-            "currency": "INR",
+            "currency": currency,
             "razorpay_key": order["razorpay_key"],
             "plan_name": plan["name"],
             "lead_id": lead_id,
             "name": lead["name"],
             "email": lead.get("email"),
-            "mobile": lead["mobile"]
+            "mobile": lead["mobile"],
+            "country": data.country or lead.get("country", "India")
         }
     except Exception as e:
         logger.error(f"[MARKETING] Failed to create payment order: {str(e)}")

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import axios from 'axios';
@@ -8,12 +8,31 @@ import {
   Hotel, UtensilsCrossed, Sparkles, Dumbbell, PartyPopper,
   Waves, Baby, Music, Building2, CheckCircle, Loader2, 
   User, Mail, MapPin, Calendar, Lock, Upload, Camera,
-  CreditCard, Shield, Gift, Send, ChevronDown
+  CreditCard, Shield, Gift, Send, ChevronDown, Globe
 } from 'lucide-react';
 import { API, useAuth } from '@/context/AuthContext';
 
 const WHATSAPP_NUMBER = '+917812901118';
 const PHONE_NUMBER = '+917812901118';
+
+// Country codes with flags and phone formats
+const COUNTRY_CODES = [
+  { code: '+91', country: 'IN', name: 'India', flag: '🇮🇳', digits: 10 },
+  { code: '+1', country: 'US', name: 'United States', flag: '🇺🇸', digits: 10 },
+  { code: '+44', country: 'GB', name: 'United Kingdom', flag: '🇬🇧', digits: 10 },
+  { code: '+971', country: 'AE', name: 'UAE', flag: '🇦🇪', digits: 9 },
+  { code: '+65', country: 'SG', name: 'Singapore', flag: '🇸🇬', digits: 8 },
+  { code: '+61', country: 'AU', name: 'Australia', flag: '🇦🇺', digits: 9 },
+  { code: '+49', country: 'DE', name: 'Germany', flag: '🇩🇪', digits: 11 },
+  { code: '+33', country: 'FR', name: 'France', flag: '🇫🇷', digits: 9 },
+  { code: '+81', country: 'JP', name: 'Japan', flag: '🇯🇵', digits: 10 },
+  { code: '+86', country: 'CN', name: 'China', flag: '🇨🇳', digits: 11 },
+  { code: '+966', country: 'SA', name: 'Saudi Arabia', flag: '🇸🇦', digits: 9 },
+  { code: '+974', country: 'QA', name: 'Qatar', flag: '🇶🇦', digits: 8 },
+  { code: '+968', country: 'OM', name: 'Oman', flag: '🇴🇲', digits: 8 },
+  { code: '+973', country: 'BH', name: 'Bahrain', flag: '🇧🇭', digits: 8 },
+  { code: '+965', country: 'KW', name: 'Kuwait', flag: '🇰🇼', digits: 8 },
+];
 
 const MarketingLanding = () => {
   const navigate = useNavigate();
@@ -33,18 +52,36 @@ const MarketingLanding = () => {
   const [chatMessage, setChatMessage] = useState('');
   const [chatSubmitting, setChatSubmitting] = useState(false);
   
-  // Form data
+  // Country code selection
+  const [selectedCountry, setSelectedCountry] = useState(COUNTRY_CODES[0]); // Default India
+  const [showCountryDropdown, setShowCountryDropdown] = useState(false);
+  
+  // PIN code loading state
+  const [pincodeLoading, setPincodeLoading] = useState(false);
+  
+  // Form data - Auto-populate referral from URL params (ref, referral, code, promo)
+  const getReferralFromURL = () => {
+    return searchParams.get('ref') || 
+           searchParams.get('referral') || 
+           searchParams.get('code') || 
+           searchParams.get('promo') ||
+           searchParams.get('utm_campaign') || // UTM tracking
+           '';
+  };
+  
   const [step1Data, setStep1Data] = useState({
     name: '',
     mobile: '',
     email: '',
-    referral_code: searchParams.get('ref') || ''
+    referral_code: getReferralFromURL()
   });
   
   const [step2Data, setStep2Data] = useState({
     address: '',
     city: '',
+    state: '',
     pincode: '',
+    country: 'India',
     date_of_birth: '',
     plan_id: '',
     password: '',
@@ -63,7 +100,69 @@ const MarketingLanding = () => {
 
   useEffect(() => {
     fetchPlans();
+    
+    // Show referral code toast if pre-filled from URL
+    const referral = getReferralFromURL();
+    if (referral) {
+      toast.success(`Referral code "${referral}" applied!`);
+    }
   }, []);
+
+  // Auto-fill city/state from PIN code (India Post API)
+  const fetchLocationFromPincode = useCallback(async (pincode) => {
+    if (!pincode || pincode.length !== 6 || selectedCountry.country !== 'IN') return;
+    
+    setPincodeLoading(true);
+    try {
+      const response = await axios.get(`https://api.postalpincode.in/pincode/${pincode}`);
+      const data = response.data[0];
+      
+      if (data.Status === 'Success' && data.PostOffice && data.PostOffice.length > 0) {
+        const location = data.PostOffice[0];
+        setStep2Data(prev => ({
+          ...prev,
+          city: location.District || location.Division || '',
+          state: location.State || '',
+          country: 'India'
+        }));
+        toast.success(`Location found: ${location.District}, ${location.State}`);
+      } else {
+        toast.error('Invalid PIN code. Please check and try again.');
+      }
+    } catch (error) {
+      console.error('Failed to fetch location from pincode:', error);
+      // Silently fail - user can still enter manually
+    } finally {
+      setPincodeLoading(false);
+    }
+  }, [selectedCountry.country]);
+
+  // Handle PIN code change with debounce
+  const handlePincodeChange = (value) => {
+    const pincode = value.replace(/\D/g, '').slice(0, 6);
+    setStep2Data(prev => ({ ...prev, pincode }));
+    
+    // Auto-fetch location when 6 digits entered (for India)
+    if (pincode.length === 6 && selectedCountry.country === 'IN') {
+      fetchLocationFromPincode(pincode);
+    }
+  };
+
+  // Handle country selection
+  const handleCountrySelect = (country) => {
+    setSelectedCountry(country);
+    setShowCountryDropdown(false);
+    setStep2Data(prev => ({ ...prev, country: country.name }));
+    // Clear mobile if it doesn't match new country format
+    if (step1Data.mobile.length > country.digits) {
+      setStep1Data(prev => ({ ...prev, mobile: prev.mobile.slice(0, country.digits) }));
+    }
+  };
+
+  // Get full phone number with country code
+  const getFullPhoneNumber = () => {
+    return `${selectedCountry.code}${step1Data.mobile}`;
+  };
 
   const fetchPlans = async () => {
     try {
@@ -85,8 +184,8 @@ const MarketingLanding = () => {
       toast.error('Please enter your name and mobile number');
       return;
     }
-    if (step1Data.mobile.length !== 10) {
-      toast.error('Please enter a valid 10-digit mobile number');
+    if (step1Data.mobile.length !== selectedCountry.digits) {
+      toast.error(`Please enter a valid ${selectedCountry.digits}-digit mobile number for ${selectedCountry.name}`);
       return;
     }
 
@@ -94,9 +193,11 @@ const MarketingLanding = () => {
     try {
       const response = await axios.post(`${API}/marketing/lead`, {
         name: step1Data.name,
-        mobile: step1Data.mobile,
+        mobile: getFullPhoneNumber(), // Send with country code
         email: step1Data.email || null,
         referral_code: step1Data.referral_code || null,
+        country_code: selectedCountry.code,
+        country: selectedCountry.name,
         source: 'marketing_landing'
       });
       
@@ -133,13 +234,18 @@ const MarketingLanding = () => {
         lead_id: leadId,
         address: step2Data.address,
         city: step2Data.city,
+        state: step2Data.state,
         pincode: step2Data.pincode,
+        country: step2Data.country || selectedCountry.name,
         date_of_birth: step2Data.date_of_birth,
         plan_id: step2Data.plan_id,
         password: step2Data.password
       });
 
-      // Initiate Razorpay payment
+      // Determine if international payment (non-Indian)
+      const isInternational = selectedCountry.country !== 'IN';
+
+      // Initiate Razorpay payment with international support
       const options = {
         key: response.data.razorpay_key,
         amount: response.data.amount * 100,
@@ -150,10 +256,34 @@ const MarketingLanding = () => {
         prefill: {
           name: response.data.name,
           email: response.data.email || '',
-          contact: response.data.mobile
+          contact: getFullPhoneNumber()
         },
         theme: {
           color: '#D4AF37'
+        },
+        // Enable all payment methods including international cards
+        config: {
+          display: {
+            blocks: {
+              banks: {
+                name: 'Pay using UPI/Net Banking',
+                instruments: [
+                  { method: 'upi' },
+                  { method: 'netbanking' }
+                ]
+              },
+              cards: {
+                name: 'Pay using Cards',
+                instruments: [
+                  { method: 'card' }
+                ]
+              }
+            },
+            sequence: isInternational ? ['block.cards'] : ['block.banks', 'block.cards'],
+            preferences: {
+              show_default_blocks: true
+            }
+          }
         },
         handler: async function (paymentResponse) {
           await completeRegistration(paymentResponse);
@@ -162,11 +292,18 @@ const MarketingLanding = () => {
           ondismiss: function() {
             setLoading(false);
             toast.error('Payment cancelled');
-          }
+          },
+          confirm_close: true,
+          escape: false
+        },
+        notes: {
+          country: selectedCountry.name,
+          country_code: selectedCountry.code
         }
       };
 
       const razorpay = new window.Razorpay(options);
+      razorpay.open();
       razorpay.open();
     } catch (error) {
       const message = error.response?.data?.detail || 'Failed to process. Please try again.';
@@ -569,15 +706,64 @@ const MarketingLanding = () => {
                     <label className="text-sm text-gray-400 flex items-center gap-2">
                       <Phone className="w-4 h-4" /> Mobile Number *
                     </label>
-                    <input
-                      type="tel"
-                      value={step1Data.mobile}
-                      onChange={(e) => setStep1Data({ ...step1Data, mobile: e.target.value.replace(/\D/g, '').slice(0, 10) })}
-                      className="input-gold mt-1"
-                      placeholder="10-digit mobile number"
-                      maxLength={10}
-                      data-testid="step1-mobile"
-                    />
+                    <div className="flex gap-2 mt-1">
+                      {/* Country Code Selector */}
+                      <div className="relative">
+                        <button
+                          type="button"
+                          onClick={() => setShowCountryDropdown(!showCountryDropdown)}
+                          className="input-gold flex items-center gap-2 px-3 py-3 min-w-[100px] justify-between"
+                          data-testid="country-selector"
+                        >
+                          <span className="flex items-center gap-1">
+                            <span className="text-lg">{selectedCountry.flag}</span>
+                            <span className="text-sm">{selectedCountry.code}</span>
+                          </span>
+                          <ChevronDown className={`w-4 h-4 transition-transform ${showCountryDropdown ? 'rotate-180' : ''}`} />
+                        </button>
+                        
+                        {/* Country Dropdown */}
+                        <AnimatePresence>
+                          {showCountryDropdown && (
+                            <motion.div
+                              initial={{ opacity: 0, y: -10 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              exit={{ opacity: 0, y: -10 }}
+                              className="absolute top-full left-0 mt-1 w-64 bg-[#1A1A1C] border border-white/10 rounded-lg shadow-xl z-50 max-h-60 overflow-y-auto"
+                            >
+                              {COUNTRY_CODES.map((country) => (
+                                <button
+                                  key={country.code}
+                                  type="button"
+                                  onClick={() => handleCountrySelect(country)}
+                                  className={`w-full flex items-center gap-3 px-4 py-3 hover:bg-white/5 transition-colors ${
+                                    selectedCountry.code === country.code ? 'bg-[#D4AF37]/10 text-[#D4AF37]' : 'text-white'
+                                  }`}
+                                >
+                                  <span className="text-xl">{country.flag}</span>
+                                  <span className="flex-1 text-left text-sm">{country.name}</span>
+                                  <span className="text-gray-400 text-sm">{country.code}</span>
+                                </button>
+                              ))}
+                            </motion.div>
+                          )}
+                        </AnimatePresence>
+                      </div>
+                      
+                      {/* Mobile Number Input */}
+                      <input
+                        type="tel"
+                        value={step1Data.mobile}
+                        onChange={(e) => setStep1Data({ ...step1Data, mobile: e.target.value.replace(/\D/g, '').slice(0, selectedCountry.digits) })}
+                        className="input-gold flex-1"
+                        placeholder={`${selectedCountry.digits}-digit number`}
+                        maxLength={selectedCountry.digits}
+                        data-testid="step1-mobile"
+                      />
+                    </div>
+                    <p className="text-xs text-gray-500 mt-1">
+                      {selectedCountry.country === 'IN' ? 'Indian' : 'International'} payments supported via Razorpay
+                    </p>
                   </div>
 
                   <div>
@@ -681,33 +867,103 @@ const MarketingLanding = () => {
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className="text-sm text-gray-400 flex items-center gap-2">
-                        <MapPin className="w-4 h-4" /> City
-                      </label>
-                      <input
-                        type="text"
-                        value={step2Data.city}
-                        onChange={(e) => setStep2Data({ ...step2Data, city: e.target.value })}
-                        className="input-gold mt-1"
-                        placeholder="Your city"
-                        data-testid="step2-city"
-                      />
-                    </div>
-                    <div>
-                      <label className="text-sm text-gray-400">Pincode</label>
-                      <input
-                        type="text"
-                        value={step2Data.pincode}
-                        onChange={(e) => setStep2Data({ ...step2Data, pincode: e.target.value.replace(/\D/g, '').slice(0, 6) })}
-                        className="input-gold mt-1"
-                        placeholder="Pincode"
-                        maxLength={6}
-                        data-testid="step2-pincode"
-                      />
-                    </div>
-                  </div>
+                  {/* PIN Code with auto-fill (India only) */}
+                  {selectedCountry.country === 'IN' ? (
+                    <>
+                      <div>
+                        <label className="text-sm text-gray-400 flex items-center gap-2">
+                          <MapPin className="w-4 h-4" /> PIN Code (Auto-fill City/State)
+                        </label>
+                        <div className="relative">
+                          <input
+                            type="text"
+                            value={step2Data.pincode}
+                            onChange={(e) => handlePincodeChange(e.target.value)}
+                            className="input-gold mt-1"
+                            placeholder="Enter 6-digit PIN code"
+                            maxLength={6}
+                            data-testid="step2-pincode"
+                          />
+                          {pincodeLoading && (
+                            <div className="absolute right-3 top-1/2 -translate-y-1/2 mt-0.5">
+                              <Loader2 className="w-4 h-4 animate-spin text-[#D4AF37]" />
+                            </div>
+                          )}
+                        </div>
+                        <p className="text-xs text-gray-500 mt-1">
+                          City and state will be auto-filled from PIN code
+                        </p>
+                      </div>
+                      
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <label className="text-sm text-gray-400">City</label>
+                          <input
+                            type="text"
+                            value={step2Data.city}
+                            onChange={(e) => setStep2Data({ ...step2Data, city: e.target.value })}
+                            className="input-gold mt-1"
+                            placeholder="Auto-filled from PIN"
+                            data-testid="step2-city"
+                          />
+                        </div>
+                        <div>
+                          <label className="text-sm text-gray-400">State</label>
+                          <input
+                            type="text"
+                            value={step2Data.state}
+                            onChange={(e) => setStep2Data({ ...step2Data, state: e.target.value })}
+                            className="input-gold mt-1"
+                            placeholder="Auto-filled from PIN"
+                            data-testid="step2-state"
+                          />
+                        </div>
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      {/* International - Manual city/country entry */}
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <label className="text-sm text-gray-400 flex items-center gap-2">
+                            <MapPin className="w-4 h-4" /> City
+                          </label>
+                          <input
+                            type="text"
+                            value={step2Data.city}
+                            onChange={(e) => setStep2Data({ ...step2Data, city: e.target.value })}
+                            className="input-gold mt-1"
+                            placeholder="Your city"
+                            data-testid="step2-city"
+                          />
+                        </div>
+                        <div>
+                          <label className="text-sm text-gray-400 flex items-center gap-2">
+                            <Globe className="w-4 h-4" /> Country
+                          </label>
+                          <input
+                            type="text"
+                            value={step2Data.country || selectedCountry.name}
+                            onChange={(e) => setStep2Data({ ...step2Data, country: e.target.value })}
+                            className="input-gold mt-1"
+                            placeholder="Country"
+                            data-testid="step2-country"
+                          />
+                        </div>
+                      </div>
+                      <div>
+                        <label className="text-sm text-gray-400">Postal/ZIP Code</label>
+                        <input
+                          type="text"
+                          value={step2Data.pincode}
+                          onChange={(e) => setStep2Data({ ...step2Data, pincode: e.target.value })}
+                          className="input-gold mt-1"
+                          placeholder="Postal code"
+                          data-testid="step2-pincode"
+                        />
+                      </div>
+                    </>
+                  )}
 
                   <div>
                     <label className="text-sm text-gray-400 flex items-center gap-2">

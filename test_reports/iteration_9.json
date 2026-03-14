@@ -1,0 +1,70 @@
+{
+  "summary": "Update mode: Tested new enhanced Marketing Landing Page features - Country code selector with 15 countries, multiple URL params for referral code auto-population (ref, referral, code, promo, utm_campaign), PIN code auto-fill for city/state (India only using India Post API), international phone number support, and backend storing country_code/country/state fields. All 62 tests pass (26 backend + 36 frontend).",
+  "mode": "update",
+  "baseline_commit": "6661742f00a5c328b0faedc6b0f437c6528304af",
+  "head_commit": "710cd8b7b25285f648b812a6dab6858c89f0350c",
+  "specs_created": [],
+  "specs_updated": [
+    "/app/tests/e2e/marketing-landing.spec.ts",
+    "/app/backend/tests/test_marketing.py"
+  ],
+  "quarantined_tests": [],
+  "test_report_links": [
+    "/app/tests/e2e/marketing-landing.spec.ts",
+    "/app/backend/tests/test_marketing.py",
+    "/app/test_reports/pytest/pytest_marketing_results.xml"
+  ],
+  "regression_results": {
+    "total_specs": 62,
+    "passed": 62,
+    "failed": 0,
+    "skipped": 0
+  },
+  "issues": [],
+  "action_items": [],
+  "updated_files": [
+    "/app/tests/e2e/marketing-landing.spec.ts",
+    "/app/backend/tests/test_marketing.py"
+  ],
+  "test_results": {
+    "backend": "100% (26/26)",
+    "frontend": "100% (36/36)"
+  },
+  "seed_data_creation": "None - using dynamic test data with unique mobile numbers",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Enhanced Marketing Landing Page features fully tested: 1) Country code selector with 15 countries (data-testid='country-selector') - India (+91), US (+1), UK (+44), UAE (+971), Singapore (+65), etc. 2) Multiple referral URL params supported: ?ref=, ?referral=, ?code=, ?promo=, ?utm_campaign=. 3) PIN code auto-fill (India only) uses India Post API - enters 6-digit PIN in step2-pincode field to auto-populate step2-city and step2-state. 4) International users see simplified form (city + country) vs Indian users (pincode + city + state). 5) Backend MarketingLeadCreate model accepts country_code and country fields. 6) Backend MarketingLeadStep2 model includes state field.",
+  "new_tests_added": {
+    "backend": [
+      "test_create_lead_with_country_code",
+      "test_create_lead_with_uae_country_code",
+      "test_create_lead_with_us_country_code",
+      "test_step2_with_state_field",
+      "test_step2_international_user",
+      "test_referral_code_stored_correctly"
+    ],
+    "frontend": [
+      "Country code selector is visible with default India (+91)",
+      "Country code selector dropdown shows all 15 countries",
+      "Selecting UAE country code updates form",
+      "Selecting US country code updates placeholder",
+      "Referral code auto-populates from ?referral= URL param",
+      "Referral code auto-populates from ?code= URL param",
+      "Referral code auto-populates from ?promo= URL param",
+      "Referral code auto-populates from ?utm_campaign= URL param",
+      "Referral code from ?ref= is applied correctly",
+      "International user (UAE) validation accepts 9 digits",
+      "PIN code field is visible for Indian users in Step 2",
+      "PIN code auto-fills city and state for valid Indian PIN",
+      "Invalid PIN code shows error toast",
+      "International user (UAE) does not see state field"
+    ]
+  },
+  "features_verified": {
+    "country_code_selector": "Working - 15 countries available, default India (+91)",
+    "referral_url_params": "Working - all 5 params supported (ref, referral, code, promo, utm_campaign)",
+    "pincode_autofill": "Working - India Post API integration for Indian PIN codes",
+    "international_support": "Working - different digit validation per country, simplified form for non-Indian users",
+    "backend_fields": "Working - country_code, country, state fields stored correctly"
+  }
+}
