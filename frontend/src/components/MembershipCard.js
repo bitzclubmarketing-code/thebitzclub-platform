@@ -1,6 +1,17 @@
 import React, { forwardRef } from 'react';
 import QRCode from 'react-qr-code';
 import { Crown, Phone, Globe, Mail, Shield } from 'lucide-react';
+import { API } from '@/context/AuthContext';
+
+// Helper to get full photo URL
+const getPhotoUrl = (photoUrl) => {
+  if (!photoUrl) return null;
+  // If it's already a full URL, return as is
+  if (photoUrl.startsWith('http')) return photoUrl;
+  // If it's a relative path, prepend the API base URL
+  const baseUrl = API.replace('/api', '');
+  return `${baseUrl}${photoUrl}`;
+};
 
 // Front side of the membership card
 export const MembershipCardFront = forwardRef(({ member, user, qrSize = 80 }, ref) => {
@@ -10,7 +21,7 @@ export const MembershipCardFront = forwardRef(({ member, user, qrSize = 80 }, re
   const validityEnd = member?.membership_end 
     ? new Date(member.membership_end).toLocaleDateString('en-IN', { month: 'short', year: 'numeric' })
     : 'N/A';
-  const photoUrl = member?.photo_url;
+  const photoUrl = getPhotoUrl(member?.photo_url);
   const status = member?.status || 'pending';
 
   return (

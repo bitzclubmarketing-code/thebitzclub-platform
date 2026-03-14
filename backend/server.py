@@ -107,6 +107,17 @@ class TokenResponse(BaseModel):
     token_type: str = "bearer"
     user: dict
 
+# Registration with Payment Models
+class RegistrationInitiate(BaseModel):
+    name: str
+    mobile: str
+    email: Optional[EmailStr] = None
+    date_of_birth: Optional[str] = None
+    password: str
+    plan_id: str
+    referral_id: Optional[str] = None
+    photo_base64: Optional[str] = None  # Base64 encoded photo
+
 # Member Models
 class MemberCreate(BaseModel):
     name: str
@@ -789,6 +800,232 @@ async def login(credentials: UserLogin):
 @api_router.get("/auth/me")
 async def get_current_user_info(current_user: dict = Depends(get_current_user)):
     return {k: v for k, v in current_user.items() if k != "password"}
+
+# ==================== REGISTRATION WITH PAYMENT FLOW ====================
+
+@api_router.post("/registration/initiate")
+async def initiate_registration(data: RegistrationInitiate):
+    """
+    Step 1: Initiate registration - validate data, store temporarily, create Razorpay order
+    """
+    # Check if mobile already exists
+    existing = await db.users.find_one({"mobile": data.mobile})
+    if existing:
+        raise HTTPException(status_code=400, detail="Mobile number already registered")
+    
+    # Get plan details
+    plan = await db.plans.find_one({"id": data.plan_id}, {"_id": 0})
+    if not plan:
+        raise HTTPException(status_code=404, detail="Selected plan not found")
+    
+    # Generate a temporary registration ID
+    temp_reg_id = f"REG-{uuid.uuid4().hex[:12].upper()}"
+    
+    # Store temporary registration data
+    temp_registration = {
+        "id": temp_reg_id,
+        "name": data.name,
+        "mobile": data.mobile,
+        "email": data.email,
+        "date_of_birth": data.date_of_birth,
+        "password": pwd_context.hash(data.password),
+        "plan_id": data.plan_id,
+        "plan_name": plan["name"],
+        "plan_price": plan["price"],
+        "plan_duration_months": plan["duration_months"],
+        "referral_id": data.referral_id,
+        "photo_base64": data.photo_base64,
+        "status": "pending_payment",
+        "created_at": datetime.now(timezone.utc).isoformat(),
+        "expires_at": (datetime.now(timezone.utc) + timedelta(hours=24)).isoformat()
+    }
+    await db.temp_registrations.insert_one(temp_registration)
+    
+    # Create Razorpay order
+    try:
+        order = await RazorpayService.create_order(
+            amount=plan["price"],
+            member_id=temp_reg_id,
+            plan_id=data.plan_id,
+            notes={
+                "registration_id": temp_reg_id,
+                "name": data.name,
+                "mobile": data.mobile,
+                "plan_name": plan["name"]
+            }
+        )
+        
+        # Update temp registration with order ID
+        await db.temp_registrations.update_one(
+            {"id": temp_reg_id},
+            {"$set": {"razorpay_order_id": order["id"]}}
+        )
+        
+        return {
+            "registration_id": temp_reg_id,
+            "order_id": order["id"],
+            "amount": plan["price"],
+            "currency": "INR",
+            "razorpay_key": order["razorpay_key"],
+            "plan_name": plan["name"],
+            "name": data.name,
+            "email": data.email,
+            "mobile": data.mobile
+        }
+    except Exception as e:
+        # Clean up temp registration if order creation fails
+        await db.temp_registrations.delete_one({"id": temp_reg_id})
+        raise HTTPException(status_code=500, detail=f"Failed to create payment order: {str(e)}")
+
+@api_router.post("/registration/complete")
+async def complete_registration(
+    registration_id: str,
+    razorpay_payment_id: str,
+    razorpay_order_id: str,
+    razorpay_signature: str,
+    background_tasks: BackgroundTasks
+):
+    """
+    Step 2: Complete registration after successful payment
+    """
+    # Get temp registration
+    temp_reg = await db.temp_registrations.find_one({"id": registration_id})
+    if not temp_reg:
+        raise HTTPException(status_code=404, detail="Registration not found or expired")
+    
+    if temp_reg.get("status") == "completed":
+        raise HTTPException(status_code=400, detail="Registration already completed")
+    
+    # Verify payment signature
+    is_valid = RazorpayService.verify_payment_signature(
+        razorpay_payment_id, razorpay_order_id, razorpay_signature
+    )
+    
+    if not is_valid:
+        await db.temp_registrations.update_one(
+            {"id": registration_id},
+            {"$set": {"status": "payment_failed", "failed_at": datetime.now(timezone.utc).isoformat()}}
+        )
+        raise HTTPException(status_code=400, detail="Payment verification failed")
+    
+    # Generate member ID
+    member_id = generate_member_id()
+    user_id = str(uuid.uuid4())
+    
+    # Create user account
+    user = {
+        "id": user_id,
+        "member_id": member_id,
+        "mobile": temp_reg["mobile"],
+        "password": temp_reg["password"],  # Already hashed
+        "name": temp_reg["name"],
+        "email": temp_reg.get("email"),
+        "date_of_birth": temp_reg.get("date_of_birth"),
+        "role": UserRole.MEMBER,
+        "is_active": True,
+        "created_at": datetime.now(timezone.utc).isoformat()
+    }
+    await db.users.insert_one(user)
+    
+    # Calculate membership dates
+    start_date = datetime.now(timezone.utc)
+    duration_months = temp_reg.get("plan_duration_months", 12)
+    end_date = start_date + timedelta(days=duration_months * 30)
+    
+    # Handle photo if provided
+    photo_url = None
+    if temp_reg.get("photo_base64"):
+        try:
+            # Decode and save photo
+            photo_data = base64.b64decode(temp_reg["photo_base64"].split(",")[-1] if "," in temp_reg["photo_base64"] else temp_reg["photo_base64"])
+            filename = f"{member_id}_{uuid.uuid4().hex[:8]}.jpg"
+            file_path = UPLOAD_DIR / filename
+            with open(file_path, "wb") as f:
+                f.write(photo_data)
+            photo_url = f"/api/uploads/photos/{filename}"
+        except Exception as e:
+            logger.error(f"Failed to save photo for {member_id}: {str(e)}")
+    
+    # Create member record
+    member_doc = {
+        "id": str(uuid.uuid4()),
+        "user_id": user_id,
+        "member_id": member_id,
+        "name": temp_reg["name"],
+        "mobile": temp_reg["mobile"],
+        "email": temp_reg.get("email"),
+        "date_of_birth": temp_reg.get("date_of_birth"),
+        "plan_id": temp_reg["plan_id"],
+        "plan_name": temp_reg["plan_name"],
+        "membership_start": start_date.isoformat(),
+        "membership_end": end_date.isoformat(),
+        "status": MembershipStatus.ACTIVE,
+        "qr_code": generate_qr_code(member_id),
+        "photo_url": photo_url,
+        "referral_id": temp_reg.get("referral_id"),
+        "created_at": datetime.now(timezone.utc).isoformat()
+    }
+    await db.members.insert_one(member_doc)
+    
+    # Create payment record
+    payment_doc = {
+        "id": str(uuid.uuid4()),
+        "order_id": razorpay_order_id,
+        "member_id": member_id,
+        "member_name": temp_reg["name"],
+        "plan_id": temp_reg["plan_id"],
+        "plan_name": temp_reg["plan_name"],
+        "amount": temp_reg["plan_price"],
+        "payment_type": "online",
+        "payment_method": "razorpay",
+        "razorpay_payment_id": razorpay_payment_id,
+        "razorpay_order_id": razorpay_order_id,
+        "status": "completed",
+        "created_at": datetime.now(timezone.utc).isoformat(),
+        "completed_at": datetime.now(timezone.utc).isoformat()
+    }
+    await db.payments.insert_one(payment_doc)
+    
+    # Update temp registration status
+    await db.temp_registrations.update_one(
+        {"id": registration_id},
+        {"$set": {"status": "completed", "member_id": member_id, "completed_at": datetime.now(timezone.utc).isoformat()}}
+    )
+    
+    # Send notifications
+    validity_end = end_date.strftime("%d %b %Y")
+    background_tasks.add_task(SMSService.send_registration_sms, {"mobile": temp_reg["mobile"], "member_id": member_id})
+    background_tasks.add_task(SMSService.send_payment_success_sms, {"mobile": temp_reg["mobile"]}, temp_reg["plan_price"], temp_reg["plan_name"])
+    background_tasks.add_task(SMSService.send_membership_activation_sms, {"mobile": temp_reg["mobile"]}, temp_reg["plan_name"], validity_end)
+    
+    if temp_reg.get("email"):
+        background_tasks.add_task(EmailService.send_welcome_email, user)
+    
+    background_tasks.add_task(EmailService.send_membership_notification, member_doc, {"name": temp_reg["plan_name"], "price": temp_reg["plan_price"], "duration_months": duration_months})
+    
+    # Remove password and _id before creating token
+    user.pop('_id', None)
+    
+    # Create access token
+    token = create_access_token({"sub": user_id, "role": UserRole.MEMBER})
+    user_response = {k: v for k, v in user.items() if k != "password"}
+    
+    logger.info(f"[REGISTRATION] Completed registration for {member_id} with plan {temp_reg['plan_name']}")
+    
+    return {
+        "success": True,
+        "message": "Registration successful! Welcome to BITZ Club!",
+        "member_id": member_id,
+        "access_token": token,
+        "token_type": "bearer",
+        "user": user_response,
+        "membership": {
+            "plan_name": temp_reg["plan_name"],
+            "start_date": start_date.isoformat(),
+            "end_date": end_date.isoformat(),
+            "status": "active"
+        }
+    }
 
 # ==================== MEMBERSHIP PLANS ENDPOINTS ====================
 

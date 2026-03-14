@@ -1,8 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import axios from 'axios';
-import { Crown, Eye, EyeOff, Loader2, Check } from 'lucide-react';
+import { Crown, Eye, EyeOff, Loader2, Check, Camera, X } from 'lucide-react';
 import { useAuth, API } from '@/context/AuthContext';
 import { toast } from 'sonner';
 
@@ -19,13 +19,25 @@ const RegisterPage = () => {
     referralId: '',
     planId: searchParams.get('plan') || ''
   });
+  const [photoPreview, setPhotoPreview] = useState(null);
+  const [photoBase64, setPhotoBase64] = useState(null);
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
-  const { register } = useAuth();
+  const [paymentStep, setPaymentStep] = useState(false);
+  const { login } = useAuth();
   const navigate = useNavigate();
+  const fileInputRef = useRef(null);
 
   useEffect(() => {
     fetchPlans();
+    // Load Razorpay script
+    const script = document.createElement('script');
+    script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+    script.async = true;
+    document.body.appendChild(script);
+    return () => {
+      document.body.removeChild(script);
+    };
   }, []);
 
   const fetchPlans = async () => {
@@ -47,45 +59,160 @@ const RegisterPage = () => {
     }));
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    
+  const handlePhotoChange = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      toast.error('Please select an image file');
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error('Image size must be less than 5MB');
+      return;
+    }
+
+    // Create preview
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setPhotoPreview(reader.result);
+      setPhotoBase64(reader.result);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const removePhoto = () => {
+    setPhotoPreview(null);
+    setPhotoBase64(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+
+  const validateForm = () => {
     if (!formData.name || !formData.mobile || !formData.password) {
       toast.error('Please fill in all required fields');
-      return;
+      return false;
     }
 
     if (formData.password !== formData.confirmPassword) {
       toast.error('Passwords do not match');
-      return;
+      return false;
     }
 
     if (formData.mobile.length < 10) {
       toast.error('Please enter a valid mobile number');
-      return;
+      return false;
     }
+
+    if (!formData.planId) {
+      toast.error('Please select a membership plan');
+      return false;
+    }
+
+    return true;
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    
+    if (!validateForm()) return;
 
     setLoading(true);
     try {
-      const user = await register({
+      // Step 1: Initiate registration and get Razorpay order
+      const response = await axios.post(`${API}/registration/initiate`, {
         name: formData.name,
         mobile: formData.mobile,
         email: formData.email || null,
         date_of_birth: formData.dateOfBirth || null,
         password: formData.password,
-        role: 'member'
+        plan_id: formData.planId,
+        referral_id: formData.referralId || null,
+        photo_base64: photoBase64
       });
+
+      const { registration_id, order_id, amount, razorpay_key, plan_name } = response.data;
+
+      // Step 2: Open Razorpay payment
+      const options = {
+        key: razorpay_key,
+        amount: amount * 100, // Razorpay expects amount in paise
+        currency: 'INR',
+        name: 'BITZ Club',
+        description: `${plan_name} Membership`,
+        order_id: order_id,
+        handler: async function (razorpayResponse) {
+          // Step 3: Complete registration after payment
+          try {
+            setPaymentStep(true);
+            const completeResponse = await axios.post(`${API}/registration/complete`, null, {
+              params: {
+                registration_id: registration_id,
+                razorpay_payment_id: razorpayResponse.razorpay_payment_id,
+                razorpay_order_id: razorpayResponse.razorpay_order_id,
+                razorpay_signature: razorpayResponse.razorpay_signature
+              }
+            });
+
+            // Login the user
+            const { access_token, user } = completeResponse.data;
+            localStorage.setItem('token', access_token);
+            localStorage.setItem('user', JSON.stringify(user));
+            
+            toast.success(`Welcome to BITZ Club! Your Member ID: ${completeResponse.data.member_id}`);
+            
+            // Reload auth context and navigate
+            window.location.href = '/member';
+          } catch (error) {
+            console.error('Registration completion failed:', error);
+            toast.error(error.response?.data?.detail || 'Failed to complete registration');
+            setPaymentStep(false);
+          }
+        },
+        prefill: {
+          name: formData.name,
+          email: formData.email,
+          contact: formData.mobile
+        },
+        theme: {
+          color: '#D4AF37'
+        },
+        modal: {
+          ondismiss: function() {
+            setLoading(false);
+            toast.info('Payment cancelled. You can try again.');
+          }
+        }
+      };
+
+      const razorpay = new window.Razorpay(options);
+      razorpay.open();
       
-      toast.success('Registration successful! Welcome to BITZ Club!');
-      navigate('/member');
     } catch (error) {
-      toast.error(error.response?.data?.detail || 'Registration failed');
+      console.error('Registration initiation failed:', error);
+      toast.error(error.response?.data?.detail || 'Registration failed. Please try again.');
     } finally {
-      setLoading(false);
+      if (!paymentStep) {
+        setLoading(false);
+      }
     }
   };
 
   const selectedPlan = plans.find(p => p.id === formData.planId);
+
+  if (paymentStep) {
+    return (
+      <div className="min-h-screen bg-[#0F0F10] flex items-center justify-center">
+        <div className="text-center">
+          <Loader2 className="w-12 h-12 text-[#D4AF37] animate-spin mx-auto mb-4" />
+          <h2 className="text-xl font-semibold text-white mb-2">Creating Your Membership...</h2>
+          <p className="text-gray-400">Please wait while we activate your account</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-[#0F0F10] py-20 px-4">
@@ -124,6 +251,43 @@ const RegisterPage = () => {
             <h2 className="text-xl font-semibold text-white mb-6">Your Details</h2>
             
             <form onSubmit={handleSubmit} className="space-y-5">
+              {/* Photo Upload */}
+              <div>
+                <label className="input-label">Profile Photo (Optional)</label>
+                <div className="flex items-center gap-4">
+                  <div 
+                    className="w-20 h-20 rounded-lg border-2 border-dashed border-[#D4AF37]/50 flex items-center justify-center overflow-hidden bg-[#1A1A1C] cursor-pointer hover:border-[#D4AF37] transition-colors"
+                    onClick={() => fileInputRef.current?.click()}
+                  >
+                    {photoPreview ? (
+                      <img src={photoPreview} alt="Preview" className="w-full h-full object-cover" />
+                    ) : (
+                      <Camera className="w-8 h-8 text-[#D4AF37]/50" />
+                    )}
+                  </div>
+                  <input
+                    type="file"
+                    ref={fileInputRef}
+                    onChange={handlePhotoChange}
+                    accept="image/*"
+                    className="hidden"
+                    data-testid="register-photo"
+                  />
+                  <div className="flex-1">
+                    <p className="text-sm text-gray-400">Upload your photo for membership card</p>
+                    {photoPreview && (
+                      <button
+                        type="button"
+                        onClick={removePhoto}
+                        className="text-sm text-red-400 hover:text-red-300 mt-1 flex items-center gap-1"
+                      >
+                        <X className="w-3 h-3" /> Remove
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </div>
+
               <div>
                 <label className="input-label">Full Name *</label>
                 <input
@@ -236,10 +400,12 @@ const RegisterPage = () => {
                 {loading ? (
                   <>
                     <Loader2 className="w-4 h-4 animate-spin" />
-                    Creating Account...
+                    Processing...
                   </>
                 ) : (
-                  'Create Account'
+                  <>
+                    Pay ₹{selectedPlan?.price?.toLocaleString() || '0'} & Register
+                  </>
                 )}
               </button>
             </form>
@@ -256,50 +422,68 @@ const RegisterPage = () => {
 
           {/* Plan Selection */}
           <div className="space-y-4">
-            <h2 className="text-xl font-semibold text-white mb-4">Select Your Plan</h2>
+            <h2 className="text-xl font-semibold text-white mb-4">Select Your Plan *</h2>
             
-            {plans.map((plan) => (
-              <div
-                key={plan.id}
-                onClick={() => setFormData(prev => ({ ...prev, planId: plan.id }))}
-                className={`p-6 cursor-pointer transition-all ${
-                  formData.planId === plan.id
-                    ? 'glass-gold gold-glow'
-                    : 'card-dark card-interactive'
-                }`}
-                data-testid={`select-plan-${plan.name.toLowerCase()}`}
-              >
-                <div className="flex items-start justify-between mb-3">
-                  <div>
-                    <h3 className="text-lg font-semibold text-white">{plan.name}</h3>
-                    <p className="text-sm text-gray-400">{plan.duration_months} months</p>
-                  </div>
-                  <div className="text-right">
-                    <span className="text-2xl font-bold text-[#D4AF37]">₹{plan.price.toLocaleString()}</span>
-                  </div>
-                </div>
-                <p className="text-sm text-gray-400 mb-3">{plan.description}</p>
-                <ul className="space-y-1">
-                  {plan.features?.slice(0, 3).map((feature, index) => (
-                    <li key={index} className="flex items-center gap-2 text-sm text-gray-300">
-                      <Check className="w-3 h-3 text-[#D4AF37]" />
-                      {feature}
-                    </li>
-                  ))}
-                </ul>
-                {formData.planId === plan.id && (
-                  <div className="mt-3 pt-3 border-t border-white/10">
-                    <p className="text-xs text-[#D4AF37] uppercase tracking-wider">Selected Plan</p>
-                  </div>
-                )}
+            {plans.length === 0 ? (
+              <div className="card-dark p-6 text-center">
+                <Loader2 className="w-6 h-6 text-[#D4AF37] animate-spin mx-auto mb-2" />
+                <p className="text-gray-400">Loading plans...</p>
               </div>
-            ))}
+            ) : (
+              plans.map((plan) => (
+                <div
+                  key={plan.id}
+                  onClick={() => setFormData(prev => ({ ...prev, planId: plan.id }))}
+                  className={`p-6 cursor-pointer transition-all rounded-lg ${
+                    formData.planId === plan.id
+                      ? 'glass-gold gold-glow'
+                      : 'card-dark card-interactive'
+                  }`}
+                  data-testid={`select-plan-${plan.name.toLowerCase()}`}
+                >
+                  <div className="flex items-start justify-between mb-3">
+                    <div>
+                      <h3 className="text-lg font-semibold text-white">{plan.name}</h3>
+                      <p className="text-sm text-gray-400">{plan.duration_months} months</p>
+                    </div>
+                    <div className="text-right">
+                      <span className="text-2xl font-bold text-[#D4AF37]">₹{plan.price.toLocaleString()}</span>
+                    </div>
+                  </div>
+                  <p className="text-sm text-gray-400 mb-3">{plan.description}</p>
+                  <ul className="space-y-1">
+                    {plan.features?.slice(0, 3).map((feature, index) => (
+                      <li key={index} className="flex items-center gap-2 text-sm text-gray-300">
+                        <Check className="w-3 h-3 text-[#D4AF37]" />
+                        {feature}
+                      </li>
+                    ))}
+                  </ul>
+                  {formData.planId === plan.id && (
+                    <div className="mt-3 pt-3 border-t border-white/10">
+                      <p className="text-xs text-[#D4AF37] uppercase tracking-wider flex items-center gap-2">
+                        <Check className="w-4 h-4" /> Selected Plan
+                      </p>
+                    </div>
+                  )}
+                </div>
+              ))
+            )}
 
-            {/* Payment Notice */}
-            <div className="p-4 bg-[#1A1A1C] border border-white/10">
-              <p className="text-sm text-gray-400">
-                Payment will be processed after registration. You can complete payment from your member dashboard.
-              </p>
+            {/* Payment Info */}
+            <div className="p-4 bg-[#1A1A1C] border border-[#D4AF37]/30 rounded-lg">
+              <div className="flex items-start gap-3">
+                <div className="w-8 h-8 bg-[#D4AF37]/20 rounded-full flex items-center justify-center flex-shrink-0">
+                  <Check className="w-4 h-4 text-[#D4AF37]" />
+                </div>
+                <div>
+                  <p className="text-sm text-white font-medium">Secure Payment via Razorpay</p>
+                  <p className="text-xs text-gray-400 mt-1">
+                    Your membership will be activated immediately after successful payment. 
+                    You'll receive your Member ID and digital card instantly.
+                  </p>
+                </div>
+              </div>
             </div>
           </div>
         </div>
