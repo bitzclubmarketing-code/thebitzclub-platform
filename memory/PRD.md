@@ -114,6 +114,15 @@ Build a membership management web application for BITZ Club with:
 - [x] **QR Code** - Contains member ID for quick verification
 - [x] Share functionality with native share API fallback
 
+#### Payment-First Registration Flow (March 14, 2026)
+- [x] **Registration with Plan Selection** - User selects plan during registration
+- [x] **Photo Upload at Registration** - Optional photo upload included in registration
+- [x] **Razorpay Integration** - Payment processed BEFORE member account creation
+- [x] **Member ID Generation** - Generated only after successful payment
+- [x] **Auto-Activation** - Membership automatically activated with plan and validity dates
+- [x] **Digital Card Generation** - Membership card available immediately after payment
+- [x] New endpoints: POST /api/registration/initiate, POST /api/registration/complete
+
 #### Mobile Responsiveness (Latest)
 - [x] Membership card optimized for mobile viewports
 - [x] Responsive QR code sizing based on screen width
@@ -332,8 +341,8 @@ SENDER_EMAIL=noreply@bitzclub.com
 
 ## Next Actions
 1. Update SMTP password in `/app/backend/.env` with real webmail password
-2. **Fix Registration Flow** - Implement payment-first registration (Form → Razorpay → Member ID generation)
-3. Implement payment webhook handlers for Razorpay
+2. ~~**Fix Registration Flow** - Implement payment-first registration~~ ✅ COMPLETED (March 14, 2026)
+3. Implement payment webhook handlers for Razorpay (for server-to-server verification)
 4. Implement automatic maintenance reminder system
 5. Add member renewal flow
 6. Add password reset functionality
