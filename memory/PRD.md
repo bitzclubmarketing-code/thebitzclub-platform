@@ -103,6 +103,17 @@ Build a membership management web application for BITZ Club with:
 - [x] iOS-specific installation instructions
 - [x] Offline capability for static assets
 
+#### Membership Card Feature (March 14, 2026)
+- [x] **Front Side Design** - BITZ Club logo, Member photo, Name, Member ID, QR code, Plan, Validity
+- [x] **Back Side Design** - Terms & Conditions, Partner usage instructions, Contact details, Website, Emergency contact
+- [x] **Credit card size format** (85.6mm x 53.98mm) - Print ready for double-sided printing
+- [x] **Photo Upload** - Members can upload their photo via POST /api/members/{member_id}/photo
+- [x] **Download as PDF** - Generates 2-page PDF with front and back sides
+- [x] **Download as Image** - Generates combined PNG with both sides
+- [x] **Flip animation** - Toggle between front and back views
+- [x] **QR Code** - Contains member ID for quick verification
+- [x] Share functionality with native share API fallback
+
 #### Mobile Responsiveness (Latest)
 - [x] Membership card optimized for mobile viewports
 - [x] Responsive QR code sizing based on screen width
@@ -252,6 +263,8 @@ Build a membership management web application for BITZ Club with:
 - PUT /api/members/{id} - Update member
 - DELETE /api/members/{id} - Delete member
 - POST /api/members/{id}/assign-telecaller - Assign telecaller
+- **POST /api/members/{member_id}/photo** - Upload member photo (multipart/form-data)
+- **GET /api/uploads/photos/{filename}** - Get uploaded member photo
 
 ### Admin Only
 - CRUD /api/plans
@@ -319,9 +332,13 @@ SENDER_EMAIL=noreply@bitzclub.com
 
 ## Next Actions
 1. Update SMTP password in `/app/backend/.env` with real webmail password
-2. Implement payment webhook handlers for Razorpay
-3. Implement automatic maintenance reminder system
-4. Add member renewal flow
-5. Add password reset functionality
-6. Embed promotional video in landing page
-7. Enhance Telecaller Module (assign members/leads, track follow-ups)
+2. **Fix Registration Flow** - Implement payment-first registration (Form → Razorpay → Member ID generation)
+3. Implement payment webhook handlers for Razorpay
+4. Implement automatic maintenance reminder system
+5. Add member renewal flow
+6. Add password reset functionality
+7. Embed promotional video in landing page
+8. **Homepage Redesign** - Rename "Experiences" to "Events", "Partners" to "Offers", add About Us & Testimonials
+9. Enhance Telecaller Module (assign members/leads, track follow-ups)
+10. **Family Member Module** - Add family members under primary member account
+11. **Maintenance Fee Module** - Track maintenance fee payments and reports
