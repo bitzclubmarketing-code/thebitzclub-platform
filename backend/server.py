@@ -1595,8 +1595,15 @@ async def assign_telecaller(member_id: str, telecaller_id: str, admin: dict = De
 
 
 @api_router.get("/members/{member_id}/payments")
-async def get_member_payments(member_id: str, admin: dict = Depends(require_admin)):
-    """Get payment history for a specific member"""
+async def get_member_payments(member_id: str, user: dict = Depends(get_current_user)):
+    """Get payment history for a specific member. Members can see their own payments, admins/telecallers can see any."""
+    # Check access - members can only see their own payments
+    if user.get("role") == UserRole.MEMBER:
+        if user.get("member_id") != member_id:
+            raise HTTPException(status_code=403, detail="You can only view your own payments")
+    elif user.get("role") not in [UserRole.ADMIN, UserRole.SUPER_ADMIN, UserRole.TELECALLER]:
+        raise HTTPException(status_code=403, detail="Access denied")
+    
     payments = await db.payments.find(
         {"member_id": member_id},
         {"_id": 0}

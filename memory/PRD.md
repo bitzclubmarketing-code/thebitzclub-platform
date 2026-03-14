@@ -265,6 +265,15 @@ Build a membership management web application for BITZ Club with:
   - **Telecaller Member Access**: View member details including payment history, maintenance fees
   - **Reports Enhanced**: General overview report with revenue/leads/plan distribution, Transaction reports with filters
   - **Email Mandatory**: Email required for member registration (for reminders/notifications)
+- [x] **UI Updates & Affiliations** - COMPLETED (March 14, 2026)
+  - **Navigation Renamed**: Experiences → Event Plans, Partners → Affiliations
+  - **Login → Member Login**: Login button renamed to Member Login
+  - **OFFERS Section**: New section displaying special offers and deals from database
+  - **GALLERY Section**: New photo gallery section on homepage
+  - **Affiliations Enhanced**: Partner model with category, image_url, contact_person, phone, address, website, offers fields
+  - **Booking System**: Members can book visits at affiliates (POST /api/bookings)
+  - **Member Dashboard Revamped**: 6 tabs - My Card, My Profile, Affiliations, Bookings, Payments, Feedback
+  - **Payment History Access**: Members can view their own payment history
 - [ ] Payment gateway webhook handling
 - [ ] Automatic maintenance reminder system
 
