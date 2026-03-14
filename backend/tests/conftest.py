@@ -44,3 +44,20 @@ def authenticated_admin(api_client, admin_token):
     """Session with admin auth header"""
     api_client.headers.update({"Authorization": f"Bearer {admin_token}"})
     return api_client
+
+@pytest.fixture
+def telecaller_token(api_client):
+    """Get telecaller authentication token"""
+    response = api_client.post(f"{BASE_URL}/api/auth/login", json={
+        "identifier": "8888888888",
+        "password": "telecaller123"
+    })
+    if response.status_code == 200:
+        return response.json().get("access_token")
+    pytest.skip("Telecaller authentication failed — skipping telecaller tests")
+
+@pytest.fixture
+def authenticated_telecaller(api_client, telecaller_token):
+    """Session with telecaller auth header"""
+    api_client.headers.update({"Authorization": f"Bearer {telecaller_token}"})
+    return api_client

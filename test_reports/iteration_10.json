@@ -1,0 +1,78 @@
+{
+  "summary": "Generate mode: Tested 7 new backend features - Family Members CRUD (5 tests), Lead Assignment (3 tests), Maintenance Fees with discount/tax (4 tests), Telecaller Dashboard (2 tests), Telecaller Member Access (3 tests), General Report (2 tests), Transaction Report (4 tests), and Email Mandatory validation (2 tests). All 88 backend tests pass (62 existing + 26 new).",
+  "mode": "generate",
+  "baseline_commit": "710cd8b7b25285f648b812a6dab6858c89f0350c",
+  "head_commit": "3b24e8413b8be8abb9482e0e2e2dee332694f9a1",
+  "specs_created": [
+    "/app/backend/tests/test_new_features.py"
+  ],
+  "specs_updated": [
+    "/app/backend/tests/conftest.py"
+  ],
+  "quarantined_tests": [],
+  "test_report_links": [
+    "/app/backend/tests/test_new_features.py",
+    "/app/test_reports/pytest/pytest_results.xml"
+  ],
+  "regression_results": {
+    "total_specs": 88,
+    "passed": 88,
+    "failed": 0,
+    "skipped": 0
+  },
+  "issues": [],
+  "action_items": [],
+  "updated_files": [
+    "/app/backend/tests/test_new_features.py",
+    "/app/backend/tests/conftest.py"
+  ],
+  "test_results": {
+    "backend": "100% (88/88)",
+    "frontend": "N/A - no frontend files to test"
+  },
+  "seed_data_creation": "Dynamic test data with unique mobile numbers and UUIDs, cleaned up after each test",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "New backend test file test_new_features.py covers: 1) Family Members CRUD - POST/GET /members/{id}/family, PUT/DELETE /family/{id}, GET /family. 2) Lead Assignment - POST /leads/assign, GET /leads/by-telecaller, GET /leads/unassigned. 3) Maintenance Fees - POST /maintenance-fees with discount_amount and tax_rate (capped at 5%), POST /maintenance-fees/{id}/pay creates payment record in payment history. 4) Telecaller Dashboard - GET /telecaller/dashboard returns stats (assigned_members, active_members, assigned_leads, new_leads, pending_followups). 5) Telecaller Member Access - GET /telecaller/members (essential fields only), GET /telecaller/members/{id}/details (includes payment_history, maintenance_fees, family_count, follow_ups). 6) Reports - GET /reports/general (members, revenue, leads, plan_distribution, monthly_revenue), GET /reports/transactions (with date/type/method filters and summary). 7) Email mandatory for member registration (422 error without email). Admin credentials: 9999999999/admin123, Telecaller: 8888888888/telecaller123.",
+  "new_tests_added": {
+    "backend": [
+      "test_add_family_member",
+      "test_get_family_members",
+      "test_update_family_member",
+      "test_delete_family_member",
+      "test_get_all_family_members",
+      "test_assign_leads_to_telecaller",
+      "test_get_leads_by_telecaller",
+      "test_get_unassigned_leads",
+      "test_create_maintenance_fee_with_discount_and_tax",
+      "test_pay_maintenance_fee_creates_payment_record",
+      "test_get_maintenance_fees",
+      "test_maintenance_fee_tax_capped_at_5_percent",
+      "test_telecaller_dashboard_stats",
+      "test_admin_cannot_access_telecaller_dashboard",
+      "test_get_telecaller_members",
+      "test_get_telecaller_member_details",
+      "test_telecaller_cannot_access_unassigned_member",
+      "test_general_report_structure",
+      "test_general_report_values_are_numeric",
+      "test_transaction_report_structure",
+      "test_transaction_report_date_filter",
+      "test_transaction_report_payment_type_filter",
+      "test_transaction_report_payment_method_filter",
+      "test_transaction_report_pagination",
+      "test_member_creation_requires_email",
+      "test_member_creation_with_email_succeeds"
+    ],
+    "frontend": []
+  },
+  "features_verified": {
+    "family_members_crud": "Working - add/get/update/delete family members, family count updated on member",
+    "lead_assignment": "Working - assign multiple leads to telecaller, get by telecaller, get unassigned",
+    "maintenance_fees": "Working - discount and tax (0-5%) supported, payment creates record in payment history",
+    "telecaller_dashboard": "Working - stats endpoint for assigned members, leads, follow-ups",
+    "telecaller_member_access": "Working - limited fields for telecaller, detailed view with payment history",
+    "general_report": "Working - members, revenue, leads stats with plan distribution and monthly trend",
+    "transaction_report": "Working - filtered transactions with summary by payment method",
+    "email_mandatory": "Working - 422 validation error when email missing for member creation"
+  }
+}

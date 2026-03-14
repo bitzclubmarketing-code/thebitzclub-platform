@@ -157,7 +157,7 @@ class RegistrationInitiate(BaseModel):
 class MemberCreate(BaseModel):
     name: str
     mobile: str
-    email: Optional[EmailStr] = None
+    email: EmailStr  # Email is now MANDATORY for reminders and notifications
     address: Optional[str] = None
     city: Optional[str] = None
     pincode: Optional[str] = None
@@ -178,6 +178,30 @@ class MemberUpdate(BaseModel):
     plan_id: Optional[str] = None
     referral_id: Optional[str] = None
     photo_url: Optional[str] = None
+    status: Optional[str] = None
+
+# Family Member Models
+class FamilyMemberCreate(BaseModel):
+    member_id: str  # Primary member ID
+    name: str
+    relationship: str  # spouse, child, parent, sibling
+    date_of_birth: Optional[str] = None
+    mobile: Optional[str] = None
+    email: Optional[EmailStr] = None
+    id_proof_type: Optional[str] = None  # aadhaar, pan, passport, driving_license
+    id_proof_number: Optional[str] = None
+    photo_url: Optional[str] = None
+
+class FamilyMemberUpdate(BaseModel):
+    name: Optional[str] = None
+    relationship: Optional[str] = None
+    date_of_birth: Optional[str] = None
+    mobile: Optional[str] = None
+    email: Optional[EmailStr] = None
+    id_proof_type: Optional[str] = None
+    id_proof_number: Optional[str] = None
+    photo_url: Optional[str] = None
+    is_active: Optional[bool] = None
 
 # Plan Models
 class PlanCreate(BaseModel):
@@ -187,6 +211,9 @@ class PlanCreate(BaseModel):
     price: float
     features: List[str] = []
     is_active: bool = True
+    # Maintenance configuration per plan
+    maintenance_amount: float = 0  # Monthly maintenance amount for this plan
+    maintenance_frequency: str = 'monthly'  # monthly, quarterly, yearly
 
 class PlanUpdate(BaseModel):
     name: Optional[str] = None
@@ -195,6 +222,8 @@ class PlanUpdate(BaseModel):
     price: Optional[float] = None
     features: Optional[List[str]] = None
     is_active: Optional[bool] = None
+    maintenance_amount: Optional[float] = None
+    maintenance_frequency: Optional[str] = None
 
 # Partner Models
 class FacilityDiscount(BaseModel):
@@ -299,6 +328,12 @@ class MaintenanceFeeCreate(BaseModel):
     payment_method: Optional[str] = None
     transaction_id: Optional[str] = None
     notes: Optional[str] = None
+    # Enhanced fields for category-based maintenance
+    plan_id: Optional[str] = None
+    discount_amount: float = 0  # Discount applied
+    discount_reason: Optional[str] = None
+    tax_rate: float = 0  # Tax rate (0-5%)
+    tax_amount: float = 0  # Calculated tax
 
 class MaintenanceFeeUpdate(BaseModel):
     amount: Optional[float] = None
@@ -307,6 +342,21 @@ class MaintenanceFeeUpdate(BaseModel):
     paid_date: Optional[str] = None
     transaction_id: Optional[str] = None
     notes: Optional[str] = None
+    discount_amount: Optional[float] = None
+    discount_reason: Optional[str] = None
+    tax_rate: Optional[float] = None
+    tax_amount: Optional[float] = None
+
+# Renewal Receipt Model
+class RenewalReceiptCreate(BaseModel):
+    member_id: str
+    plan_id: str
+    amount: float
+    payment_method: str  # 'cash', 'upi', 'card', 'netbanking', 'razorpay'
+    transaction_id: Optional[str] = None
+    notes: Optional[str] = None
+    discount_amount: float = 0
+    tax_amount: float = 0
 
 # GST Configuration
 GST_RATE = 0.18  # 18% GST
@@ -322,6 +372,13 @@ class LeadCreate(BaseModel):
 class LeadUpdate(BaseModel):
     status: Optional[str] = None
     notes: Optional[str] = None
+    assigned_telecaller: Optional[str] = None  # Telecaller user ID
+    follow_up_date: Optional[str] = None
+    priority: Optional[str] = None  # high, medium, low
+
+class LeadAssign(BaseModel):
+    lead_ids: List[str]  # Multiple leads can be assigned at once
+    telecaller_id: str
 
 # Marketing Landing Page Models
 class MarketingLeadCreate(BaseModel):
@@ -755,6 +812,91 @@ class EmailService:
             "Payment Receipt - BITZ Club",
             f"Payment of ₹{payment['amount']} received successfully for {member['name']}"
         )
+    
+    @staticmethod
+    async def send_maintenance_reminder(member: dict, fee: dict) -> bool:
+        """Send maintenance fee reminder email"""
+        subject = "Maintenance Fee Reminder - BITZ Club"
+        
+        html_content = f"""
+        <html>
+        <body style="font-family: Arial, sans-serif; padding: 20px; background-color: #f5f5f5;">
+            <div style="max-width: 600px; margin: 0 auto; background: #0F0F10; padding: 30px; border-radius: 10px; color: white;">
+                <div style="text-align: center; margin-bottom: 30px;">
+                    <h1 style="color: #D4AF37; margin: 0;">BITZ Club</h1>
+                    <p style="color: #999; margin-top: 5px;">Maintenance Fee Reminder</p>
+                </div>
+                
+                <p style="font-size: 16px;">Dear <strong>{member['name']}</strong>,</p>
+                
+                <p style="color: #ccc;">This is a reminder that your maintenance fee is due.</p>
+                
+                <div style="background: rgba(212,175,55,0.1); border: 1px solid #D4AF37; padding: 20px; border-radius: 8px; margin: 20px 0;">
+                    <p style="margin: 5px 0;"><strong>Member ID:</strong> {member['member_id']}</p>
+                    <p style="margin: 5px 0;"><strong>Fee Type:</strong> {fee.get('fee_type', 'Monthly')}</p>
+                    <p style="margin: 5px 0;"><strong>Amount:</strong> ₹{fee.get('amount', 0)}</p>
+                    <p style="margin: 5px 0;"><strong>Due Date:</strong> {fee.get('due_date', '')}</p>
+                </div>
+                
+                <p style="color: #ccc;">Please make the payment at your earliest convenience to continue enjoying uninterrupted BITZ Club benefits.</p>
+                
+                <div style="text-align: center; margin-top: 20px;">
+                    <p style="color: #666; font-size: 12px;">For support, contact us at hello@bitzclub.com</p>
+                </div>
+            </div>
+        </body>
+        </html>
+        """
+        
+        member_email = member.get('email')
+        if member_email:
+            return await EmailService.send_email(member_email, subject, html_content)
+        return False
+    
+    @staticmethod
+    async def send_renewal_reminder(member: dict, days_left: int) -> bool:
+        """Send membership renewal reminder email"""
+        subject = "Membership Renewal Reminder - BITZ Club"
+        
+        html_content = f"""
+        <html>
+        <body style="font-family: Arial, sans-serif; padding: 20px; background-color: #f5f5f5;">
+            <div style="max-width: 600px; margin: 0 auto; background: #0F0F10; padding: 30px; border-radius: 10px; color: white;">
+                <div style="text-align: center; margin-bottom: 30px;">
+                    <h1 style="color: #D4AF37; margin: 0;">BITZ Club</h1>
+                    <p style="color: #999; margin-top: 5px;">Membership Renewal Reminder</p>
+                </div>
+                
+                <p style="font-size: 16px;">Dear <strong>{member['name']}</strong>,</p>
+                
+                <div style="background: #ff6b6b; color: white; padding: 15px; border-radius: 8px; text-align: center; margin: 20px 0;">
+                    <p style="margin: 0; font-size: 18px; font-weight: bold;">Your membership expires in {days_left} days!</p>
+                </div>
+                
+                <div style="background: rgba(212,175,55,0.1); border: 1px solid #D4AF37; padding: 20px; border-radius: 8px; margin: 20px 0;">
+                    <p style="margin: 5px 0;"><strong>Member ID:</strong> {member['member_id']}</p>
+                    <p style="margin: 5px 0;"><strong>Current Plan:</strong> {member.get('plan_name', 'N/A')}</p>
+                    <p style="margin: 5px 0;"><strong>Expiry Date:</strong> {member.get('membership_end', '')[:10]}</p>
+                </div>
+                
+                <p style="color: #ccc;">Renew now to continue enjoying exclusive BITZ Club privileges at luxury hotels, fine dining, spas, and more!</p>
+                
+                <div style="text-align: center; margin: 30px 0;">
+                    <a href="https://thebitzclub.com/login" style="background: #D4AF37; color: black; padding: 15px 30px; text-decoration: none; border-radius: 5px; font-weight: bold;">Renew Now</a>
+                </div>
+                
+                <div style="text-align: center; margin-top: 20px;">
+                    <p style="color: #666; font-size: 12px;">For support, contact us at hello@bitzclub.com</p>
+                </div>
+            </div>
+        </body>
+        </html>
+        """
+        
+        member_email = member.get('email')
+        if member_email:
+            return await EmailService.send_email(member_email, subject, html_content)
+        return False
 
 # ==================== SMS SERVICE (SoftSMS) ====================
 
@@ -1497,6 +1639,116 @@ async def verify_member(member_id: str):
         "is_valid": is_valid
     }
 
+# ==================== FAMILY MEMBERS ENDPOINTS ====================
+
+@api_router.post("/members/{member_id}/family")
+async def add_family_member(member_id: str, family: FamilyMemberCreate, admin: dict = Depends(require_admin)):
+    """Add a family member to a primary member's account"""
+    # Verify primary member exists
+    member = await db.members.find_one({"member_id": member_id}, {"_id": 0})
+    if not member:
+        raise HTTPException(status_code=404, detail="Primary member not found")
+    
+    family_id = str(uuid.uuid4())
+    family_doc = {
+        "id": family_id,
+        "member_id": member_id,  # Link to primary member
+        "primary_member_name": member["name"],
+        "name": family.name,
+        "relationship": family.relationship,
+        "date_of_birth": family.date_of_birth,
+        "mobile": family.mobile,
+        "email": family.email,
+        "id_proof_type": family.id_proof_type,
+        "id_proof_number": family.id_proof_number,
+        "photo_url": family.photo_url,
+        "is_active": True,
+        "created_at": datetime.now(timezone.utc).isoformat(),
+        "created_by": admin["id"]
+    }
+    await db.family_members.insert_one(family_doc)
+    
+    # Update member's family count
+    family_count = await db.family_members.count_documents({"member_id": member_id, "is_active": True})
+    await db.members.update_one(
+        {"member_id": member_id},
+        {"$set": {"family_count": family_count, "updated_at": datetime.now(timezone.utc).isoformat()}}
+    )
+    
+    logger.info(f"[FAMILY] Added family member {family.name} ({family.relationship}) for {member_id}")
+    return {"message": "Family member added successfully", "id": family_id, "family_count": family_count}
+
+@api_router.get("/members/{member_id}/family")
+async def get_family_members(member_id: str, user: dict = Depends(require_admin_or_telecaller)):
+    """Get all family members for a primary member"""
+    members = await db.family_members.find(
+        {"member_id": member_id},
+        {"_id": 0}
+    ).sort("created_at", 1).to_list(50)
+    return {"member_id": member_id, "family_members": members, "count": len(members)}
+
+@api_router.put("/family/{family_id}")
+async def update_family_member(family_id: str, update: FamilyMemberUpdate, admin: dict = Depends(require_admin)):
+    """Update a family member's details"""
+    update_data = {k: v for k, v in update.dict().items() if v is not None}
+    if not update_data:
+        raise HTTPException(status_code=400, detail="No update data provided")
+    
+    update_data["updated_at"] = datetime.now(timezone.utc).isoformat()
+    update_data["updated_by"] = admin["id"]
+    
+    result = await db.family_members.update_one({"id": family_id}, {"$set": update_data})
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Family member not found")
+    
+    return {"message": "Family member updated successfully"}
+
+@api_router.delete("/family/{family_id}")
+async def delete_family_member(family_id: str, admin: dict = Depends(require_admin)):
+    """Soft delete a family member"""
+    family = await db.family_members.find_one({"id": family_id})
+    if not family:
+        raise HTTPException(status_code=404, detail="Family member not found")
+    
+    # Soft delete
+    await db.family_members.update_one(
+        {"id": family_id},
+        {"$set": {"is_active": False, "deleted_at": datetime.now(timezone.utc).isoformat(), "deleted_by": admin["id"]}}
+    )
+    
+    # Update member's family count
+    family_count = await db.family_members.count_documents({"member_id": family["member_id"], "is_active": True})
+    await db.members.update_one(
+        {"member_id": family["member_id"]},
+        {"$set": {"family_count": family_count}}
+    )
+    
+    return {"message": "Family member removed successfully"}
+
+@api_router.get("/family")
+async def get_all_family_members(
+    page: int = Query(1, ge=1),
+    limit: int = Query(20, ge=1, le=100),
+    member_id: Optional[str] = None,
+    admin: dict = Depends(require_admin)
+):
+    """Get all family members with pagination (Admin only)"""
+    query = {"is_active": True}
+    if member_id:
+        query["member_id"] = member_id
+    
+    skip = (page - 1) * limit
+    total = await db.family_members.count_documents(query)
+    members = await db.family_members.find(query, {"_id": 0}).sort("created_at", -1).skip(skip).limit(limit).to_list(limit)
+    
+    return {
+        "family_members": members,
+        "total": total,
+        "page": page,
+        "limit": limit,
+        "pages": (total + limit - 1) // limit
+    }
+
 # ==================== PARTNERS ENDPOINTS ====================
 
 @api_router.post("/partners")
@@ -1646,6 +1898,139 @@ async def delete_telecaller(telecaller_id: str, admin: dict = Depends(require_ad
     if result.deleted_count == 0:
         raise HTTPException(status_code=404, detail="Telecaller not found")
     return {"message": "Telecaller deleted"}
+
+# ==================== TELECALLER DASHBOARD ENDPOINTS ====================
+
+@api_router.get("/telecaller/dashboard")
+async def get_telecaller_dashboard(user: dict = Depends(require_admin_or_telecaller)):
+    """Get telecaller dashboard stats"""
+    if user["role"] != UserRole.TELECALLER:
+        raise HTTPException(status_code=403, detail="This endpoint is for telecallers only")
+    
+    telecaller_id = user["id"]
+    
+    # Get assigned members count
+    assigned_members = await db.members.count_documents({"assigned_telecaller": telecaller_id})
+    
+    # Get active members count
+    active_members = await db.members.count_documents({
+        "assigned_telecaller": telecaller_id,
+        "status": MembershipStatus.ACTIVE
+    })
+    
+    # Get assigned leads count
+    assigned_leads = await db.leads.count_documents({"assigned_telecaller": telecaller_id})
+    new_leads = await db.leads.count_documents({"assigned_telecaller": telecaller_id, "status": LeadStatus.NEW})
+    
+    # Get pending follow-ups
+    pending_followups = await db.follow_ups.count_documents({
+        "telecaller_id": telecaller_id,
+        "status": {"$in": ["pending", "scheduled"]}
+    })
+    
+    return {
+        "assigned_members": assigned_members,
+        "active_members": active_members,
+        "assigned_leads": assigned_leads,
+        "new_leads": new_leads,
+        "pending_followups": pending_followups,
+        "telecaller_name": user["name"]
+    }
+
+@api_router.get("/telecaller/members")
+async def get_telecaller_members(
+    status: Optional[str] = None,
+    search: Optional[str] = None,
+    page: int = Query(1, ge=1),
+    limit: int = Query(20, ge=1, le=100),
+    user: dict = Depends(require_admin_or_telecaller)
+):
+    """Get members assigned to telecaller with essential details"""
+    if user["role"] != UserRole.TELECALLER:
+        raise HTTPException(status_code=403, detail="This endpoint is for telecallers only")
+    
+    query = {"assigned_telecaller": user["id"]}
+    if status:
+        query["status"] = status
+    if search:
+        query["$or"] = [
+            {"name": {"$regex": search, "$options": "i"}},
+            {"mobile": {"$regex": search, "$options": "i"}},
+            {"member_id": {"$regex": search, "$options": "i"}}
+        ]
+    
+    skip = (page - 1) * limit
+    total = await db.members.count_documents(query)
+    
+    # Get members with only essential fields for telecaller
+    members = await db.members.find(
+        query,
+        {
+            "_id": 0,
+            "member_id": 1,
+            "name": 1,
+            "mobile": 1,
+            "email": 1,
+            "plan_name": 1,
+            "membership_start": 1,
+            "membership_end": 1,
+            "status": 1,
+            "city": 1
+        }
+    ).sort("created_at", -1).skip(skip).limit(limit).to_list(limit)
+    
+    return {
+        "members": members,
+        "total": total,
+        "page": page,
+        "limit": limit,
+        "pages": (total + limit - 1) // limit
+    }
+
+@api_router.get("/telecaller/members/{member_id}/details")
+async def get_telecaller_member_details(member_id: str, user: dict = Depends(require_admin_or_telecaller)):
+    """Get detailed member info including payment history (for telecaller)"""
+    if user["role"] == UserRole.TELECALLER:
+        # Verify member is assigned to this telecaller
+        member = await db.members.find_one({
+            "member_id": member_id,
+            "assigned_telecaller": user["id"]
+        }, {"_id": 0})
+        if not member:
+            raise HTTPException(status_code=404, detail="Member not found or not assigned to you")
+    else:
+        member = await db.members.find_one({"member_id": member_id}, {"_id": 0})
+        if not member:
+            raise HTTPException(status_code=404, detail="Member not found")
+    
+    # Get payment history
+    payments = await db.payments.find(
+        {"member_id": member_id},
+        {"_id": 0}
+    ).sort("created_at", -1).limit(20).to_list(20)
+    
+    # Get maintenance fees
+    maintenance = await db.maintenance_fees.find(
+        {"member_id": member_id},
+        {"_id": 0}
+    ).sort("due_date", -1).limit(10).to_list(10)
+    
+    # Get family members count
+    family_count = await db.family_members.count_documents({"member_id": member_id, "is_active": True})
+    
+    # Get follow-ups
+    follow_ups = await db.follow_ups.find(
+        {"member_id": member_id},
+        {"_id": 0}
+    ).sort("created_at", -1).limit(10).to_list(10)
+    
+    return {
+        "member": member,
+        "payment_history": payments,
+        "maintenance_fees": maintenance,
+        "family_count": family_count,
+        "follow_ups": follow_ups
+    }
 
 # ==================== FOLLOW-UPS ENDPOINTS ====================
 
@@ -2762,6 +3147,84 @@ async def export_leads_excel(
         headers={"Content-Disposition": f"attachment; filename=leads_report_{datetime.now().strftime('%Y%m%d')}.xlsx"}
     )
 
+@api_router.post("/leads/assign")
+async def assign_leads_to_telecaller(assignment: LeadAssign, admin: dict = Depends(require_admin)):
+    """Assign multiple leads to a telecaller"""
+    # Verify telecaller exists
+    telecaller = await db.users.find_one({"id": assignment.telecaller_id, "role": UserRole.TELECALLER})
+    if not telecaller:
+        raise HTTPException(status_code=404, detail="Telecaller not found")
+    
+    # Update all leads
+    result = await db.leads.update_many(
+        {"id": {"$in": assignment.lead_ids}},
+        {"$set": {
+            "assigned_telecaller": assignment.telecaller_id,
+            "assigned_telecaller_name": telecaller["name"],
+            "assigned_at": datetime.now(timezone.utc).isoformat(),
+            "assigned_by": admin["id"]
+        }}
+    )
+    
+    logger.info(f"[LEADS] Assigned {result.modified_count} leads to telecaller {telecaller['name']}")
+    return {
+        "message": f"Successfully assigned {result.modified_count} leads to {telecaller['name']}",
+        "assigned_count": result.modified_count
+    }
+
+@api_router.get("/leads/by-telecaller")
+async def get_leads_by_telecaller(
+    telecaller_id: Optional[str] = None,
+    status: Optional[str] = None,
+    page: int = Query(1, ge=1),
+    limit: int = Query(20, ge=1, le=100),
+    user: dict = Depends(require_admin_or_telecaller)
+):
+    """Get leads assigned to a telecaller (or self if telecaller)"""
+    query = {}
+    
+    # If telecaller, only show their assigned leads
+    if user["role"] == UserRole.TELECALLER:
+        query["assigned_telecaller"] = user["id"]
+    elif telecaller_id:
+        query["assigned_telecaller"] = telecaller_id
+    
+    if status:
+        query["status"] = status
+    
+    skip = (page - 1) * limit
+    total = await db.leads.count_documents(query)
+    leads = await db.leads.find(query, {"_id": 0}).sort("created_at", -1).skip(skip).limit(limit).to_list(limit)
+    
+    return {
+        "leads": leads,
+        "total": total,
+        "page": page,
+        "limit": limit,
+        "pages": (total + limit - 1) // limit
+    }
+
+@api_router.get("/leads/unassigned")
+async def get_unassigned_leads(
+    page: int = Query(1, ge=1),
+    limit: int = Query(20, ge=1, le=100),
+    admin: dict = Depends(require_admin)
+):
+    """Get leads not assigned to any telecaller"""
+    query = {"$or": [{"assigned_telecaller": None}, {"assigned_telecaller": {"$exists": False}}]}
+    
+    skip = (page - 1) * limit
+    total = await db.leads.count_documents(query)
+    leads = await db.leads.find(query, {"_id": 0}).sort("created_at", -1).skip(skip).limit(limit).to_list(limit)
+    
+    return {
+        "leads": leads,
+        "total": total,
+        "page": page,
+        "limit": limit,
+        "pages": (total + limit - 1) // limit
+    }
+
 # ==================== MARKETING LANDING PAGE ENDPOINTS ====================
 
 @api_router.post("/marketing/lead")
@@ -3636,26 +4099,110 @@ async def get_maintenance_fees(
 
 @api_router.post("/maintenance-fees")
 async def create_maintenance_fee(fee: MaintenanceFeeCreate, admin: dict = Depends(require_admin)):
-    """Create a new maintenance fee record"""
+    """Create a new maintenance fee record with discount and tax support"""
     member = await db.members.find_one({"member_id": fee.member_id})
     if not member:
         raise HTTPException(status_code=404, detail="Member not found")
+    
+    # Get plan for category-based maintenance amount
+    plan = None
+    if fee.plan_id:
+        plan = await db.plans.find_one({"id": fee.plan_id}, {"_id": 0})
+    elif member.get("plan_id"):
+        plan = await db.plans.find_one({"id": member.get("plan_id")}, {"_id": 0})
+    
+    # Calculate amounts
+    base_amount = fee.amount
+    discount_amount = fee.discount_amount or 0
+    tax_rate = min(fee.tax_rate or 0, 5) / 100  # Max 5% tax
+    
+    amount_after_discount = base_amount - discount_amount
+    tax_amount = amount_after_discount * tax_rate
+    final_amount = amount_after_discount + tax_amount
     
     fee_doc = {
         "id": str(uuid.uuid4()),
         "member_id": fee.member_id,
         "member_name": member.get("name", ""),
-        "amount": fee.amount,
+        "plan_id": plan.get("id") if plan else None,
+        "plan_name": plan.get("name") if plan else member.get("plan_name", ""),
+        "base_amount": base_amount,
+        "discount_amount": discount_amount,
+        "discount_reason": fee.discount_reason,
+        "tax_rate": fee.tax_rate or 0,
+        "tax_amount": round(tax_amount, 2),
+        "amount": round(final_amount, 2),  # Final amount after discount and tax
         "fee_type": fee.fee_type,
         "due_date": fee.due_date,
         "status": "pending",
         "payment_method": fee.payment_method,
         "transaction_id": fee.transaction_id,
         "notes": fee.notes,
-        "created_at": datetime.now(timezone.utc).isoformat()
+        "created_at": datetime.now(timezone.utc).isoformat(),
+        "created_by": admin["id"]
     }
     await db.maintenance_fees.insert_one(fee_doc)
-    return {"message": "Maintenance fee created", "id": fee_doc["id"]}
+    
+    logger.info(f"[MAINTENANCE] Created fee for {fee.member_id}: ₹{final_amount} (base: ₹{base_amount}, discount: ₹{discount_amount}, tax: ₹{round(tax_amount, 2)})")
+    return {"message": "Maintenance fee created", "id": fee_doc["id"], "amount": round(final_amount, 2)}
+
+@api_router.post("/maintenance-fees/{fee_id}/pay")
+async def pay_maintenance_fee(
+    fee_id: str,
+    payment_method: str,
+    transaction_id: Optional[str] = None,
+    notes: Optional[str] = None,
+    admin: dict = Depends(require_admin)
+):
+    """Mark maintenance fee as paid and create payment record"""
+    fee = await db.maintenance_fees.find_one({"id": fee_id})
+    if not fee:
+        raise HTTPException(status_code=404, detail="Maintenance fee not found")
+    
+    if fee["status"] == "paid":
+        raise HTTPException(status_code=400, detail="Fee already paid")
+    
+    paid_date = datetime.now(timezone.utc).isoformat()
+    
+    # Update maintenance fee
+    await db.maintenance_fees.update_one(
+        {"id": fee_id},
+        {"$set": {
+            "status": "paid",
+            "paid_date": paid_date,
+            "payment_method": payment_method,
+            "transaction_id": transaction_id,
+            "notes": notes,
+            "updated_at": paid_date,
+            "updated_by": admin["id"]
+        }}
+    )
+    
+    # Create payment record for member's payment history
+    payment_doc = {
+        "id": str(uuid.uuid4()),
+        "order_id": f"MAINT-{fee_id[:8].upper()}",
+        "member_id": fee["member_id"],
+        "member_name": fee["member_name"],
+        "payment_type": "maintenance",
+        "fee_type": fee["fee_type"],
+        "base_amount": fee.get("base_amount", fee["amount"]),
+        "discount_amount": fee.get("discount_amount", 0),
+        "tax_amount": fee.get("tax_amount", 0),
+        "amount": fee["amount"],
+        "payment_method": payment_method,
+        "transaction_id": transaction_id,
+        "status": "completed",
+        "notes": notes or f"Maintenance fee ({fee['fee_type']})",
+        "maintenance_fee_id": fee_id,
+        "created_at": paid_date,
+        "completed_at": paid_date,
+        "created_by": admin["id"]
+    }
+    await db.payments.insert_one(payment_doc)
+    
+    logger.info(f"[MAINTENANCE] Paid fee {fee_id} for {fee['member_id']}: ₹{fee['amount']}")
+    return {"message": "Maintenance fee paid and recorded in payment history", "payment_id": payment_doc["id"]}
 
 @api_router.put("/maintenance-fees/{fee_id}")
 async def update_maintenance_fee(fee_id: str, update: MaintenanceFeeUpdate, admin: dict = Depends(require_admin)):
@@ -3961,6 +4508,183 @@ async def get_telecaller_reports(
         })
     
     return reports
+
+@api_router.get("/reports/general")
+async def get_general_report(admin: dict = Depends(require_admin)):
+    """Get general overview report with all key metrics"""
+    
+    # Member stats
+    total_members = await db.members.count_documents({})
+    active_members = await db.members.count_documents({"status": MembershipStatus.ACTIVE})
+    expired_members = await db.members.count_documents({"status": MembershipStatus.EXPIRED})
+    
+    # Revenue stats
+    payments = await db.payments.find({"status": "completed"}, {"_id": 0}).to_list(10000)
+    total_revenue = sum(p.get("amount", 0) for p in payments)
+    membership_revenue = sum(p.get("amount", 0) for p in payments if p.get("payment_type") != "maintenance")
+    maintenance_revenue = sum(p.get("amount", 0) for p in payments if p.get("payment_type") == "maintenance")
+    
+    # Lead stats
+    total_leads = await db.leads.count_documents({})
+    converted_leads = await db.leads.count_documents({"status": LeadStatus.CONVERTED})
+    conversion_rate = round((converted_leads / total_leads * 100), 2) if total_leads > 0 else 0
+    
+    # Plan distribution
+    pipeline = [
+        {"$group": {"_id": "$plan_name", "count": {"$sum": 1}}},
+        {"$sort": {"count": -1}}
+    ]
+    plan_distribution = []
+    async for doc in db.members.aggregate(pipeline):
+        plan_distribution.append({"plan_name": doc["_id"] or "Unknown", "count": doc["count"]})
+    
+    # Monthly revenue trend (last 6 months)
+    monthly_revenue = []
+    for i in range(5, -1, -1):
+        month_start = (datetime.now(timezone.utc).replace(day=1) - timedelta(days=i*30)).replace(day=1)
+        month_end = (month_start + timedelta(days=32)).replace(day=1)
+        
+        month_payments = [p for p in payments if month_start.isoformat() <= p.get("created_at", "") < month_end.isoformat()]
+        monthly_revenue.append({
+            "month": month_start.strftime("%b %Y"),
+            "revenue": sum(p.get("amount", 0) for p in month_payments),
+            "count": len(month_payments)
+        })
+    
+    # Telecaller stats
+    telecallers = await db.users.count_documents({"role": UserRole.TELECALLER})
+    
+    # Family members
+    family_members = await db.family_members.count_documents({"is_active": True})
+    
+    return {
+        "members": {
+            "total": total_members,
+            "active": active_members,
+            "expired": expired_members,
+            "family_members": family_members
+        },
+        "revenue": {
+            "total": round(total_revenue, 2),
+            "membership": round(membership_revenue, 2),
+            "maintenance": round(maintenance_revenue, 2)
+        },
+        "leads": {
+            "total": total_leads,
+            "converted": converted_leads,
+            "conversion_rate": conversion_rate
+        },
+        "plan_distribution": plan_distribution,
+        "monthly_revenue": monthly_revenue,
+        "telecallers": telecallers
+    }
+
+@api_router.get("/reports/transactions")
+async def get_transaction_report(
+    start_date: Optional[str] = None,
+    end_date: Optional[str] = None,
+    payment_type: Optional[str] = None,  # membership, maintenance, renewal
+    payment_method: Optional[str] = None,  # cash, upi, card, razorpay
+    member_id: Optional[str] = None,
+    page: int = Query(1, ge=1),
+    limit: int = Query(50, ge=1, le=200),
+    admin: dict = Depends(require_admin)
+):
+    """Get detailed transaction report with filters"""
+    query = {"status": "completed"}
+    
+    if start_date:
+        query["created_at"] = {"$gte": start_date}
+    if end_date:
+        if "created_at" in query:
+            query["created_at"]["$lte"] = end_date
+        else:
+            query["created_at"] = {"$lte": end_date}
+    if payment_type:
+        query["payment_type"] = payment_type
+    if payment_method:
+        query["payment_method"] = payment_method
+    if member_id:
+        query["member_id"] = member_id
+    
+    skip = (page - 1) * limit
+    total = await db.payments.count_documents(query)
+    
+    payments = await db.payments.find(query, {"_id": 0}).sort("created_at", -1).skip(skip).limit(limit).to_list(limit)
+    
+    # Calculate totals
+    all_payments = await db.payments.find(query, {"_id": 0, "amount": 1, "payment_method": 1}).to_list(10000)
+    total_amount = sum(p.get("amount", 0) for p in all_payments)
+    
+    # Group by payment method
+    method_breakdown = {}
+    for p in all_payments:
+        method = p.get("payment_method", "unknown")
+        method_breakdown[method] = method_breakdown.get(method, 0) + p.get("amount", 0)
+    
+    return {
+        "transactions": payments,
+        "total": total,
+        "page": page,
+        "limit": limit,
+        "pages": (total + limit - 1) // limit,
+        "summary": {
+            "total_amount": round(total_amount, 2),
+            "total_transactions": len(all_payments),
+            "by_payment_method": {k: round(v, 2) for k, v in method_breakdown.items()}
+        }
+    }
+
+@api_router.get("/reports/transactions/export")
+async def export_transaction_report(
+    start_date: Optional[str] = None,
+    end_date: Optional[str] = None,
+    payment_type: Optional[str] = None,
+    admin: dict = Depends(require_admin)
+):
+    """Export transactions to Excel"""
+    query = {"status": "completed"}
+    
+    if start_date:
+        query["created_at"] = {"$gte": start_date}
+    if end_date:
+        if "created_at" in query:
+            query["created_at"]["$lte"] = end_date
+        else:
+            query["created_at"] = {"$lte": end_date}
+    if payment_type:
+        query["payment_type"] = payment_type
+    
+    payments = await db.payments.find(query, {"_id": 0}).sort("created_at", -1).to_list(10000)
+    
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Transaction Report"
+    
+    headers = ["Date", "Member ID", "Member Name", "Type", "Amount", "Payment Method", "Transaction ID", "Status"]
+    ws.append(headers)
+    
+    for p in payments:
+        ws.append([
+            p.get("created_at", "")[:10],
+            p.get("member_id", ""),
+            p.get("member_name", ""),
+            p.get("payment_type", ""),
+            p.get("amount", 0),
+            p.get("payment_method", ""),
+            p.get("transaction_id", p.get("razorpay_payment_id", "")),
+            p.get("status", "")
+        ])
+    
+    output = BytesIO()
+    wb.save(output)
+    output.seek(0)
+    
+    return StreamingResponse(
+        output,
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={"Content-Disposition": f"attachment; filename=transactions_{datetime.now().strftime('%Y%m%d')}.xlsx"}
+    )
 
 
 # Include router
