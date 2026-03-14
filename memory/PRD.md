@@ -1,21 +1,24 @@
 # BITZ Club Membership Management System - PRD
 
 ## Project Overview
-A comprehensive membership management web application for BITZ Club featuring member registration, QR-based verification, partner discounts, telecaller management, lead capture, and advanced reporting.
+A comprehensive membership management web application for BITZ Club featuring member registration, QR-based verification, partner discounts, telecaller management, lead capture, family members management, and advanced reporting.
 
 ## Original Problem Statement
 Build a membership management web application for BITZ Club with:
 - Public website homepage
 - Social media landing page for ad campaigns
+- Digital Marketing Landing Page with multi-step registration
 - Membership registration and payment (Razorpay)
-- Admin dashboard
+- Admin dashboard with full member/family/payment management
 - Telecaller login and member assignment
-- Membership plans management
+- Membership plans management with maintenance configuration
 - Partner affiliations with facility-wise discounts
-- Advanced reports with filters and Excel export
+- Advanced reports (general, transactions) with filters and Excel export
+- Maintenance module with category-based pricing, discounts, and tax
+- Family members module
 - Membership card generation with QR code
-- Email (SendGrid) / SMS (Twilio) notifications
-- Lead capture and management system
+- Email notifications for reminders and renewals
+- Lead capture, assignment, and management system
 - Referral tracking (Employee/Associate IDs)
 
 ## User Personas
@@ -23,24 +26,32 @@ Build a membership management web application for BITZ Club with:
 ### 1. Super Admin
 - Full access to all features
 - Manages members, plans, partners, telecallers
+- Manages family members under primary accounts
 - Views and manages leads from landing page
-- Views reports and analytics
+- Assigns leads to telecallers
+- Views reports and analytics (general, transactions)
+- Creates/manages maintenance fees with discounts and tax
 - Can export data
 
 ### 2. Telecaller
 - Views and manages assigned members only
+- Views member details including payment history
+- Gets assigned leads from admin
 - Creates new members
 - Manages follow-ups
+- Dashboard with performance stats
 
 ### 3. Member
 - Self-service portal
 - Views membership card with QR code
 - Downloads membership card
 - Views partner benefits
+- Email is MANDATORY for renewal/maintenance reminders
 
 ### 4. Landing Page Visitor
 - Views lifestyle experiences
 - Submits enquiry form
+- Multi-step registration with Razorpay payment
 - Gets redirected to registration
 
 ## Core Requirements (Static)
@@ -246,12 +257,21 @@ Build a membership management web application for BITZ Club with:
     - PIN code auto-fill for city/state using India Post API (Indian users only)
     - Referral code auto-population from URL params: ?ref=, ?referral=, ?code=, ?promo=, ?utm_campaign=
     - International payment support via Razorpay (domestic + international cards)
+- [x] **Backend Features Enhancement** - COMPLETED (March 14, 2026)
+  - **Family Members Module**: Add/edit/delete family members under primary member accounts
+  - **Lead Assignment**: Admin can assign leads to telecallers, view unassigned leads
+  - **Maintenance Module**: Category-based maintenance with discounts (0-5% tax), linked to payment history
+  - **Telecaller Dashboard**: Stats API for assigned members, leads, follow-ups
+  - **Telecaller Member Access**: View member details including payment history, maintenance fees
+  - **Reports Enhanced**: General overview report with revenue/leads/plan distribution, Transaction reports with filters
+  - **Email Mandatory**: Email required for member registration (for reminders/notifications)
 - [ ] Payment gateway webhook handling
 - [ ] Automatic maintenance reminder system
 
 ### P1 - High Priority
 - [ ] Admin User Management System (Super Admin role, activity logging)
-- [ ] Family Member Module
+- [x] Family Member Module - COMPLETED (Backend)
+- [ ] Frontend UI for Family Members
 - [ ] Member renewal flow
 - [ ] Bulk member import (CSV)
 - [ ] OTP-based login option
@@ -262,9 +282,9 @@ Build a membership management web application for BITZ Club with:
 - [ ] Member activity logs
 - [ ] Partner portal
 - [ ] Push notifications
-- [ ] Monthly membership expiry reminders
+- [ ] Monthly membership expiry reminders (email service ready)
 - [ ] Referral commission tracking
-- [ ] Enhance Telecaller Module (assign members/leads, track follow-ups)
+- [x] Enhance Telecaller Module (assign members/leads, track follow-ups) - COMPLETED (Backend)
 
 ### P3 - Low Priority
 - [ ] Multi-language support
@@ -307,12 +327,37 @@ Build a membership management web application for BITZ Club with:
 - **PUT /api/leads/{id} - Update lead status**
 - **DELETE /api/leads/{id} - Delete lead**
 - **GET /api/leads/export-excel - Export leads**
+- **POST /api/leads/assign - Assign leads to telecaller** (NEW)
+- **GET /api/leads/by-telecaller - Get leads by telecaller** (NEW)
+- **GET /api/leads/unassigned - Get unassigned leads** (NEW)
 - **GET /api/marketing/leads - List marketing landing page leads**
 - **GET /api/enquiries - List chat enquiries**
 - **PUT /api/enquiries/{id} - Update enquiry status**
 - GET /api/reports/dashboard-stats
 - GET /api/reports/members (filterable by referral_id)
 - GET /api/reports/export-excel (includes referral_id)
+- **GET /api/reports/general - General overview report** (NEW)
+- **GET /api/reports/transactions - Transaction report with filters** (NEW)
+- **GET /api/reports/transactions/export - Export transactions** (NEW)
+
+### Family Members (Admin Only)
+- **POST /api/members/{member_id}/family** - Add family member
+- **GET /api/members/{member_id}/family** - Get family members
+- **PUT /api/family/{id}** - Update family member
+- **DELETE /api/family/{id}** - Delete family member
+- **GET /api/family** - List all family members (paginated)
+
+### Maintenance Fees (Admin Only)
+- **GET /api/maintenance-fees** - List maintenance fees
+- **POST /api/maintenance-fees** - Create fee with discount/tax
+- **PUT /api/maintenance-fees/{id}** - Update fee
+- **DELETE /api/maintenance-fees/{id}** - Delete fee
+- **POST /api/maintenance-fees/{id}/pay** - Mark as paid and create payment record
+
+### Telecaller Dashboard
+- **GET /api/telecaller/dashboard** - Telecaller stats (assigned members, leads, follow-ups)
+- **GET /api/telecaller/members** - Get assigned members (essential fields)
+- **GET /api/telecaller/members/{id}/details** - Get member details with payment history
 
 ## Test Credentials
 - **Admin**: Mobile: 9999999999, Password: admin123
