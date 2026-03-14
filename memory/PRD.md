@@ -241,6 +241,11 @@ Build a membership management web application for BITZ Club with:
   - Call Now option
   - Chat/Enquiry box
   - All leads stored in admin dashboard with referral tracking
+  - **Auto-fill features** (March 14, 2026):
+    - Country code selector with 15 countries (India, US, UK, UAE, Singapore, Australia, etc.)
+    - PIN code auto-fill for city/state using India Post API (Indian users only)
+    - Referral code auto-population from URL params: ?ref=, ?referral=, ?code=, ?promo=, ?utm_campaign=
+    - International payment support via Razorpay (domestic + international cards)
 - [ ] Payment gateway webhook handling
 - [ ] Automatic maintenance reminder system
 
