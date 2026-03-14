@@ -224,17 +224,29 @@ Build a membership management web application for BITZ Club with:
 - `/admin/telecallers` - Telecallers management
 - `/admin/reports` - Reports & exports
 - `/telecaller` - Telecaller dashboard
+- `/join` or `/marketing` or `/promo` - Digital Marketing Landing Page (NEW)
 
 ## Prioritized Backlog
 
-### P0 - Critical (Completed March 11, 2026)
+### P0 - Critical (Completed March 14, 2026)
 - [x] Real Razorpay payment integration - COMPLETED (test keys configured)
 - [x] Real SMTP email integration - COMPLETED (configured, needs actual password)
 - [x] Real SoftSMS integration - COMPLETED (API configured)
+- [x] **Digital Marketing Landing Page** - COMPLETED (March 14, 2026)
+  - Multi-step registration flow (Lead capture → Plan selection → Payment → Photo/ID upload)
+  - Lead capture with Name, Mobile, Email, Referral Code
+  - Razorpay payment integration
+  - Photo and ID proof upload after payment
+  - WhatsApp contact button (+91 7812901118)
+  - Call Now option
+  - Chat/Enquiry box
+  - All leads stored in admin dashboard with referral tracking
 - [ ] Payment gateway webhook handling
 - [ ] Automatic maintenance reminder system
 
 ### P1 - High Priority
+- [ ] Admin User Management System (Super Admin role, activity logging)
+- [ ] Family Member Module
 - [ ] Member renewal flow
 - [ ] Bulk member import (CSV)
 - [ ] OTP-based login option
@@ -265,6 +277,12 @@ Build a membership management web application for BITZ Club with:
 - POST /api/auth/register - User registration
 - **POST /api/leads - Submit lead enquiry**
 
+### Marketing Landing Page (Public)
+- **POST /api/marketing/lead** - Step 1: Capture lead (name, mobile, email, referral_code)
+- **POST /api/marketing/lead/{lead_id}/step2** - Step 2: Full details & create payment order
+- **POST /api/marketing/lead/{lead_id}/complete** - Step 3: Complete registration after payment
+- **POST /api/marketing/enquiry** - Submit chat/contact enquiry
+
 ### Authenticated
 - GET /api/auth/me - Current user info
 - GET /api/members - List members (paginated, filterable by referral_id)
@@ -284,6 +302,9 @@ Build a membership management web application for BITZ Club with:
 - **PUT /api/leads/{id} - Update lead status**
 - **DELETE /api/leads/{id} - Delete lead**
 - **GET /api/leads/export-excel - Export leads**
+- **GET /api/marketing/leads - List marketing landing page leads**
+- **GET /api/enquiries - List chat enquiries**
+- **PUT /api/enquiries/{id} - Update enquiry status**
 - GET /api/reports/dashboard-stats
 - GET /api/reports/members (filterable by referral_id)
 - GET /api/reports/export-excel (includes referral_id)

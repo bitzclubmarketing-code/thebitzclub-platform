@@ -1,0 +1,124 @@
+{
+  "summary": "Testing of new Marketing Landing Page feature at /join, /marketing, /promo routes. Comprehensive backend API testing (20 tests) and frontend E2E testing (22 tests) for multi-step registration flow with lead capture, plan selection, Razorpay payment integration, chat enquiry form, and contact buttons (WhatsApp, Call Now).",
+  "mode": "generate",
+  "baseline_commit": "28690c7ec61a944da3247c123ed420b7ec4882aa",
+  "head_commit": "6661742f00a5c328b0faedc6b0f437c6528304af",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "regression_results": {
+    "total_specs": 42,
+    "passed": 42,
+    "failed": 0,
+    "skipped": 0
+  },
+  "passed_tests": [
+    "POST /api/marketing/lead - Create lead with all fields",
+    "POST /api/marketing/lead - Create lead with minimal fields",
+    "POST /api/marketing/lead - Duplicate mobile returns existing lead",
+    "POST /api/marketing/lead - Registered mobile fails",
+    "POST /api/marketing/lead - With referral code",
+    "POST /api/marketing/lead/{id}/step2 - Success with Razorpay order creation",
+    "POST /api/marketing/lead/{id}/step2 - Invalid lead returns 404",
+    "POST /api/marketing/lead/{id}/step2 - Invalid plan returns 404",
+    "POST /api/marketing/lead/{id}/step2 - Minimal fields",
+    "POST /api/marketing/enquiry - Success",
+    "POST /api/marketing/enquiry - Minimal fields",
+    "POST /api/marketing/enquiry - Missing message fails validation",
+    "GET /api/marketing/leads - Authorized admin access",
+    "GET /api/marketing/leads - Pagination",
+    "GET /api/marketing/leads - Status filter",
+    "GET /api/marketing/leads - Unauthorized fails",
+    "GET /api/enquiries - Authorized admin access",
+    "GET /api/enquiries - Pagination",
+    "GET /api/enquiries - Unauthorized fails",
+    "Marketing lead appears in regular leads",
+    "Marketing page loads at /join route",
+    "Marketing page loads at /marketing route",
+    "Marketing page loads at /promo route",
+    "Step 1 form displays all required fields",
+    "Step 1 form validates required fields",
+    "Step 1 form validates mobile number format",
+    "Step 1 successful submission advances to Step 2",
+    "Referral code from URL is pre-filled",
+    "Step 2 shows plan selection with prices",
+    "Step 2 validates password mismatch",
+    "Step 2 validates short password",
+    "Back button returns to Step 1",
+    "WhatsApp button is visible with correct link",
+    "Call Now button is visible with correct link",
+    "Chat button opens chat modal",
+    "Chat form validates required fields",
+    "Chat form can be closed",
+    "Chat form submits enquiry successfully",
+    "Benefits section displays lifestyle experiences",
+    "Hero stats are displayed",
+    "Navigation bar shows phone and WhatsApp",
+    "Footer has contact information"
+  ],
+  "backend_test_results": {
+    "total": 20,
+    "passed": 20,
+    "failed": 0,
+    "skipped": 0,
+    "tests": [
+      "test_create_marketing_lead_success",
+      "test_create_marketing_lead_minimal",
+      "test_create_marketing_lead_duplicate_mobile_returns_existing",
+      "test_create_marketing_lead_registered_mobile_fails",
+      "test_create_marketing_lead_with_referral_code",
+      "test_marketing_lead_step2_success",
+      "test_marketing_lead_step2_invalid_lead",
+      "test_marketing_lead_step2_invalid_plan",
+      "test_marketing_lead_step2_minimal_fields",
+      "test_create_enquiry_success",
+      "test_create_enquiry_minimal",
+      "test_create_enquiry_missing_message_fails",
+      "test_get_marketing_leads_authorized",
+      "test_get_marketing_leads_with_pagination",
+      "test_get_marketing_leads_with_status_filter",
+      "test_get_marketing_leads_unauthorized",
+      "test_get_enquiries_authorized",
+      "test_get_enquiries_with_pagination",
+      "test_get_enquiries_unauthorized",
+      "test_marketing_lead_appears_in_leads"
+    ]
+  },
+  "specs_created": [
+    "/app/tests/e2e/marketing-landing.spec.ts",
+    "/app/backend/tests/test_marketing.py"
+  ],
+  "specs_updated": [],
+  "quarantined_tests": [],
+  "test_report_links": [
+    "/app/tests/e2e/marketing-landing.spec.ts",
+    "/app/backend/tests/test_marketing.py",
+    "/app/test_reports/pytest/pytest_marketing_results.xml"
+  ],
+  "action_items": [],
+  "updated_files": [
+    "/app/tests/e2e/marketing-landing.spec.ts",
+    "/app/backend/tests/test_marketing.py"
+  ],
+  "success_rate": {
+    "backend": "100%",
+    "frontend": "100%"
+  },
+  "seed_data_creation": "No new seed data created. Using existing admin (mobile: 9999999999, password: admin123)",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Marketing Landing Page feature fully tested and working: 1) Multi-step registration flow at /join, /marketing, /promo routes. 2) Step 1 captures lead info (name, mobile, email, referral_code) via POST /api/marketing/lead. 3) Step 2 allows plan selection, creates Razorpay order via POST /api/marketing/lead/{id}/step2. 4) Step 3 completes registration after payment via POST /api/marketing/lead/{id}/complete. 5) Chat/enquiry form via POST /api/marketing/enquiry. 6) WhatsApp button (+91 7812901118), Call Now button, floating contact buttons all working. 7) Leads stored in marketing_leads and regular leads collections. 8) Admin can view marketing leads via GET /api/marketing/leads and enquiries via GET /api/enquiries.",
+  "notes": {
+    "admin_credentials": "Mobile: 9999999999, Password: admin123",
+    "marketing_routes": "/join, /marketing, /promo - all serve MarketingLanding component",
+    "razorpay_integration": "Real Razorpay test mode - creates actual order_xxx IDs in step 2",
+    "referral_tracking": "Referral code can be passed via ?ref=CODE URL parameter or entered manually",
+    "contact_options": "WhatsApp: +917812901118, Phone: +917812901118"
+  }
+}

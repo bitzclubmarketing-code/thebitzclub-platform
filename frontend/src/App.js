@@ -8,6 +8,7 @@ import InstallPWA from '@/components/InstallPWA';
 // Public Pages
 import HomePage from '@/pages/HomePage';
 import LandingPage from '@/pages/LandingPage';
+import MarketingLanding from '@/pages/MarketingLanding';
 import LoginPage from '@/pages/LoginPage';
 import RegisterPage from '@/pages/RegisterPage';
 import VerifyMemberPage from '@/pages/VerifyMemberPage';
@@ -47,6 +48,9 @@ function App() {
             <Route path="/" element={<HomePage />} />
             <Route path="/landing" element={<LandingPage />} />
             <Route path="/social" element={<LandingPage />} />
+            <Route path="/join" element={<MarketingLanding />} />
+            <Route path="/marketing" element={<MarketingLanding />} />
+            <Route path="/promo" element={<MarketingLanding />} />
             <Route path="/login" element={
               <PublicRoute>
                 <LoginPage />

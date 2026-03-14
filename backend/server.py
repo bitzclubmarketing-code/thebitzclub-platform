@@ -80,8 +80,43 @@ logger = logging.getLogger(__name__)
 
 class UserRole:
     SUPER_ADMIN = "super_admin"
+    ADMIN = "admin"
     TELECALLER = "telecaller"
     MEMBER = "member"
+
+class AdminRole:
+    MEMBERSHIP = "membership"
+    TELECALLER = "telecaller_manager"
+    ACCOUNTS = "accounts"
+    MARKETING = "marketing"
+    FULL_ACCESS = "full_access"
+
+# Admin Management Models
+class AdminCreate(BaseModel):
+    name: str
+    mobile: str
+    email: Optional[EmailStr] = None
+    username: str
+    password: str
+    admin_role: str = AdminRole.MEMBERSHIP
+    permissions: List[str] = []
+
+class AdminUpdate(BaseModel):
+    name: Optional[str] = None
+    email: Optional[EmailStr] = None
+    admin_role: Optional[str] = None
+    permissions: Optional[List[str]] = None
+    is_active: Optional[bool] = None
+
+# Activity Log Model
+class ActivityLog(BaseModel):
+    admin_id: str
+    admin_name: str
+    action: str
+    entity_type: str
+    entity_id: Optional[str] = None
+    details: Optional[str] = None
+    ip_address: Optional[str] = None
 
 class MembershipStatus:
     ACTIVE = "active"
@@ -287,6 +322,30 @@ class LeadCreate(BaseModel):
 class LeadUpdate(BaseModel):
     status: Optional[str] = None
     notes: Optional[str] = None
+
+# Marketing Landing Page Models
+class MarketingLeadCreate(BaseModel):
+    name: str
+    mobile: str
+    email: Optional[EmailStr] = None
+    referral_code: Optional[str] = None
+    source: str = 'marketing_landing'
+
+class MarketingLeadStep2(BaseModel):
+    lead_id: str
+    address: Optional[str] = None
+    city: Optional[str] = None
+    pincode: Optional[str] = None
+    date_of_birth: Optional[str] = None
+    plan_id: str
+    password: str
+
+class EnquiryCreate(BaseModel):
+    name: str
+    mobile: str
+    email: Optional[EmailStr] = None
+    message: str
+    source: str = 'marketing_landing'
 
 class LeadStatus:
     NEW = "new"
@@ -2699,6 +2758,389 @@ async def export_leads_excel(
         headers={"Content-Disposition": f"attachment; filename=leads_report_{datetime.now().strftime('%Y%m%d')}.xlsx"}
     )
 
+# ==================== MARKETING LANDING PAGE ENDPOINTS ====================
+
+@api_router.post("/marketing/lead")
+async def create_marketing_lead(lead: MarketingLeadCreate, background_tasks: BackgroundTasks):
+    """Step 1: Capture lead from marketing landing page"""
+    # Check if mobile already registered as member
+    existing_member = await db.users.find_one({"mobile": lead.mobile})
+    if existing_member:
+        raise HTTPException(status_code=400, detail="Mobile number already registered. Please login instead.")
+    
+    # Check if lead already exists with this mobile
+    existing_lead = await db.marketing_leads.find_one({"mobile": lead.mobile, "status": {"$ne": "converted"}})
+    if existing_lead:
+        # Return existing lead for continuation
+        return {
+            "message": "Lead already exists",
+            "lead_id": existing_lead["id"],
+            "name": existing_lead["name"],
+            "mobile": existing_lead["mobile"],
+            "email": existing_lead.get("email"),
+            "step": existing_lead.get("step", 1)
+        }
+    
+    lead_id = str(uuid.uuid4())
+    lead_doc = {
+        "id": lead_id,
+        "name": lead.name,
+        "mobile": lead.mobile,
+        "email": lead.email,
+        "referral_code": lead.referral_code,
+        "source": lead.source,
+        "status": "step1_complete",
+        "step": 1,
+        "created_at": datetime.now(timezone.utc).isoformat()
+    }
+    await db.marketing_leads.insert_one(lead_doc)
+    
+    # Also create in regular leads for admin visibility
+    regular_lead = {
+        "id": str(uuid.uuid4()),
+        "name": lead.name,
+        "mobile": lead.mobile,
+        "city": "",
+        "interested_in": "membership",
+        "source": lead.source,
+        "status": LeadStatus.NEW,
+        "notes": f"Referral: {lead.referral_code or 'None'}, Email: {lead.email or 'None'}",
+        "marketing_lead_id": lead_id,
+        "created_at": datetime.now(timezone.utc).isoformat()
+    }
+    await db.leads.insert_one(regular_lead)
+    
+    # Send notification
+    background_tasks.add_task(
+        EmailService.send_lead_notification,
+        {**regular_lead, "city": "Marketing Landing Page"}
+    )
+    
+    logger.info(f"[MARKETING] New lead captured: {lead.name} ({lead.mobile}), Referral: {lead.referral_code}")
+    
+    return {
+        "message": "Lead captured successfully",
+        "lead_id": lead_id,
+        "name": lead.name,
+        "mobile": lead.mobile,
+        "email": lead.email
+    }
+
+@api_router.post("/marketing/lead/{lead_id}/step2")
+async def marketing_lead_step2(lead_id: str, data: MarketingLeadStep2):
+    """Step 2: Capture additional details and create payment order"""
+    # Get lead
+    lead = await db.marketing_leads.find_one({"id": lead_id})
+    if not lead:
+        raise HTTPException(status_code=404, detail="Lead not found")
+    
+    # Get plan details
+    plan = await db.plans.find_one({"id": data.plan_id}, {"_id": 0})
+    if not plan:
+        raise HTTPException(status_code=404, detail="Selected plan not found")
+    
+    # Update lead with step 2 data
+    await db.marketing_leads.update_one(
+        {"id": lead_id},
+        {"$set": {
+            "address": data.address,
+            "city": data.city,
+            "pincode": data.pincode,
+            "date_of_birth": data.date_of_birth,
+            "plan_id": data.plan_id,
+            "plan_name": plan["name"],
+            "plan_price": plan["price"],
+            "password": pwd_context.hash(data.password),
+            "status": "step2_complete",
+            "step": 2,
+            "updated_at": datetime.now(timezone.utc).isoformat()
+        }}
+    )
+    
+    # Create Razorpay order
+    try:
+        order = await RazorpayService.create_order(
+            amount=plan["price"],
+            member_id=lead_id,
+            plan_id=data.plan_id,
+            notes={
+                "marketing_lead_id": lead_id,
+                "name": lead["name"],
+                "mobile": lead["mobile"],
+                "plan_name": plan["name"]
+            }
+        )
+        
+        # Store order ID
+        await db.marketing_leads.update_one(
+            {"id": lead_id},
+            {"$set": {"razorpay_order_id": order["id"]}}
+        )
+        
+        return {
+            "order_id": order["id"],
+            "amount": plan["price"],
+            "currency": "INR",
+            "razorpay_key": order["razorpay_key"],
+            "plan_name": plan["name"],
+            "lead_id": lead_id,
+            "name": lead["name"],
+            "email": lead.get("email"),
+            "mobile": lead["mobile"]
+        }
+    except Exception as e:
+        logger.error(f"[MARKETING] Failed to create payment order: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to create payment order: {str(e)}")
+
+@api_router.post("/marketing/lead/{lead_id}/complete")
+async def complete_marketing_registration(
+    lead_id: str,
+    razorpay_payment_id: str,
+    razorpay_order_id: str,
+    razorpay_signature: str,
+    background_tasks: BackgroundTasks
+):
+    """Step 3: Complete registration after payment"""
+    # Get marketing lead
+    lead = await db.marketing_leads.find_one({"id": lead_id})
+    if not lead:
+        raise HTTPException(status_code=404, detail="Lead not found")
+    
+    if lead.get("status") == "converted":
+        raise HTTPException(status_code=400, detail="Registration already completed")
+    
+    # Verify payment signature
+    is_valid = RazorpayService.verify_payment_signature(
+        razorpay_payment_id, razorpay_order_id, razorpay_signature
+    )
+    
+    if not is_valid:
+        await db.marketing_leads.update_one(
+            {"id": lead_id},
+            {"$set": {"status": "payment_failed", "failed_at": datetime.now(timezone.utc).isoformat()}}
+        )
+        raise HTTPException(status_code=400, detail="Payment verification failed")
+    
+    # Generate member ID
+    member_id = generate_member_id()
+    user_id = str(uuid.uuid4())
+    
+    # Create user account
+    user = {
+        "id": user_id,
+        "member_id": member_id,
+        "mobile": lead["mobile"],
+        "password": lead["password"],  # Already hashed
+        "name": lead["name"],
+        "email": lead.get("email"),
+        "date_of_birth": lead.get("date_of_birth"),
+        "role": UserRole.MEMBER,
+        "is_active": True,
+        "created_at": datetime.now(timezone.utc).isoformat()
+    }
+    await db.users.insert_one(user)
+    
+    # Calculate membership dates
+    start_date = datetime.now(timezone.utc)
+    plan = await db.plans.find_one({"id": lead["plan_id"]}, {"_id": 0})
+    duration_months = plan["duration_months"] if plan else 12
+    end_date = start_date + timedelta(days=duration_months * 30)
+    
+    # Create member record
+    member_doc = {
+        "id": str(uuid.uuid4()),
+        "user_id": user_id,
+        "member_id": member_id,
+        "name": lead["name"],
+        "mobile": lead["mobile"],
+        "email": lead.get("email"),
+        "address": lead.get("address"),
+        "city": lead.get("city"),
+        "pincode": lead.get("pincode"),
+        "date_of_birth": lead.get("date_of_birth"),
+        "plan_id": lead["plan_id"],
+        "plan_name": lead["plan_name"],
+        "membership_start": start_date.isoformat(),
+        "membership_end": end_date.isoformat(),
+        "status": MembershipStatus.ACTIVE,
+        "qr_code": generate_qr_code(member_id),
+        "referral_id": lead.get("referral_code"),
+        "source": lead.get("source", "marketing_landing"),
+        "created_at": datetime.now(timezone.utc).isoformat()
+    }
+    await db.members.insert_one(member_doc)
+    
+    # Create payment record
+    payment_doc = {
+        "id": str(uuid.uuid4()),
+        "order_id": razorpay_order_id,
+        "member_id": member_id,
+        "member_name": lead["name"],
+        "plan_id": lead["plan_id"],
+        "plan_name": lead["plan_name"],
+        "amount": lead["plan_price"],
+        "payment_type": "online",
+        "payment_method": "razorpay",
+        "razorpay_payment_id": razorpay_payment_id,
+        "razorpay_order_id": razorpay_order_id,
+        "status": "completed",
+        "source": "marketing_landing",
+        "created_at": datetime.now(timezone.utc).isoformat(),
+        "completed_at": datetime.now(timezone.utc).isoformat()
+    }
+    await db.payments.insert_one(payment_doc)
+    
+    # Update marketing lead status
+    await db.marketing_leads.update_one(
+        {"id": lead_id},
+        {"$set": {
+            "status": "converted",
+            "member_id": member_id,
+            "converted_at": datetime.now(timezone.utc).isoformat()
+        }}
+    )
+    
+    # Update regular lead status
+    await db.leads.update_one(
+        {"marketing_lead_id": lead_id},
+        {"$set": {"status": LeadStatus.CONVERTED, "notes": f"Converted to member: {member_id}"}}
+    )
+    
+    # Send notifications
+    validity_end = end_date.strftime("%d %b %Y")
+    background_tasks.add_task(SMSService.send_registration_sms, {"mobile": lead["mobile"], "member_id": member_id})
+    background_tasks.add_task(SMSService.send_payment_success_sms, {"mobile": lead["mobile"]}, lead["plan_price"], lead["plan_name"])
+    background_tasks.add_task(SMSService.send_membership_activation_sms, {"mobile": lead["mobile"]}, lead["plan_name"], validity_end)
+    
+    if lead.get("email"):
+        background_tasks.add_task(EmailService.send_welcome_email, user)
+    
+    background_tasks.add_task(EmailService.send_membership_notification, member_doc, {"name": lead["plan_name"], "price": lead["plan_price"], "duration_months": duration_months})
+    
+    # Remove password and _id before creating token
+    user.pop('_id', None)
+    
+    # Create access token
+    token = create_access_token({"sub": user_id, "role": UserRole.MEMBER})
+    user_response = {k: v for k, v in user.items() if k != "password"}
+    
+    logger.info(f"[MARKETING] Registration completed for {member_id} from marketing landing")
+    
+    return {
+        "success": True,
+        "message": "Registration successful! Welcome to BITZ Club!",
+        "member_id": member_id,
+        "access_token": token,
+        "token_type": "bearer",
+        "user": user_response,
+        "membership": {
+            "plan_name": lead["plan_name"],
+            "start_date": start_date.isoformat(),
+            "end_date": end_date.isoformat(),
+            "status": "active"
+        }
+    }
+
+@api_router.post("/marketing/enquiry")
+async def create_enquiry(enquiry: EnquiryCreate, background_tasks: BackgroundTasks):
+    """Create an enquiry from the chat/contact form"""
+    enquiry_id = str(uuid.uuid4())
+    enquiry_doc = {
+        "id": enquiry_id,
+        "name": enquiry.name,
+        "mobile": enquiry.mobile,
+        "email": enquiry.email,
+        "message": enquiry.message,
+        "source": enquiry.source,
+        "status": "new",
+        "created_at": datetime.now(timezone.utc).isoformat()
+    }
+    await db.enquiries.insert_one(enquiry_doc)
+    
+    # Also add to leads
+    lead_doc = {
+        "id": str(uuid.uuid4()),
+        "name": enquiry.name,
+        "mobile": enquiry.mobile,
+        "city": "Chat Enquiry",
+        "interested_in": "membership",
+        "source": f"chat_{enquiry.source}",
+        "status": LeadStatus.NEW,
+        "notes": enquiry.message,
+        "created_at": datetime.now(timezone.utc).isoformat()
+    }
+    await db.leads.insert_one(lead_doc)
+    
+    # Send notification
+    background_tasks.add_task(
+        EmailService.send_lead_notification,
+        {**lead_doc, "city": f"Chat: {enquiry.message[:50]}..."}
+    )
+    
+    logger.info(f"[ENQUIRY] New enquiry from {enquiry.name} ({enquiry.mobile})")
+    
+    return {"message": "Thank you! We will get back to you soon.", "id": enquiry_id}
+
+@api_router.get("/marketing/leads")
+async def get_marketing_leads(
+    status: Optional[str] = None,
+    page: int = Query(1, ge=1),
+    limit: int = Query(20, ge=1, le=100),
+    admin: dict = Depends(require_admin)
+):
+    """Get marketing leads for admin dashboard"""
+    query = {}
+    if status:
+        query["status"] = status
+    
+    skip = (page - 1) * limit
+    total = await db.marketing_leads.count_documents(query)
+    leads = await db.marketing_leads.find(query, {"_id": 0, "password": 0}).sort("created_at", -1).skip(skip).limit(limit).to_list(limit)
+    
+    return {
+        "leads": leads,
+        "total": total,
+        "page": page,
+        "limit": limit,
+        "pages": (total + limit - 1) // limit
+    }
+
+@api_router.get("/enquiries")
+async def get_enquiries(
+    status: Optional[str] = None,
+    page: int = Query(1, ge=1),
+    limit: int = Query(20, ge=1, le=100),
+    admin: dict = Depends(require_admin)
+):
+    """Get enquiries for admin dashboard"""
+    query = {}
+    if status:
+        query["status"] = status
+    
+    skip = (page - 1) * limit
+    total = await db.enquiries.count_documents(query)
+    enquiries = await db.enquiries.find(query, {"_id": 0}).sort("created_at", -1).skip(skip).limit(limit).to_list(limit)
+    
+    return {
+        "enquiries": enquiries,
+        "total": total,
+        "page": page,
+        "limit": limit,
+        "pages": (total + limit - 1) // limit
+    }
+
+@api_router.put("/enquiries/{enquiry_id}")
+async def update_enquiry(enquiry_id: str, status: str, admin: dict = Depends(require_admin)):
+    """Update enquiry status"""
+    result = await db.enquiries.update_one(
+        {"id": enquiry_id},
+        {"$set": {"status": status, "updated_at": datetime.now(timezone.utc).isoformat()}}
+    )
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Enquiry not found")
+    return {"message": "Enquiry updated"}
+
+
 # ==================== CONTENT MANAGEMENT ENDPOINTS ====================
 
 @api_router.get("/content/experiences")
@@ -2937,16 +3379,7 @@ async def seed_data():
 # COUPON ENDPOINTS
 # =====================
 
-class CouponCreate(BaseModel):
-    code: str
-    discount_type: str = "percentage"  # percentage or fixed
-    discount_value: float
-    min_amount: Optional[float] = None
-    max_uses: Optional[int] = None
-    valid_from: Optional[str] = None
-    valid_until: Optional[str] = None
-    applicable_plans: Optional[List[str]] = []
-    is_active: bool = True
+# CouponCreate model is defined at line 270, reusing it here
 
 @api_router.get("/coupons")
 async def get_coupons(admin: dict = Depends(require_admin)):
@@ -3418,7 +3851,7 @@ async def get_referral_reports(
     if referral_id:
         query["referral_id"] = referral_id
     else:
-        query["referral_id"] = {"$exists": True, "$ne": None, "$ne": ""}
+        query["referral_id"] = {"$exists": True, "$nin": [None, ""]}
     
     if start_date:
         query["created_at"] = {"$gte": start_date}

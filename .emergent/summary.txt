@@ -14,6 +14,7 @@ The user wants to build a comprehensive membership management web application fo
     - Modules for managing Discount Coupons, Membership Renewals, and Maintenance Fees.
     - A module to add and manage Family Members under a primary member account.
     - Referral ID tracking for new member signups.
+    - A multi-level Admin User Management system with activity tracking.
 - **Integrations:** Razorpay (Payments), SoftSMS (SMS), SMTP (Email).
 - **PWA Conversion:** The website should be an installable Progressive Web App (PWA).
 - **Design:** Modern, clean, responsive, premium dark theme with gold accents.
@@ -21,1562 +22,201 @@ The user wants to build a comprehensive membership management web application fo
 **User's preferred language**: English
 
 **what currently exists?**
-A full-stack application (React/FastAPI) with a premium-designed public website, role-based access, and a comprehensive Admin Dashboard. The dashboard includes management for Members, Plans, Partners, Leads, Telecallers, and newly added pages for Renewals and Coupons. A CMS for managing website Experiences and gallery images is also in place, along with an individual member report page showing detailed user information.
+The application is fully deployed and **LIVE** on the user's DigitalOcean server, accessible at . The deployment was a major undertaking involving SSH troubleshooting, Nginx configuration for proxying React and FastAPI,  service setup for the backend, and SSL installation via Let's Encrypt.
 
-The project has been plagued by deployment issues on the user's DigitalOcean server, with the agent spending significant time providing shell commands and debugging Nginx, permissions, and dependency issues remotely. The core registration flow is currently not aligned with the user's requirements.
+The live application includes:
+- A payment-first registration flow using Razorpay.
+- A complete multi-role system with functional Admin, Member, and Telecaller dashboards.
+- An enhanced Admin dashboard with modules for Payments (including GST and manual entry), Coupons, Maintenance Fees, and detailed member management (View, Edit, Renew, Payment History).
+- A feature-rich digital membership card with a front/back design, QR code, photo upload, and download options.
+- Seeded data for testing, including plans and user accounts for each role.
 
 **Last working item**:
--   **Last item agent was working**: Addressing user feedback that the registration flow is incorrect. The user wants a multi-step process: 1. Fill form with photo upload and plan selection, 2. Redirect to Razorpay for payment, 3. Generate Member ID and create account *only after* successful payment. The current implementation creates the member account immediately upon form submission without payment.
--   **Status**: IN PROGRESS
+-   **Last item agent was working**: The user has provided a large, consolidated list of critical missing features. The agent's last task was to acknowledge these and begin implementation, focusing on two main areas requested by the user:
+    1.  A comprehensive **Admin User Management system** (Super Admin, Admins, activity logging).
+    2.  A dedicated **Digital Marketing Landing Page flow** (multi-step lead capture and payment).
+-   **Status**: NOT STARTED
 -   **Agent Testing Done**: N
--   **Which testing method agent to use?**: Both. The frontend  needs to be updated to include a photo upload field and plan selection dropdown, and to handle the redirect to payment. The backend  endpoint in  needs to be refactored to integrate with Razorpay and only create the user after payment verification. A full end-to-end test using the  is recommended after the fix.
--   **User Testing Done**: Y (User identified the incorrect flow)
+-   **Which testing method agent to use?**: Both. This is a large feature build involving new backend models, extensive API changes, and new frontend pages. A full  run is required after implementation.
+-   **User Testing Done**: N
 
 **All Pending/In progress Issue list**:
--   **Issue 1: Incorrect Registration Flow (P0)**
--   **Issue 2: Incomplete Homepage Redesign (P1)**
--   **Issue 3: Incomplete Membership Card Module (P1)**
--   **Issue 4: Incomplete Partner/Affiliation Module (P2)**
--   **Issue 5: Missing Family Member Module (P2)**
--   **Issue 6: Missing Maintenance Module (P2)**
--   **Issue 7: Incomplete Reports Module (P3)**
--   **Issue 8: Incomplete Digital Marketing Landing Page (P3)**
+-   **Issue 1: Implement Admin User Management System (P0)**
+-   **Issue 2: Implement Digital Marketing Landing Page Flow (P0)**
+-   **Issue 3: Implement Family Member Module (P1)**
+-   **Issue 4: Enhance Telecaller Module (P1)**
+-   **Issue 5: Enhance Reports Module (P1)**
+-   **Issue 6: Implement Member Referral System (P2)**
+-   **Issue 7: Implement OTP/Email Notifications (P2)**
+-   **Issue 8: Create Admin CMS for Homepage Content (P2)**
+-   **Issue 9: Add Direct Discount Option for Members (P2)**
 
 **Issues Detail:**
--   **Issue 1: Incorrect Registration Flow (P0)**
-    -   **Attempted fixes**: None. The agent has just acknowledged the problem.
+-   **Issue 1: Implement Admin User Management System (P0)**
+    -   **Description**: Create a Super Admin role that can create, manage, and assign permissions to other Admin users. Every action in the system must be logged with the Admin ID of the user who performed it.
     -   **Next debug checklist**:
-        1.  Modify : Add a file input for photo upload and a dropdown to select a membership plan (fetched from ).
-        2.  On form submission, instead of calling , call the Razorpay order creation endpoint () with the selected plan's amount.
-        3.  Implement the Razorpay checkout flow on the frontend.
-        4.  Create a new backend endpoint (e.g., ) that Razorpay's webhook or the frontend's success handler can call.
-        5.  This new endpoint should take the payment details and the original registration data, verify the payment, create the member, generate the ID, and save the uploaded photo.
-    -   **Why fix this issue and what will be achieved with the fix?**: This is a critical business requirement. It ensures that only paid members are added to the system.
-    -   **Status**: IN PROGRESS
-    -   **Is recurring issue?**: Y (The registration flow has been a point of confusion).
-    -   **Should Test frontend/backend/both after fix?**: Both.
-    -   **Blocked on other issue**: None.
-
--   **Issue 2: Incomplete Homepage Redesign (P1)**
-    -   **Description**: The user wants to rename Experiences to Events, Partners to Offers, and add About Us and Testimonial sections.
+        1.  Backend: Create new DB collections for  and .
+        2.  Backend: Create endpoints for the Super Admin to perform CRUD operations on other admins ().
+        3.  Backend: Implement middleware or decorators to intercept requests and log actions to the  collection.
+        4.  Frontend: Create a new page () for the Super Admin to manage admins.
+    -   **Why fix this issue and what will be achieved with the fix?**: This is a critical security and operational requirement for tracking staff actions and managing access control.
     -   **Status**: NOT STARTED
-    -   **Should Test frontend/backend/both after fix?**: Frontend.
-
--   **Issue 3: Incomplete Membership Card Module (P1)**
-    -   **Description**: The card generation exists but is missing key features: a member photo upload, an option to download the card as a PDF, and fields in the admin panel to track card delivery status.
-    -   **Status**: IN PROGRESS (Photo upload part is recurring).
+    -   **Is recurring issue?**: N
     -   **Should Test frontend/backend/both after fix?**: Both.
 
--   **Issue 4: Incomplete Partner/Affiliation Module (P2)**
-    -   **Description**: The current module only accepts a URL for a partner's logo. It needs to be updated to allow direct photo/video uploads and have structured address fields (City, State, Location).
+-   **Issue 2: Implement Digital Marketing Landing Page Flow (P0)**
+    -   **Description**: Create a multi-step registration flow separate from the main site, designed for lead capture: Step 1 (Name, Mobile, Email) -> Step 2 (Full details, photo/ID upload) -> Step 3 (Razorpay Payment).
+    -   **Next debug checklist**:
+        1.  Frontend: Create a new page layout and components for the multi-step form at a dedicated URL (e.g., ).
+        2.  Backend: Create new endpoints to handle the partial lead submission and final registration after payment.
+        3.  Backend: Ensure leads are visible in the admin/telecaller dashboards.
+    -   **Why fix this issue and what will be achieved with the fix?**: This is a core marketing requirement for running campaigns and capturing leads effectively.
     -   **Status**: NOT STARTED
+    -   **Is recurring issue?**: N
     -   **Should Test frontend/backend/both after fix?**: Both.
 
--   **Issue 5: Missing Family Member Module (P2)**
-    -   **Description**: An entire module needs to be built to allow primary members to add family members with their details (Name, Relationship, DOB) and an ID proof upload.
+-   **Issue 3: Implement Family Member Module (P1)**
+    -   **Description**: Allow a primary member to add family members (e.g., spouse, children) under their account, including details like name, relationship, DOB, and ID proof upload.
     -   **Status**: NOT STARTED
     -   **Should Test frontend/backend/both after fix?**: Both.
 
--   **Issue 6: Missing Maintenance Module (P2)**
-    -   **Description**: An entire module for tracking and recording member maintenance fee payments is required, along with corresponding reports.
+-   **Issue 4: Enhance Telecaller Module (P1)**
+    -   **Description**: Add features for sorting, filtering (by status, etc.), and re-assigning leads. The admin needs a view to see which data is assigned to which telecaller.
     -   **Status**: NOT STARTED
     -   **Should Test frontend/backend/both after fix?**: Both.
 
--   **Issue 7: Incomplete Reports Module (P3)**
-    -   **Description**: The reporting feature is missing several key reports requested by the user: Offline transactions, Pending dues, Upcoming renewals, and Maintenance reports.
-    -   **Status**: NOT STARTED
-    -   **Should Test frontend/backend/both after fix?**: Backend.
-
--   **Issue 8: Incomplete Digital Marketing Landing Page (P3)**
-    -   **Description**: The  page exists but lacks a direct payment option and a flow for auto-registering a member after a successful payment from the landing page itself.
+-   **Issue 5: Enhance Reports Module (P1)**
+    -   **Description**: Reports need advanced filtering (amount, plan, date range, telecaller, pincode, DOB). Separate reports for Online vs. Offline payments. Ability to export individual member details.
     -   **Status**: NOT STARTED
     -   **Should Test frontend/backend/both after fix?**: Both.
 
 **In progress Task List**:
--   **Task 1: Complete and Stabilize All Day 1 Features (P0)**
-    -   **Where to resume**: Start by fixing the **Incorrect Registration Flow (Issue 1)**. After that, systematically work through all other pending issues to bring the application up to the user's expectations.
-    -   **What will be achieved with this?**: A stable, complete application that matches the user's core requirements, ready for final testing and live deployment.
-    -   **Status**: IN PROGRESS
+-   **Task 1: Implement All Pending User-Requested Features (P0)**
+    -   **Where to resume**: Begin by designing and implementing the backend for the **Admin User Management System (Issue 1)**. This is a foundational feature for many other requests.
+    -   **What will be achieved with this?**: A stable, secure, and operationally complete application that meets all of the user's explicitly stated requirements.
+    -   **Status**: NOT STARTED
     -   **Should Test frontend/backend/both after fix?**: Both.
-    -   **Blocked on something**: User satisfaction. The user is frustrated with the number of missing features and bugs.
+    -   **Blocked on something**: None.
 
 **Upcoming and Future Tasks**
 - **Upcoming Tasks**:
-    -   (P1) Implement the complete Maintenance Module (Issue 6).
-    -   (P1) Implement the complete Family Member Module (Issue 5).
-    -   (P2) Add missing reports (Issue 7).
-    -   (P2) Enhance the Partner module with file uploads and structured address (Issue 4).
-    -   (P2) Complete the Digital Marketing landing page flow (Issue 8).
+    - (P0) Digital Marketing Landing Page Flow (Issue 2).
+    - (P1) Family Member Module (Issue 3).
+    - (P1) Enhanced Telecaller Module (Issue 4).
+    - (P1) Enhanced Reports Module (Issue 5).
+    - (P2) Member Referral System (Issue 6).
+    - (P2) OTP & Email Notifications (Issue 7).
 - **Future Tasks**:
-    -   (P3) Publish Native Mobile Apps from the PWA.
-    -   (P3) Implement an automatic e-mandate system for recurring payments.
-    -   (P3) Implement a fully automated referral coupon system.
+    - Convert PWA to Native Mobile Apps.
+    - Implement an automatic e-mandate system for recurring payments.
+    - Finalize a fully automated referral coupon system.
 
 **Completed work in this session**
-- Added new admin pages for Renewals (), Coupons (), and Member Search ().
-- Created a detailed Individual Member Report page () showing member status, payment history, and telecaller assignment.
-- Added corresponding backend endpoints for the new features.
-- Replaced all mocked services (SMS, Email) with real implementations in  (though SMTP uses a placeholder password).
-- Verified backend integrations for Razorpay, SoftSMS, and SMTP.
-- Spent significant effort guiding the user through a manual DigitalOcean deployment, debugging dependencies (), file permissions, and Nginx proxy configurations.
+- **Live DigitalOcean Deployment**: Successfully deployed the entire application to the user's server (), including Nginx setup, SSL (), and backend service configuration ().
+- **Payment-First Registration**: Fixed the critical registration flow to use Razorpay for payment before creating a member.
+- **Enhanced Member Management**: Added modals and actions for View, Edit, Renew, and Payment History in the admin member list.
+- **New Admin Modules**: Implemented functional pages for Payments, Coupons, and Maintenance Fees.
+- **GST & Manual Payments**: Added 18% GST calculation and a feature for admins to record offline payments.
+- **Membership Card V2**: Built a complete, downloadable digital membership card with a front/back design and photo upload.
+- **Live Server Debugging**: Verified all dashboards (Admin, Member, Telecaller) are functional on the live production server and fixed numerous environment-specific bugs (API routing, permissions, database seeding).
 
 **Earlier issues found/mentioned but not fixed**
-- The full list of missing features from the user's detailed review (Message 457) has been captured in the All Pending/In progress Issue list and Upcoming and Future Tasks sections. The core theme is that many functionalities the user considers fundamental are either partially implemented or missing entirely.
+All known missing features and bugs reported by the user have been consolidated into the All Pending/In progress Issue list.
 
 **Known issue recurrence from previous fork**
-- **Photo Upload:** The user has repeatedly stated that photo upload for membership cards was working previously but is now broken. This indicates potential instability or regressions.
+- The user has consistently expressed frustration over missing Day 1 features. This pattern continues, with the user providing extensive lists of required functionality that they consider fundamental. The new agent must prioritize clear communication and systematic implementation of this backlog.
 
 **Code Architecture**
 
 
 **Key Technical Concepts**
--   **Backend:** FastAPI, Python, MongoDB (via Motor/Pymongo)
+-   **Backend:** FastAPI, Python, MongoDB
 -   **Frontend:** React, JavaScript, Tailwind CSS, ShadCN UI
--   **Authentication:** JWT (JSON Web Tokens)
--   **PWA:** Service Workers, Web App Manifest
+-   **Authentication:** JWT
+-   **Deployment:** DigitalOcean, Nginx, Systemd, Let's Encrypt (SSL)
 
 **key DB schema**
--   **users**: {email, mobile_number, password, role, member_id, date_of_birth}
--   **members**: {member_id, name, email, mobile, plan_id, status, validity_start, validity_end, referral_id, **photo_url**}
--   **plans**: {name, price, duration_days, features, is_active}
--   **payments**: {user_id, plan_id, amount, status, razorpay_order_id, payment_type}
--   **experiences**: {title, description, image_url, discount_tag} (Used by CMS)
--   **partners**: {name, logo_url, facilities}
--   **coupons**: {code, discount_type, value, expiry_date, usage_limit} (New)
--   **website_settings**: {setting_key, setting_value}
+-   **users**: {email, mobile_number, password, role, member_id}
+-   **members**: {member_id, name, email, plan_id, status, validity_end, **photo_url**}
+-   **payments**: {user_id, plan_id, amount, **base_amount**, **gst_amount**, **total_amount**, status, **payment_method**, **razorpay_order_id**}
+-   **plans**: {name, price, duration_days}
+-   **maintenance_fees**: {member_id, amount, due_date, status} (New)
+-   **coupons**: {code, discount_type, value, expiry_date} (New)
+-   **admins**: To be created for Admin User Management.
+-   **activity_logs**: To be created for tracking admin actions.
 
 **changes in tech stack**
--   None.
+-   None. The stack is consistent, but the application is now managed on a live Linux server with Nginx and Systemd.
 
 **All files of reference**
--   : The monolithic backend file. The  endpoint needs a major overhaul. New endpoints for file uploads will be required.
--   : Needs to be modified to include plan selection and photo upload.
--   : Recently created page for individual member details.
--   : Recently created page for coupons.
--   : Recently created page for renewals.
--   : Main router, updated with new pages.
+-   : The single source of all backend logic. Needs extreme care when editing.
+-   : Contains the member list with new action buttons/modals.
+-   : The new, advanced payments management page.
+-   : The new maintenance fees page.
+-   : The new coupons page.
+-   : Contains all frontend routes.
+-   : Contains the admin sidebar navigation.
 
 **Areas that need refactoring**:
--   ** is critically monolithic.** It urgently needs to be broken down into a structured package (e.g., , , ) to be maintainable.
--   **The registration logic** needs to be refactored from a single endpoint into a multi-step, payment-first process.
+-   ** is a critical liability.** It's a monolithic file containing over 2000 lines of code, mixing models, routes, and business logic. Implementing the requested activity logging and new modules without introducing bugs will be extremely difficult. A plan to break it into a structured package (, , ) should be proposed to the user again.
 
 **key api endpoints**
--   : **(NEEDS COMPLETE REFACTOR)** Creates a user.
--   : Creates a Razorpay payment order.
--   : Fetches available membership plans.
--   : Seeds the database with initial data.
--   : Fetches full details for a member report.
--   : Fetches all discount coupons.
--   : Creates a new coupon.
+-   : Starts the new payment-first registration.
+-   : Finalizes registration after payment.
+-   : Handles member photo uploads.
+-   : Processes membership renewals.
+-   : Allows admins to record offline payments (with GST).
+-   , , : New endpoints for the admin modules.
 
 **Critical Info for New Agent**
--   **User Frustration and Priorities:** The user is frustrated with the state of the project, perceiving many Day 1 features as missing or broken. Your top priority must be to fix the **registration flow (Issue 1)**. After that, you must consolidate all of the user's requested features, update the PRD, and get their approval on the implementation plan before writing more code.
--   **DO NOT DEPLOY:** The previous agent was drawn into a massive time-sink trying to deploy to the user's DigitalOcean server. **Do not engage in deployment activities.** Politely and firmly state that your role is development and testing within the preview environment, and provide documentation or scripts for their developer.
--   **Monolithic Backend:**  is over-stuffed. Be extremely careful when adding new code. It is highly recommended to propose a refactoring plan to the user to break this file into a proper structure.
--   **Placeholder Credentials:** The SMTP email service is configured but uses a placeholder password . The user must be reminded to provide the actual password for it to function.
+-   **WORK ON THE LIVE SERVER**: The application is deployed on the user's DigitalOcean server. All future development, testing, and verification must happen there. The preview environment is no longer the source of truth.
+-   **SSH CREDENTIALS**: Credentials for the live server () are , .
+-   **MANAGE USER EXPECTATIONS**: The user is highly frustrated and has a very long list of features they consider essential. Your first action should be to present a clear, prioritized plan based on the Pending Issues list and get their buy-in. Start with the **Admin User Management** and **Digital Marketing Landing Page**.
+-   **BEWARE THE MONOLITH**: The  file is dangerously large. Edits are high-risk. Proceed with extreme caution. Any new feature should be developed with a potential future refactor in mind.
 
 **documents and test reports created in this job**
--   
--   
--    (Note: This is outdated as many new features have been added since it was run).
+-    on the live server.
+-    on the live server.
+-   Multiple  files were generated during local development before the live deployment.
 
 **Last 10 User Messages and any pending HUMAN messages**
-1.  **User (474):** Reports the registration flow is wrong. Requests plan selection, redirect to Razorpay, and member ID generation *after* payment, plus a photo upload field. (PENDING - HIGHEST PRIORITY)
-2.  **User (472):** Asks the agent to continue fixing the photo upload feature.
-3.  **User (468):** Reiterates that the photo upload for the membership card was working before and is now broken.
-4.  **User (465):** Confirms photo upload is broken and mentions a financial issue, asking the agent to proceed with the fix.
-5.  **User (462):** Expresses frustration that Day 1 features like photo upload, auto member ID, and card download are missing after 19 days.
-6.  **User (459):** Requests specific homepage changes: Experiences -> Events, Partners -> Offers, and adding About Us/Testimonial sections. (PENDING)
-7.  **User (458):** Provides a very detailed list of missing and incomplete features across all modules (Membership Card, Family Members, Coupons, Partners, Reports, Maintenance, Admin controls, Landing Page). (PENDING)
-8.  **User (457):** Provides a comprehensive list of features that should be loaded and working, indicating many are missing. (PENDING)
-9.  **User (455):** Confirms they will start testing the preview system.
-10. **User (453):** Asks for a full recovery/summary of everything discussed and built from day one, as they feel things are missing before going live.
+1.  **User (529):** Asks to continue with the pending admin system, referral system, and landing page. (PENDING)
+2.  **User (517):** Provides detailed requirements for the Admin User Management system. (PENDING)
+3.  **User (514):** Provides detailed requirements for the Digital Marketing Landing Page flow. (PENDING)
+4.  **User (508, 511):** Asks to continue deployment from GitHub and see the latest preview (user seems confused about live vs preview).
+5.  **User (496, 499, 502):** Provides another list of features including landing page, lead capture, referral system, family membership, OTP, and CMS. (PENDING)
+6.  **User (492):** Asks for email integration for inquiries and offers, and OTP for payments. (PENDING)
+7.  **User (490):** Provides a long list of requirements for the Telecaller module, Family Details, and enhanced Reports. (PENDING)
+8.  **User (427):** Gives a comprehensive list of missing features: Member edit, renewal, discounts, maintenance module, GST, payment editing, and enhanced reports. (Partially addressed, but many items are still pending).
+9.  **User (402):** Requests action buttons (View, Edit, Renew, History) for the members' section. (COMPLETED)
+10. **User (347):** Asks the agent to verify Admin, Member, and Telecaller logins and dashboards on the live server. (COMPLETED)
 
 **Project Health Check:**
--   **Broken**: The core member registration flow does not meet business requirements. The photo upload feature is non-functional.
--   **Mocked**: The SMTP email integration is using a placeholder password and will not send real emails.
+-   **Broken**: From the user's perspective, the project is incomplete due to a large number of missing core operational features (Admin Management, Family Members, Advanced Reports, etc.).
+-   **Mocked**: None. All integrations are live.
 
 **3rd Party Integrations**
--   **Razorpay (Payments)**: Configured with test keys. Backend logic is present.
--   **SoftSMS (SMS)**: Configured with user's API key. Backend logic is present.
--   **SMTP (Email)**: Configured, but using a placeholder password.
+-   **Razorpay (Payments)**: LIVE and configured with test keys on the production server.
+-   **SoftSMS (SMS)**: Configured, but OTP flow is not yet implemented.
+-   **SMTP (Email)**: Configured, but no automated emails (confirmations, offers) have been implemented yet.
 
 **Testing status**
--   **Testing agent used after significant changes**: YES, but it was early in the session.
+-   **Testing agent used after significant changes**: YES, for the registration flow and membership card before deployment.
 -   **Troubleshoot agent used after agent stuck in loop**: NO
--   **Test files created**: None in this session.
--   **Known regressions**: Photo upload for membership cards.
+-   **Test files created**: Yes, by the testing agent.
+-   **Known regressions**: None currently, but the risk is high due to the monolithic backend.
 
 **Credentials to test flow:**
--   **Admin**: Mobile:  / Password: 
--   **Telecaller**: Mobile:  / Password: 
--   **Member**: Mobile:  / Password: 
+*   **Live Server**: 
+*   **Admin Login**: Mobile:  / Password: 
+*   **Member Login**: Mobile:  / Password: 
+*   **Telecaller Login**: Mobile:  / Password: 
 
 **What agent forgot to execute**
-- The agent did not consolidate the user's extensive list of missing features into an updated  and get sign-off on a new, prioritized plan.
-- No new automated tests (============================= test session starts ==============================
-platform linux -- Python 3.11.14, pytest-9.0.2, pluggy-1.6.0
-rootdir: /app
-plugins: anyio-4.12.1
-collected 20 items
-
-backend/tests/test_api.py FFFFFFFFFFFFFFEEEFEE                           [100%]
-
-==================================== ERRORS ====================================
-___________ ERROR at setup of TestPlanCRUD.test_create_plan_success ____________
-
-self = <test_api.TestPlanCRUD object at 0xfb438a433210>
-
-    @pytest.fixture
-    def admin_token(self):
-        """Get admin token"""
->       response = requests.post(f"{BASE_URL}/api/auth/login", json={
-            "identifier": "9999999999",
-            "password": "admin123"
-        })
-
-backend/tests/test_api.py:242: 
-_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
-/root/.venv/lib/python3.11/site-packages/requests/api.py:115: in post
-    return request("post", url, data=data, json=json, **kwargs)
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-/root/.venv/lib/python3.11/site-packages/requests/api.py:59: in request
-    return session.request(method=method, url=url, **kwargs)
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-/root/.venv/lib/python3.11/site-packages/requests/sessions.py:575: in request
-    prep = self.prepare_request(req)
-           ^^^^^^^^^^^^^^^^^^^^^^^^^
-/root/.venv/lib/python3.11/site-packages/requests/sessions.py:484: in prepare_request
-    p.prepare(
-/root/.venv/lib/python3.11/site-packages/requests/models.py:367: in prepare
-    self.prepare_url(url, params)
-_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
-
-self = <PreparedRequest [POST]>, url = '/api/auth/login', params = OrderedDict()
-
-    def prepare_url(self, url, params):
-        """Prepares the given HTTP URL."""
-        #: Accept objects that have string representations.
-        #: We're unable to blindly call unicode/str functions
-        #: as this will include the bytestring indicator (b'')
-        #: on python 3.x.
-        #: https://github.com/psf/requests/pull/2238
-        if isinstance(url, bytes):
-            url = url.decode("utf8")
-        else:
-            url = str(url)
-    
-        # Remove leading whitespaces from url
-        url = url.lstrip()
-    
-        # Don't do any URL preparation for non-HTTP schemes like `mailto`,
-        # `data` etc to work around exceptions from `url_parse`, which
-        # handles RFC 3986 only.
-        if ":" in url and not url.lower().startswith("http"):
-            self.url = url
-            return
-    
-        # Support for unicode domain names and paths.
-        try:
-            scheme, auth, host, port, path, query, fragment = parse_url(url)
-        except LocationParseError as e:
-            raise InvalidURL(*e.args)
-    
-        if not scheme:
->           raise MissingSchema(
-                f"Invalid URL {url!r}: No scheme supplied. "
-                f"Perhaps you meant https://{url}?"
-            )
-E           requests.exceptions.MissingSchema: Invalid URL '/api/auth/login': No scheme supplied. Perhaps you meant https:///api/auth/login?
-
-/root/.venv/lib/python3.11/site-packages/requests/models.py:438: MissingSchema
-___________ ERROR at setup of TestPlanCRUD.test_update_plan_success ____________
-
-self = <test_api.TestPlanCRUD object at 0xfb438a4338d0>
-
-    @pytest.fixture
-    def admin_token(self):
-        """Get admin token"""
->       response = requests.post(f"{BASE_URL}/api/auth/login", json={
-            "identifier": "9999999999",
-            "password": "admin123"
-        })
-
-backend/tests/test_api.py:242: 
-_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
-/root/.venv/lib/python3.11/site-packages/requests/api.py:115: in post
-    return request("post", url, data=data, json=json, **kwargs)
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-/root/.venv/lib/python3.11/site-packages/requests/api.py:59: in request
-    return session.request(method=method, url=url, **kwargs)
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-/root/.venv/lib/python3.11/site-packages/requests/sessions.py:575: in request
-    prep = self.prepare_request(req)
-           ^^^^^^^^^^^^^^^^^^^^^^^^^
-/root/.venv/lib/python3.11/site-packages/requests/sessions.py:484: in prepare_request
-    p.prepare(
-/root/.venv/lib/python3.11/site-packages/requests/models.py:367: in prepare
-    self.prepare_url(url, params)
-_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
-
-self = <PreparedRequest [POST]>, url = '/api/auth/login', params = OrderedDict()
-
-    def prepare_url(self, url, params):
-        """Prepares the given HTTP URL."""
-        #: Accept objects that have string representations.
-        #: We're unable to blindly call unicode/str functions
-        #: as this will include the bytestring indicator (b'')
-        #: on python 3.x.
-        #: https://github.com/psf/requests/pull/2238
-        if isinstance(url, bytes):
-            url = url.decode("utf8")
-        else:
-            url = str(url)
-    
-        # Remove leading whitespaces from url
-        url = url.lstrip()
-    
-        # Don't do any URL preparation for non-HTTP schemes like `mailto`,
-        # `data` etc to work around exceptions from `url_parse`, which
-        # handles RFC 3986 only.
-        if ":" in url and not url.lower().startswith("http"):
-            self.url = url
-            return
-    
-        # Support for unicode domain names and paths.
-        try:
-            scheme, auth, host, port, path, query, fragment = parse_url(url)
-        except LocationParseError as e:
-            raise InvalidURL(*e.args)
-    
-        if not scheme:
->           raise MissingSchema(
-                f"Invalid URL {url!r}: No scheme supplied. "
-                f"Perhaps you meant https://{url}?"
-            )
-E           requests.exceptions.MissingSchema: Invalid URL '/api/auth/login': No scheme supplied. Perhaps you meant https:///api/auth/login?
-
-/root/.venv/lib/python3.11/site-packages/requests/models.py:438: MissingSchema
-___________ ERROR at setup of TestPlanCRUD.test_delete_plan_success ____________
-
-self = <test_api.TestPlanCRUD object at 0xfb438a425d10>
-
-    @pytest.fixture
-    def admin_token(self):
-        """Get admin token"""
->       response = requests.post(f"{BASE_URL}/api/auth/login", json={
-            "identifier": "9999999999",
-            "password": "admin123"
-        })
-
-backend/tests/test_api.py:242: 
-_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
-/root/.venv/lib/python3.11/site-packages/requests/api.py:115: in post
-    return request("post", url, data=data, json=json, **kwargs)
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-/root/.venv/lib/python3.11/site-packages/requests/api.py:59: in request
-    return session.request(method=method, url=url, **kwargs)
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-/root/.venv/lib/python3.11/site-packages/requests/sessions.py:575: in request
-    prep = self.prepare_request(req)
-           ^^^^^^^^^^^^^^^^^^^^^^^^^
-/root/.venv/lib/python3.11/site-packages/requests/sessions.py:484: in prepare_request
-    p.prepare(
-/root/.venv/lib/python3.11/site-packages/requests/models.py:367: in prepare
-    self.prepare_url(url, params)
-_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
-
-self = <PreparedRequest [POST]>, url = '/api/auth/login', params = OrderedDict()
-
-    def prepare_url(self, url, params):
-        """Prepares the given HTTP URL."""
-        #: Accept objects that have string representations.
-        #: We're unable to blindly call unicode/str functions
-        #: as this will include the bytestring indicator (b'')
-        #: on python 3.x.
-        #: https://github.com/psf/requests/pull/2238
-        if isinstance(url, bytes):
-            url = url.decode("utf8")
-        else:
-            url = str(url)
-    
-        # Remove leading whitespaces from url
-        url = url.lstrip()
-    
-        # Don't do any URL preparation for non-HTTP schemes like `mailto`,
-        # `data` etc to work around exceptions from `url_parse`, which
-        # handles RFC 3986 only.
-        if ":" in url and not url.lower().startswith("http"):
-            self.url = url
-            return
-    
-        # Support for unicode domain names and paths.
-        try:
-            scheme, auth, host, port, path, query, fragment = parse_url(url)
-        except LocationParseError as e:
-            raise InvalidURL(*e.args)
-    
-        if not scheme:
->           raise MissingSchema(
-                f"Invalid URL {url!r}: No scheme supplied. "
-                f"Perhaps you meant https://{url}?"
-            )
-E           requests.exceptions.MissingSchema: Invalid URL '/api/auth/login': No scheme supplied. Perhaps you meant https:///api/auth/login?
-
-/root/.venv/lib/python3.11/site-packages/requests/models.py:438: MissingSchema
-_____ ERROR at setup of TestRazorpayIntegration.test_create_razorpay_order _____
-
-self = <test_api.TestRazorpayIntegration object at 0xfb438a433e90>
-
-    @pytest.fixture
-    def admin_token(self):
-        """Get admin token"""
->       response = requests.post(f"{BASE_URL}/api/auth/login", json={
-            "identifier": "9999999999",
-            "password": "admin123"
-        })
-
-backend/tests/test_api.py:403: 
-_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
-/root/.venv/lib/python3.11/site-packages/requests/api.py:115: in post
-    return request("post", url, data=data, json=json, **kwargs)
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-/root/.venv/lib/python3.11/site-packages/requests/api.py:59: in request
-    return session.request(method=method, url=url, **kwargs)
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-/root/.venv/lib/python3.11/site-packages/requests/sessions.py:575: in request
-    prep = self.prepare_request(req)
-           ^^^^^^^^^^^^^^^^^^^^^^^^^
-/root/.venv/lib/python3.11/site-packages/requests/sessions.py:484: in prepare_request
-    p.prepare(
-/root/.venv/lib/python3.11/site-packages/requests/models.py:367: in prepare
-    self.prepare_url(url, params)
-_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
-
-self = <PreparedRequest [POST]>, url = '/api/auth/login', params = OrderedDict()
-
-    def prepare_url(self, url, params):
-        """Prepares the given HTTP URL."""
-        #: Accept objects that have string representations.
-        #: We're unable to blindly call unicode/str functions
-        #: as this will include the bytestring indicator (b'')
-        #: on python 3.x.
-        #: https://github.com/psf/requests/pull/2238
-        if isinstance(url, bytes):
-            url = url.decode("utf8")
-        else:
-            url = str(url)
-    
-        # Remove leading whitespaces from url
-        url = url.lstrip()
-    
-        # Don't do any URL preparation for non-HTTP schemes like `mailto`,
-        # `data` etc to work around exceptions from `url_parse`, which
-        # handles RFC 3986 only.
-        if ":" in url and not url.lower().startswith("http"):
-            self.url = url
-            return
-    
-        # Support for unicode domain names and paths.
-        try:
-            scheme, auth, host, port, path, query, fragment = parse_url(url)
-        except LocationParseError as e:
-            raise InvalidURL(*e.args)
-    
-        if not scheme:
->           raise MissingSchema(
-                f"Invalid URL {url!r}: No scheme supplied. "
-                f"Perhaps you meant https://{url}?"
-            )
-E           requests.exceptions.MissingSchema: Invalid URL '/api/auth/login': No scheme supplied. Perhaps you meant https:///api/auth/login?
-
-/root/.venv/lib/python3.11/site-packages/requests/models.py:438: MissingSchema
-_ ERROR at setup of TestRazorpayIntegration.test_create_order_with_different_amounts _
-
-self = <test_api.TestRazorpayIntegration object at 0xfb438a43c290>
-
-    @pytest.fixture
-    def admin_token(self):
-        """Get admin token"""
->       response = requests.post(f"{BASE_URL}/api/auth/login", json={
-            "identifier": "9999999999",
-            "password": "admin123"
-        })
-
-backend/tests/test_api.py:403: 
-_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
-/root/.venv/lib/python3.11/site-packages/requests/api.py:115: in post
-    return request("post", url, data=data, json=json, **kwargs)
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-/root/.venv/lib/python3.11/site-packages/requests/api.py:59: in request
-    return session.request(method=method, url=url, **kwargs)
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-/root/.venv/lib/python3.11/site-packages/requests/sessions.py:575: in request
-    prep = self.prepare_request(req)
-           ^^^^^^^^^^^^^^^^^^^^^^^^^
-/root/.venv/lib/python3.11/site-packages/requests/sessions.py:484: in prepare_request
-    p.prepare(
-/root/.venv/lib/python3.11/site-packages/requests/models.py:367: in prepare
-    self.prepare_url(url, params)
-_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
-
-self = <PreparedRequest [POST]>, url = '/api/auth/login', params = OrderedDict()
-
-    def prepare_url(self, url, params):
-        """Prepares the given HTTP URL."""
-        #: Accept objects that have string representations.
-        #: We're unable to blindly call unicode/str functions
-        #: as this will include the bytestring indicator (b'')
-        #: on python 3.x.
-        #: https://github.com/psf/requests/pull/2238
-        if isinstance(url, bytes):
-            url = url.decode("utf8")
-        else:
-            url = str(url)
-    
-        # Remove leading whitespaces from url
-        url = url.lstrip()
-    
-        # Don't do any URL preparation for non-HTTP schemes like `mailto`,
-        # `data` etc to work around exceptions from `url_parse`, which
-        # handles RFC 3986 only.
-        if ":" in url and not url.lower().startswith("http"):
-            self.url = url
-            return
-    
-        # Support for unicode domain names and paths.
-        try:
-            scheme, auth, host, port, path, query, fragment = parse_url(url)
-        except LocationParseError as e:
-            raise InvalidURL(*e.args)
-    
-        if not scheme:
->           raise MissingSchema(
-                f"Invalid URL {url!r}: No scheme supplied. "
-                f"Perhaps you meant https://{url}?"
-            )
-E           requests.exceptions.MissingSchema: Invalid URL '/api/auth/login': No scheme supplied. Perhaps you meant https:///api/auth/login?
-
-/root/.venv/lib/python3.11/site-packages/requests/models.py:438: MissingSchema
-=================================== FAILURES ===================================
-_________________ TestAuthEndpoints.test_member_login_success __________________
-
-self = <test_api.TestAuthEndpoints object at 0xfb438a424a90>
-
-    def test_member_login_success(self):
-        """Test member login with valid credentials"""
->       response = requests.post(f"{BASE_URL}/api/auth/login", json={
-            "identifier": "7777777777",
-            "password": "PWAtest123!"
-        })
-
-backend/tests/test_api.py:12: 
-_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
-/root/.venv/lib/python3.11/site-packages/requests/api.py:115: in post
-    return request("post", url, data=data, json=json, **kwargs)
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-/root/.venv/lib/python3.11/site-packages/requests/api.py:59: in request
-    return session.request(method=method, url=url, **kwargs)
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-/root/.venv/lib/python3.11/site-packages/requests/sessions.py:575: in request
-    prep = self.prepare_request(req)
-           ^^^^^^^^^^^^^^^^^^^^^^^^^
-/root/.venv/lib/python3.11/site-packages/requests/sessions.py:484: in prepare_request
-    p.prepare(
-/root/.venv/lib/python3.11/site-packages/requests/models.py:367: in prepare
-    self.prepare_url(url, params)
-_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
-
-self = <PreparedRequest [POST]>, url = '/api/auth/login', params = OrderedDict()
-
-    def prepare_url(self, url, params):
-        """Prepares the given HTTP URL."""
-        #: Accept objects that have string representations.
-        #: We're unable to blindly call unicode/str functions
-        #: as this will include the bytestring indicator (b'')
-        #: on python 3.x.
-        #: https://github.com/psf/requests/pull/2238
-        if isinstance(url, bytes):
-            url = url.decode("utf8")
-        else:
-            url = str(url)
-    
-        # Remove leading whitespaces from url
-        url = url.lstrip()
-    
-        # Don't do any URL preparation for non-HTTP schemes like `mailto`,
-        # `data` etc to work around exceptions from `url_parse`, which
-        # handles RFC 3986 only.
-        if ":" in url and not url.lower().startswith("http"):
-            self.url = url
-            return
-    
-        # Support for unicode domain names and paths.
-        try:
-            scheme, auth, host, port, path, query, fragment = parse_url(url)
-        except LocationParseError as e:
-            raise InvalidURL(*e.args)
-    
-        if not scheme:
->           raise MissingSchema(
-                f"Invalid URL {url!r}: No scheme supplied. "
-                f"Perhaps you meant https://{url}?"
-            )
-E           requests.exceptions.MissingSchema: Invalid URL '/api/auth/login': No scheme supplied. Perhaps you meant https:///api/auth/login?
-
-/root/.venv/lib/python3.11/site-packages/requests/models.py:438: MissingSchema
-__________________ TestAuthEndpoints.test_admin_login_success __________________
-
-self = <test_api.TestAuthEndpoints object at 0xfb438a425510>
-
-    def test_admin_login_success(self):
-        """Test admin login with valid credentials"""
->       response = requests.post(f"{BASE_URL}/api/auth/login", json={
-            "identifier": "9999999999",
-            "password": "admin123"
-        })
-
-backend/tests/test_api.py:32: 
-_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
-/root/.venv/lib/python3.11/site-packages/requests/api.py:115: in post
-    return request("post", url, data=data, json=json, **kwargs)
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-/root/.venv/lib/python3.11/site-packages/requests/api.py:59: in request
-    return session.request(method=method, url=url, **kwargs)
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-/root/.venv/lib/python3.11/site-packages/requests/sessions.py:575: in request
-    prep = self.prepare_request(req)
-           ^^^^^^^^^^^^^^^^^^^^^^^^^
-/root/.venv/lib/python3.11/site-packages/requests/sessions.py:484: in prepare_request
-    p.prepare(
-/root/.venv/lib/python3.11/site-packages/requests/models.py:367: in prepare
-    self.prepare_url(url, params)
-_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
-
-self = <PreparedRequest [POST]>, url = '/api/auth/login', params = OrderedDict()
-
-    def prepare_url(self, url, params):
-        """Prepares the given HTTP URL."""
-        #: Accept objects that have string representations.
-        #: We're unable to blindly call unicode/str functions
-        #: as this will include the bytestring indicator (b'')
-        #: on python 3.x.
-        #: https://github.com/psf/requests/pull/2238
-        if isinstance(url, bytes):
-            url = url.decode("utf8")
-        else:
-            url = str(url)
-    
-        # Remove leading whitespaces from url
-        url = url.lstrip()
-    
-        # Don't do any URL preparation for non-HTTP schemes like `mailto`,
-        # `data` etc to work around exceptions from `url_parse`, which
-        # handles RFC 3986 only.
-        if ":" in url and not url.lower().startswith("http"):
-            self.url = url
-            return
-    
-        # Support for unicode domain names and paths.
-        try:
-            scheme, auth, host, port, path, query, fragment = parse_url(url)
-        except LocationParseError as e:
-            raise InvalidURL(*e.args)
-    
-        if not scheme:
->           raise MissingSchema(
-                f"Invalid URL {url!r}: No scheme supplied. "
-                f"Perhaps you meant https://{url}?"
-            )
-E           requests.exceptions.MissingSchema: Invalid URL '/api/auth/login': No scheme supplied. Perhaps you meant https:///api/auth/login?
-
-/root/.venv/lib/python3.11/site-packages/requests/models.py:438: MissingSchema
-_______________ TestAuthEndpoints.test_login_invalid_credentials _______________
-
-self = <test_api.TestAuthEndpoints object at 0xfb438a425b50>
-
-    def test_login_invalid_credentials(self):
-        """Test login with invalid credentials returns 401"""
->       response = requests.post(f"{BASE_URL}/api/auth/login", json={
-            "identifier": "0000000000",
-            "password": "wrongpassword"
-        })
-
-backend/tests/test_api.py:47: 
-_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
-/root/.venv/lib/python3.11/site-packages/requests/api.py:115: in post
-    return request("post", url, data=data, json=json, **kwargs)
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-/root/.venv/lib/python3.11/site-packages/requests/api.py:59: in request
-    return session.request(method=method, url=url, **kwargs)
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-/root/.venv/lib/python3.11/site-packages/requests/sessions.py:575: in request
-    prep = self.prepare_request(req)
-           ^^^^^^^^^^^^^^^^^^^^^^^^^
-/root/.venv/lib/python3.11/site-packages/requests/sessions.py:484: in prepare_request
-    p.prepare(
-/root/.venv/lib/python3.11/site-packages/requests/models.py:367: in prepare
-    self.prepare_url(url, params)
-_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
-
-self = <PreparedRequest [POST]>, url = '/api/auth/login', params = OrderedDict()
-
-    def prepare_url(self, url, params):
-        """Prepares the given HTTP URL."""
-        #: Accept objects that have string representations.
-        #: We're unable to blindly call unicode/str functions
-        #: as this will include the bytestring indicator (b'')
-        #: on python 3.x.
-        #: https://github.com/psf/requests/pull/2238
-        if isinstance(url, bytes):
-            url = url.decode("utf8")
-        else:
-            url = str(url)
-    
-        # Remove leading whitespaces from url
-        url = url.lstrip()
-    
-        # Don't do any URL preparation for non-HTTP schemes like `mailto`,
-        # `data` etc to work around exceptions from `url_parse`, which
-        # handles RFC 3986 only.
-        if ":" in url and not url.lower().startswith("http"):
-            self.url = url
-            return
-    
-        # Support for unicode domain names and paths.
-        try:
-            scheme, auth, host, port, path, query, fragment = parse_url(url)
-        except LocationParseError as e:
-            raise InvalidURL(*e.args)
-    
-        if not scheme:
->           raise MissingSchema(
-                f"Invalid URL {url!r}: No scheme supplied. "
-                f"Perhaps you meant https://{url}?"
-            )
-E           requests.exceptions.MissingSchema: Invalid URL '/api/auth/login': No scheme supplied. Perhaps you meant https:///api/auth/login?
-
-/root/.venv/lib/python3.11/site-packages/requests/models.py:438: MissingSchema
-_________________ TestAuthEndpoints.test_login_missing_fields __________________
-
-self = <test_api.TestAuthEndpoints object at 0xfb438a4261d0>
-
-    def test_login_missing_fields(self):
-        """Test login with missing fields returns error"""
->       response = requests.post(f"{BASE_URL}/api/auth/login", json={
-            "identifier": ""
-        })
-
-backend/tests/test_api.py:56: 
-_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
-/root/.venv/lib/python3.11/site-packages/requests/api.py:115: in post
-    return request("post", url, data=data, json=json, **kwargs)
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-/root/.venv/lib/python3.11/site-packages/requests/api.py:59: in request
-    return session.request(method=method, url=url, **kwargs)
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-/root/.venv/lib/python3.11/site-packages/requests/sessions.py:575: in request
-    prep = self.prepare_request(req)
-           ^^^^^^^^^^^^^^^^^^^^^^^^^
-/root/.venv/lib/python3.11/site-packages/requests/sessions.py:484: in prepare_request
-    p.prepare(
-/root/.venv/lib/python3.11/site-packages/requests/models.py:367: in prepare
-    self.prepare_url(url, params)
-_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
-
-self = <PreparedRequest [POST]>, url = '/api/auth/login', params = OrderedDict()
-
-    def prepare_url(self, url, params):
-        """Prepares the given HTTP URL."""
-        #: Accept objects that have string representations.
-        #: We're unable to blindly call unicode/str functions
-        #: as this will include the bytestring indicator (b'')
-        #: on python 3.x.
-        #: https://github.com/psf/requests/pull/2238
-        if isinstance(url, bytes):
-            url = url.decode("utf8")
-        else:
-            url = str(url)
-    
-        # Remove leading whitespaces from url
-        url = url.lstrip()
-    
-        # Don't do any URL preparation for non-HTTP schemes like `mailto`,
-        # `data` etc to work around exceptions from `url_parse`, which
-        # handles RFC 3986 only.
-        if ":" in url and not url.lower().startswith("http"):
-            self.url = url
-            return
-    
-        # Support for unicode domain names and paths.
-        try:
-            scheme, auth, host, port, path, query, fragment = parse_url(url)
-        except LocationParseError as e:
-            raise InvalidURL(*e.args)
-    
-        if not scheme:
->           raise MissingSchema(
-                f"Invalid URL {url!r}: No scheme supplied. "
-                f"Perhaps you meant https://{url}?"
-            )
-E           requests.exceptions.MissingSchema: Invalid URL '/api/auth/login': No scheme supplied. Perhaps you meant https:///api/auth/login?
-
-/root/.venv/lib/python3.11/site-packages/requests/models.py:438: MissingSchema
-__________________ TestPublicEndpoints.test_plans_list_public __________________
-
-self = <test_api.TestPublicEndpoints object at 0xfb438a426a10>
-
-    def test_plans_list_public(self):
-        """Test public plans endpoint returns active plans"""
->       response = requests.get(f"{BASE_URL}/api/plans?is_active=true")
-                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-backend/tests/test_api.py:68: 
-_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
-/root/.venv/lib/python3.11/site-packages/requests/api.py:73: in get
-    return request("get", url, params=params, **kwargs)
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-/root/.venv/lib/python3.11/site-packages/requests/api.py:59: in request
-    return session.request(method=method, url=url, **kwargs)
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-/root/.venv/lib/python3.11/site-packages/requests/sessions.py:575: in request
-    prep = self.prepare_request(req)
-           ^^^^^^^^^^^^^^^^^^^^^^^^^
-/root/.venv/lib/python3.11/site-packages/requests/sessions.py:484: in prepare_request
-    p.prepare(
-/root/.venv/lib/python3.11/site-packages/requests/models.py:367: in prepare
-    self.prepare_url(url, params)
-_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
-
-self = <PreparedRequest [GET]>, url = '/api/plans?is_active=true'
-params = OrderedDict()
-
-    def prepare_url(self, url, params):
-        """Prepares the given HTTP URL."""
-        #: Accept objects that have string representations.
-        #: We're unable to blindly call unicode/str functions
-        #: as this will include the bytestring indicator (b'')
-        #: on python 3.x.
-        #: https://github.com/psf/requests/pull/2238
-        if isinstance(url, bytes):
-            url = url.decode("utf8")
-        else:
-            url = str(url)
-    
-        # Remove leading whitespaces from url
-        url = url.lstrip()
-    
-        # Don't do any URL preparation for non-HTTP schemes like `mailto`,
-        # `data` etc to work around exceptions from `url_parse`, which
-        # handles RFC 3986 only.
-        if ":" in url and not url.lower().startswith("http"):
-            self.url = url
-            return
-    
-        # Support for unicode domain names and paths.
-        try:
-            scheme, auth, host, port, path, query, fragment = parse_url(url)
-        except LocationParseError as e:
-            raise InvalidURL(*e.args)
-    
-        if not scheme:
->           raise MissingSchema(
-                f"Invalid URL {url!r}: No scheme supplied. "
-                f"Perhaps you meant https://{url}?"
-            )
-E           requests.exceptions.MissingSchema: Invalid URL '/api/plans?is_active=true': No scheme supplied. Perhaps you meant https:///api/plans?is_active=true?
-
-/root/.venv/lib/python3.11/site-packages/requests/models.py:438: MissingSchema
-________________ TestPublicEndpoints.test_partners_list_public _________________
-
-self = <test_api.TestPublicEndpoints object at 0xfb438a427050>
-
-    def test_partners_list_public(self):
-        """Test public partners endpoint"""
->       response = requests.get(f"{BASE_URL}/api/partners?is_active=true")
-                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-backend/tests/test_api.py:86: 
-_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
-/root/.venv/lib/python3.11/site-packages/requests/api.py:73: in get
-    return request("get", url, params=params, **kwargs)
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-/root/.venv/lib/python3.11/site-packages/requests/api.py:59: in request
-    return session.request(method=method, url=url, **kwargs)
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-/root/.venv/lib/python3.11/site-packages/requests/sessions.py:575: in request
-    prep = self.prepare_request(req)
-           ^^^^^^^^^^^^^^^^^^^^^^^^^
-/root/.venv/lib/python3.11/site-packages/requests/sessions.py:484: in prepare_request
-    p.prepare(
-/root/.venv/lib/python3.11/site-packages/requests/models.py:367: in prepare
-    self.prepare_url(url, params)
-_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
-
-self = <PreparedRequest [GET]>, url = '/api/partners?is_active=true'
-params = OrderedDict()
-
-    def prepare_url(self, url, params):
-        """Prepares the given HTTP URL."""
-        #: Accept objects that have string representations.
-        #: We're unable to blindly call unicode/str functions
-        #: as this will include the bytestring indicator (b'')
-        #: on python 3.x.
-        #: https://github.com/psf/requests/pull/2238
-        if isinstance(url, bytes):
-            url = url.decode("utf8")
-        else:
-            url = str(url)
-    
-        # Remove leading whitespaces from url
-        url = url.lstrip()
-    
-        # Don't do any URL preparation for non-HTTP schemes like `mailto`,
-        # `data` etc to work around exceptions from `url_parse`, which
-        # handles RFC 3986 only.
-        if ":" in url and not url.lower().startswith("http"):
-            self.url = url
-            return
-    
-        # Support for unicode domain names and paths.
-        try:
-            scheme, auth, host, port, path, query, fragment = parse_url(url)
-        except LocationParseError as e:
-            raise InvalidURL(*e.args)
-    
-        if not scheme:
->           raise MissingSchema(
-                f"Invalid URL {url!r}: No scheme supplied. "
-                f"Perhaps you meant https://{url}?"
-            )
-E           requests.exceptions.MissingSchema: Invalid URL '/api/partners?is_active=true': No scheme supplied. Perhaps you meant https:///api/partners?is_active=true?
-
-/root/.venv/lib/python3.11/site-packages/requests/models.py:438: MissingSchema
-____________________ TestPWAAssets.test_manifest_accessible ____________________
-
-self = <test_api.TestPWAAssets object at 0xfb438a4278d0>
-
-    def test_manifest_accessible(self):
-        """Test manifest.json is accessible"""
->       response = requests.get(f"{BASE_URL}/manifest.json")
-                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-backend/tests/test_api.py:99: 
-_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
-/root/.venv/lib/python3.11/site-packages/requests/api.py:73: in get
-    return request("get", url, params=params, **kwargs)
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-/root/.venv/lib/python3.11/site-packages/requests/api.py:59: in request
-    return session.request(method=method, url=url, **kwargs)
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-/root/.venv/lib/python3.11/site-packages/requests/sessions.py:575: in request
-    prep = self.prepare_request(req)
-           ^^^^^^^^^^^^^^^^^^^^^^^^^
-/root/.venv/lib/python3.11/site-packages/requests/sessions.py:484: in prepare_request
-    p.prepare(
-/root/.venv/lib/python3.11/site-packages/requests/models.py:367: in prepare
-    self.prepare_url(url, params)
-_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
-
-self = <PreparedRequest [GET]>, url = '/manifest.json', params = OrderedDict()
-
-    def prepare_url(self, url, params):
-        """Prepares the given HTTP URL."""
-        #: Accept objects that have string representations.
-        #: We're unable to blindly call unicode/str functions
-        #: as this will include the bytestring indicator (b'')
-        #: on python 3.x.
-        #: https://github.com/psf/requests/pull/2238
-        if isinstance(url, bytes):
-            url = url.decode("utf8")
-        else:
-            url = str(url)
-    
-        # Remove leading whitespaces from url
-        url = url.lstrip()
-    
-        # Don't do any URL preparation for non-HTTP schemes like `mailto`,
-        # `data` etc to work around exceptions from `url_parse`, which
-        # handles RFC 3986 only.
-        if ":" in url and not url.lower().startswith("http"):
-            self.url = url
-            return
-    
-        # Support for unicode domain names and paths.
-        try:
-            scheme, auth, host, port, path, query, fragment = parse_url(url)
-        except LocationParseError as e:
-            raise InvalidURL(*e.args)
-    
-        if not scheme:
->           raise MissingSchema(
-                f"Invalid URL {url!r}: No scheme supplied. "
-                f"Perhaps you meant https://{url}?"
-            )
-E           requests.exceptions.MissingSchema: Invalid URL '/manifest.json': No scheme supplied. Perhaps you meant https:///manifest.json?
-
-/root/.venv/lib/python3.11/site-packages/requests/models.py:438: MissingSchema
-_________________ TestPWAAssets.test_service_worker_accessible _________________
-
-self = <test_api.TestPWAAssets object at 0xfb438a427f10>
-
-    def test_service_worker_accessible(self):
-        """Test sw.js is accessible"""
->       response = requests.get(f"{BASE_URL}/sw.js")
-                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-backend/tests/test_api.py:111: 
-_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
-/root/.venv/lib/python3.11/site-packages/requests/api.py:73: in get
-    return request("get", url, params=params, **kwargs)
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-/root/.venv/lib/python3.11/site-packages/requests/api.py:59: in request
-    return session.request(method=method, url=url, **kwargs)
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-/root/.venv/lib/python3.11/site-packages/requests/sessions.py:575: in request
-    prep = self.prepare_request(req)
-           ^^^^^^^^^^^^^^^^^^^^^^^^^
-/root/.venv/lib/python3.11/site-packages/requests/sessions.py:484: in prepare_request
-    p.prepare(
-/root/.venv/lib/python3.11/site-packages/requests/models.py:367: in prepare
-    self.prepare_url(url, params)
-_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
-
-self = <PreparedRequest [GET]>, url = '/sw.js', params = OrderedDict()
-
-    def prepare_url(self, url, params):
-        """Prepares the given HTTP URL."""
-        #: Accept objects that have string representations.
-        #: We're unable to blindly call unicode/str functions
-        #: as this will include the bytestring indicator (b'')
-        #: on python 3.x.
-        #: https://github.com/psf/requests/pull/2238
-        if isinstance(url, bytes):
-            url = url.decode("utf8")
-        else:
-            url = str(url)
-    
-        # Remove leading whitespaces from url
-        url = url.lstrip()
-    
-        # Don't do any URL preparation for non-HTTP schemes like `mailto`,
-        # `data` etc to work around exceptions from `url_parse`, which
-        # handles RFC 3986 only.
-        if ":" in url and not url.lower().startswith("http"):
-            self.url = url
-            return
-    
-        # Support for unicode domain names and paths.
-        try:
-            scheme, auth, host, port, path, query, fragment = parse_url(url)
-        except LocationParseError as e:
-            raise InvalidURL(*e.args)
-    
-        if not scheme:
->           raise MissingSchema(
-                f"Invalid URL {url!r}: No scheme supplied. "
-                f"Perhaps you meant https://{url}?"
-            )
-E           requests.exceptions.MissingSchema: Invalid URL '/sw.js': No scheme supplied. Perhaps you meant https:///sw.js?
-
-/root/.venv/lib/python3.11/site-packages/requests/models.py:438: MissingSchema
-___________________ TestPWAAssets.test_pwa_icons_accessible ____________________
-
-self = <test_api.TestPWAAssets object at 0xfb438a430590>
-
-    def test_pwa_icons_accessible(self):
-        """Test PWA icons are accessible"""
-        icons = [
-            "/icons/icon-192x192.png",
-            "/icons/icon-512x512.png"
-        ]
-    
-        for icon in icons:
->           response = requests.get(f"{BASE_URL}{icon}")
-                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-backend/tests/test_api.py:127: 
-_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
-/root/.venv/lib/python3.11/site-packages/requests/api.py:73: in get
-    return request("get", url, params=params, **kwargs)
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-/root/.venv/lib/python3.11/site-packages/requests/api.py:59: in request
-    return session.request(method=method, url=url, **kwargs)
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-/root/.venv/lib/python3.11/site-packages/requests/sessions.py:575: in request
-    prep = self.prepare_request(req)
-           ^^^^^^^^^^^^^^^^^^^^^^^^^
-/root/.venv/lib/python3.11/site-packages/requests/sessions.py:484: in prepare_request
-    p.prepare(
-/root/.venv/lib/python3.11/site-packages/requests/models.py:367: in prepare
-    self.prepare_url(url, params)
-_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
-
-self = <PreparedRequest [GET]>, url = '/icons/icon-192x192.png'
-params = OrderedDict()
-
-    def prepare_url(self, url, params):
-        """Prepares the given HTTP URL."""
-        #: Accept objects that have string representations.
-        #: We're unable to blindly call unicode/str functions
-        #: as this will include the bytestring indicator (b'')
-        #: on python 3.x.
-        #: https://github.com/psf/requests/pull/2238
-        if isinstance(url, bytes):
-            url = url.decode("utf8")
-        else:
-            url = str(url)
-    
-        # Remove leading whitespaces from url
-        url = url.lstrip()
-    
-        # Don't do any URL preparation for non-HTTP schemes like `mailto`,
-        # `data` etc to work around exceptions from `url_parse`, which
-        # handles RFC 3986 only.
-        if ":" in url and not url.lower().startswith("http"):
-            self.url = url
-            return
-    
-        # Support for unicode domain names and paths.
-        try:
-            scheme, auth, host, port, path, query, fragment = parse_url(url)
-        except LocationParseError as e:
-            raise InvalidURL(*e.args)
-    
-        if not scheme:
->           raise MissingSchema(
-                f"Invalid URL {url!r}: No scheme supplied. "
-                f"Perhaps you meant https://{url}?"
-            )
-E           requests.exceptions.MissingSchema: Invalid URL '/icons/icon-192x192.png': No scheme supplied. Perhaps you meant https:///icons/icon-192x192.png?
-
-/root/.venv/lib/python3.11/site-packages/requests/models.py:438: MissingSchema
-_______________ TestLeadSubmission.test_lead_submission_success ________________
-
-self = <test_api.TestLeadSubmission object at 0xfb438a430d90>
-
-    def test_lead_submission_success(self):
-        """Test lead form submission"""
-        import uuid
-        test_mobile = f"TEST{str(uuid.uuid4())[:6]}"
-    
->       response = requests.post(f"{BASE_URL}/api/leads", json={
-            "name": "TEST_Lead User",
-            "mobile": test_mobile,
-            "city": "TEST_City",
-            "interested_in": "membership",
-            "source": "pytest_test"
-        })
-
-backend/tests/test_api.py:140: 
-_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
-/root/.venv/lib/python3.11/site-packages/requests/api.py:115: in post
-    return request("post", url, data=data, json=json, **kwargs)
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-/root/.venv/lib/python3.11/site-packages/requests/api.py:59: in request
-    return session.request(method=method, url=url, **kwargs)
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-/root/.venv/lib/python3.11/site-packages/requests/sessions.py:575: in request
-    prep = self.prepare_request(req)
-           ^^^^^^^^^^^^^^^^^^^^^^^^^
-/root/.venv/lib/python3.11/site-packages/requests/sessions.py:484: in prepare_request
-    p.prepare(
-/root/.venv/lib/python3.11/site-packages/requests/models.py:367: in prepare
-    self.prepare_url(url, params)
-_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
-
-self = <PreparedRequest [POST]>, url = '/api/leads', params = OrderedDict()
-
-    def prepare_url(self, url, params):
-        """Prepares the given HTTP URL."""
-        #: Accept objects that have string representations.
-        #: We're unable to blindly call unicode/str functions
-        #: as this will include the bytestring indicator (b'')
-        #: on python 3.x.
-        #: https://github.com/psf/requests/pull/2238
-        if isinstance(url, bytes):
-            url = url.decode("utf8")
-        else:
-            url = str(url)
-    
-        # Remove leading whitespaces from url
-        url = url.lstrip()
-    
-        # Don't do any URL preparation for non-HTTP schemes like `mailto`,
-        # `data` etc to work around exceptions from `url_parse`, which
-        # handles RFC 3986 only.
-        if ":" in url and not url.lower().startswith("http"):
-            self.url = url
-            return
-    
-        # Support for unicode domain names and paths.
-        try:
-            scheme, auth, host, port, path, query, fragment = parse_url(url)
-        except LocationParseError as e:
-            raise InvalidURL(*e.args)
-    
-        if not scheme:
->           raise MissingSchema(
-                f"Invalid URL {url!r}: No scheme supplied. "
-                f"Perhaps you meant https://{url}?"
-            )
-E           requests.exceptions.MissingSchema: Invalid URL '/api/leads': No scheme supplied. Perhaps you meant https:///api/leads?
-
-/root/.venv/lib/python3.11/site-packages/requests/models.py:438: MissingSchema
-_______ TestLeadSubmission.test_lead_submission_missing_required_fields ________
-
-self = <test_api.TestLeadSubmission object at 0xfb438a4313d0>
-
-    def test_lead_submission_missing_required_fields(self):
-        """Test lead submission fails with missing fields"""
->       response = requests.post(f"{BASE_URL}/api/leads", json={
-            "name": "Test"
-            # Missing required fields
-        })
-
-backend/tests/test_api.py:157: 
-_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
-/root/.venv/lib/python3.11/site-packages/requests/api.py:115: in post
-    return request("post", url, data=data, json=json, **kwargs)
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-/root/.venv/lib/python3.11/site-packages/requests/api.py:59: in request
-    return session.request(method=method, url=url, **kwargs)
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-/root/.venv/lib/python3.11/site-packages/requests/sessions.py:575: in request
-    prep = self.prepare_request(req)
-           ^^^^^^^^^^^^^^^^^^^^^^^^^
-/root/.venv/lib/python3.11/site-packages/requests/sessions.py:484: in prepare_request
-    p.prepare(
-/root/.venv/lib/python3.11/site-packages/requests/models.py:367: in prepare
-    self.prepare_url(url, params)
-_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
-
-self = <PreparedRequest [POST]>, url = '/api/leads', params = OrderedDict()
-
-    def prepare_url(self, url, params):
-        """Prepares the given HTTP URL."""
-        #: Accept objects that have string representations.
-        #: We're unable to blindly call unicode/str functions
-        #: as this will include the bytestring indicator (b'')
-        #: on python 3.x.
-        #: https://github.com/psf/requests/pull/2238
-        if isinstance(url, bytes):
-            url = url.decode("utf8")
-        else:
-            url = str(url)
-    
-        # Remove leading whitespaces from url
-        url = url.lstrip()
-    
-        # Don't do any URL preparation for non-HTTP schemes like `mailto`,
-        # `data` etc to work around exceptions from `url_parse`, which
-        # handles RFC 3986 only.
-        if ":" in url and not url.lower().startswith("http"):
-            self.url = url
-            return
-    
-        # Support for unicode domain names and paths.
-        try:
-            scheme, auth, host, port, path, query, fragment = parse_url(url)
-        except LocationParseError as e:
-            raise InvalidURL(*e.args)
-    
-        if not scheme:
->           raise MissingSchema(
-                f"Invalid URL {url!r}: No scheme supplied. "
-                f"Perhaps you meant https://{url}?"
-            )
-E           requests.exceptions.MissingSchema: Invalid URL '/api/leads': No scheme supplied. Perhaps you meant https:///api/leads?
-
-/root/.venv/lib/python3.11/site-packages/requests/models.py:438: MissingSchema
-________________ TestProtectedEndpoints.test_member_data_access ________________
-
-self = <test_api.TestProtectedEndpoints object at 0xfb438a431c90>
-
-    def test_member_data_access(self):
-        """Test member can access their own data"""
-        # First login
->       login_response = requests.post(f"{BASE_URL}/api/auth/login", json={
-            "identifier": "7777777777",
-            "password": "PWAtest123!"
-        })
-
-backend/tests/test_api.py:171: 
-_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
-/root/.venv/lib/python3.11/site-packages/requests/api.py:115: in post
-    return request("post", url, data=data, json=json, **kwargs)
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-/root/.venv/lib/python3.11/site-packages/requests/api.py:59: in request
-    return session.request(method=method, url=url, **kwargs)
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-/root/.venv/lib/python3.11/site-packages/requests/sessions.py:575: in request
-    prep = self.prepare_request(req)
-           ^^^^^^^^^^^^^^^^^^^^^^^^^
-/root/.venv/lib/python3.11/site-packages/requests/sessions.py:484: in prepare_request
-    p.prepare(
-/root/.venv/lib/python3.11/site-packages/requests/models.py:367: in prepare
-    self.prepare_url(url, params)
-_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
-
-self = <PreparedRequest [POST]>, url = '/api/auth/login', params = OrderedDict()
-
-    def prepare_url(self, url, params):
-        """Prepares the given HTTP URL."""
-        #: Accept objects that have string representations.
-        #: We're unable to blindly call unicode/str functions
-        #: as this will include the bytestring indicator (b'')
-        #: on python 3.x.
-        #: https://github.com/psf/requests/pull/2238
-        if isinstance(url, bytes):
-            url = url.decode("utf8")
-        else:
-            url = str(url)
-    
-        # Remove leading whitespaces from url
-        url = url.lstrip()
-    
-        # Don't do any URL preparation for non-HTTP schemes like `mailto`,
-        # `data` etc to work around exceptions from `url_parse`, which
-        # handles RFC 3986 only.
-        if ":" in url and not url.lower().startswith("http"):
-            self.url = url
-            return
-    
-        # Support for unicode domain names and paths.
-        try:
-            scheme, auth, host, port, path, query, fragment = parse_url(url)
-        except LocationParseError as e:
-            raise InvalidURL(*e.args)
-    
-        if not scheme:
->           raise MissingSchema(
-                f"Invalid URL {url!r}: No scheme supplied. "
-                f"Perhaps you meant https://{url}?"
-            )
-E           requests.exceptions.MissingSchema: Invalid URL '/api/auth/login': No scheme supplied. Perhaps you meant https:///api/auth/login?
-
-/root/.venv/lib/python3.11/site-packages/requests/models.py:438: MissingSchema
-___________ TestProtectedEndpoints.test_admin_dashboard_stats_access ___________
-
-self = <test_api.TestProtectedEndpoints object at 0xfb438a432310>
-
-    def test_admin_dashboard_stats_access(self):
-        """Test admin can access dashboard stats"""
-        # First login as admin
->       login_response = requests.post(f"{BASE_URL}/api/auth/login", json={
-            "identifier": "9999999999",
-            "password": "admin123"
-        })
-
-backend/tests/test_api.py:194: 
-_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
-/root/.venv/lib/python3.11/site-packages/requests/api.py:115: in post
-    return request("post", url, data=data, json=json, **kwargs)
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-/root/.venv/lib/python3.11/site-packages/requests/api.py:59: in request
-    return session.request(method=method, url=url, **kwargs)
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-/root/.venv/lib/python3.11/site-packages/requests/sessions.py:575: in request
-    prep = self.prepare_request(req)
-           ^^^^^^^^^^^^^^^^^^^^^^^^^
-/root/.venv/lib/python3.11/site-packages/requests/sessions.py:484: in prepare_request
-    p.prepare(
-/root/.venv/lib/python3.11/site-packages/requests/models.py:367: in prepare
-    self.prepare_url(url, params)
-_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
-
-self = <PreparedRequest [POST]>, url = '/api/auth/login', params = OrderedDict()
-
-    def prepare_url(self, url, params):
-        """Prepares the given HTTP URL."""
-        #: Accept objects that have string representations.
-        #: We're unable to blindly call unicode/str functions
-        #: as this will include the bytestring indicator (b'')
-        #: on python 3.x.
-        #: https://github.com/psf/requests/pull/2238
-        if isinstance(url, bytes):
-            url = url.decode("utf8")
-        else:
-            url = str(url)
-    
-        # Remove leading whitespaces from url
-        url = url.lstrip()
-    
-        # Don't do any URL preparation for non-HTTP schemes like `mailto`,
-        # `data` etc to work around exceptions from `url_parse`, which
-        # handles RFC 3986 only.
-        if ":" in url and not url.lower().startswith("http"):
-            self.url = url
-            return
-    
-        # Support for unicode domain names and paths.
-        try:
-            scheme, auth, host, port, path, query, fragment = parse_url(url)
-        except LocationParseError as e:
-            raise InvalidURL(*e.args)
-    
-        if not scheme:
->           raise MissingSchema(
-                f"Invalid URL {url!r}: No scheme supplied. "
-                f"Perhaps you meant https://{url}?"
-            )
-E           requests.exceptions.MissingSchema: Invalid URL '/api/auth/login': No scheme supplied. Perhaps you meant https:///api/auth/login?
-
-/root/.venv/lib/python3.11/site-packages/requests/models.py:438: MissingSchema
-____________ TestProtectedEndpoints.test_unauthorized_admin_access _____________
-
-self = <test_api.TestProtectedEndpoints object at 0xfb438a432950>
-
-    def test_unauthorized_admin_access(self):
-        """Test member cannot access admin endpoints"""
-        # Login as member
->       login_response = requests.post(f"{BASE_URL}/api/auth/login", json={
-            "identifier": "7777777777",
-            "password": "PWAtest123!"
-        })
-
-backend/tests/test_api.py:216: 
-_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
-/root/.venv/lib/python3.11/site-packages/requests/api.py:115: in post
-    return request("post", url, data=data, json=json, **kwargs)
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-/root/.venv/lib/python3.11/site-packages/requests/api.py:59: in request
-    return session.request(method=method, url=url, **kwargs)
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-/root/.venv/lib/python3.11/site-packages/requests/sessions.py:575: in request
-    prep = self.prepare_request(req)
-           ^^^^^^^^^^^^^^^^^^^^^^^^^
-/root/.venv/lib/python3.11/site-packages/requests/sessions.py:484: in prepare_request
-    p.prepare(
-/root/.venv/lib/python3.11/site-packages/requests/models.py:367: in prepare
-    self.prepare_url(url, params)
-_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
-
-self = <PreparedRequest [POST]>, url = '/api/auth/login', params = OrderedDict()
-
-    def prepare_url(self, url, params):
-        """Prepares the given HTTP URL."""
-        #: Accept objects that have string representations.
-        #: We're unable to blindly call unicode/str functions
-        #: as this will include the bytestring indicator (b'')
-        #: on python 3.x.
-        #: https://github.com/psf/requests/pull/2238
-        if isinstance(url, bytes):
-            url = url.decode("utf8")
-        else:
-            url = str(url)
-    
-        # Remove leading whitespaces from url
-        url = url.lstrip()
-    
-        # Don't do any URL preparation for non-HTTP schemes like `mailto`,
-        # `data` etc to work around exceptions from `url_parse`, which
-        # handles RFC 3986 only.
-        if ":" in url and not url.lower().startswith("http"):
-            self.url = url
-            return
-    
-        # Support for unicode domain names and paths.
-        try:
-            scheme, auth, host, port, path, query, fragment = parse_url(url)
-        except LocationParseError as e:
-            raise InvalidURL(*e.args)
-    
-        if not scheme:
->           raise MissingSchema(
-                f"Invalid URL {url!r}: No scheme supplied. "
-                f"Perhaps you meant https://{url}?"
-            )
-E           requests.exceptions.MissingSchema: Invalid URL '/api/auth/login': No scheme supplied. Perhaps you meant https:///api/auth/login?
-
-/root/.venv/lib/python3.11/site-packages/requests/models.py:438: MissingSchema
-__________________ TestPlanCRUD.test_create_plan_unauthorized __________________
-
-self = <test_api.TestPlanCRUD object at 0xfb438a433390>
-
-    def test_create_plan_unauthorized(self):
-        """Test non-admin cannot create plans"""
-        # Login as member
->       login_response = requests.post(f"{BASE_URL}/api/auth/login", json={
-            "identifier": "7777777777",
-            "password": "PWAtest123!"
-        })
-
-backend/tests/test_api.py:370: 
-_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
-/root/.venv/lib/python3.11/site-packages/requests/api.py:115: in post
-    return request("post", url, data=data, json=json, **kwargs)
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-/root/.venv/lib/python3.11/site-packages/requests/api.py:59: in request
-    return session.request(method=method, url=url, **kwargs)
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-/root/.venv/lib/python3.11/site-packages/requests/sessions.py:575: in request
-    prep = self.prepare_request(req)
-           ^^^^^^^^^^^^^^^^^^^^^^^^^
-/root/.venv/lib/python3.11/site-packages/requests/sessions.py:484: in prepare_request
-    p.prepare(
-/root/.venv/lib/python3.11/site-packages/requests/models.py:367: in prepare
-    self.prepare_url(url, params)
-_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
-
-self = <PreparedRequest [POST]>, url = '/api/auth/login', params = OrderedDict()
-
-    def prepare_url(self, url, params):
-        """Prepares the given HTTP URL."""
-        #: Accept objects that have string representations.
-        #: We're unable to blindly call unicode/str functions
-        #: as this will include the bytestring indicator (b'')
-        #: on python 3.x.
-        #: https://github.com/psf/requests/pull/2238
-        if isinstance(url, bytes):
-            url = url.decode("utf8")
-        else:
-            url = str(url)
-    
-        # Remove leading whitespaces from url
-        url = url.lstrip()
-    
-        # Don't do any URL preparation for non-HTTP schemes like `mailto`,
-        # `data` etc to work around exceptions from `url_parse`, which
-        # handles RFC 3986 only.
-        if ":" in url and not url.lower().startswith("http"):
-            self.url = url
-            return
-    
-        # Support for unicode domain names and paths.
-        try:
-            scheme, auth, host, port, path, query, fragment = parse_url(url)
-        except LocationParseError as e:
-            raise InvalidURL(*e.args)
-    
-        if not scheme:
->           raise MissingSchema(
-                f"Invalid URL {url!r}: No scheme supplied. "
-                f"Perhaps you meant https://{url}?"
-            )
-E           requests.exceptions.MissingSchema: Invalid URL '/api/auth/login': No scheme supplied. Perhaps you meant https:///api/auth/login?
-
-/root/.venv/lib/python3.11/site-packages/requests/models.py:438: MissingSchema
-=========================== short test summary info ============================
-FAILED backend/tests/test_api.py::TestAuthEndpoints::test_member_login_success
-FAILED backend/tests/test_api.py::TestAuthEndpoints::test_admin_login_success
-FAILED backend/tests/test_api.py::TestAuthEndpoints::test_login_invalid_credentials
-FAILED backend/tests/test_api.py::TestAuthEndpoints::test_login_missing_fields
-FAILED backend/tests/test_api.py::TestPublicEndpoints::test_plans_list_public
-FAILED backend/tests/test_api.py::TestPublicEndpoints::test_partners_list_public
-FAILED backend/tests/test_api.py::TestPWAAssets::test_manifest_accessible - r...
-FAILED backend/tests/test_api.py::TestPWAAssets::test_service_worker_accessible
-FAILED backend/tests/test_api.py::TestPWAAssets::test_pwa_icons_accessible - ...
-FAILED backend/tests/test_api.py::TestLeadSubmission::test_lead_submission_success
-FAILED backend/tests/test_api.py::TestLeadSubmission::test_lead_submission_missing_required_fields
-FAILED backend/tests/test_api.py::TestProtectedEndpoints::test_member_data_access
-FAILED backend/tests/test_api.py::TestProtectedEndpoints::test_admin_dashboard_stats_access
-FAILED backend/tests/test_api.py::TestProtectedEndpoints::test_unauthorized_admin_access
-FAILED backend/tests/test_api.py::TestPlanCRUD::test_create_plan_unauthorized
-ERROR backend/tests/test_api.py::TestPlanCRUD::test_create_plan_success - req...
-ERROR backend/tests/test_api.py::TestPlanCRUD::test_update_plan_success - req...
-ERROR backend/tests/test_api.py::TestPlanCRUD::test_delete_plan_success - req...
-ERROR backend/tests/test_api.py::TestRazorpayIntegration::test_create_razorpay_order
-ERROR backend/tests/test_api.py::TestRazorpayIntegration::test_create_order_with_different_amounts
-========================= 15 failed, 5 errors in 0.73s ========================= or Cypress) were created for the numerous features added in this session (Coupons, Renewals, Member Reports), increasing the risk of future regressions.
-- The agent was repeatedly drawn into providing deployment support for the user's external server, which is outside the scope of work and consumed significant time and context.</analysis>
+The agent has been overwhelmed by a continuous stream of new, complex feature requests while simultaneously managing a difficult live deployment. The primary miss is not establishing a firm, user-approved roadmap earlier. As a result, a large backlog of user-expected features has accumulated, which are now captured in the pending issues list. These include:
+- A complete Admin User Management system with activity logging.
+- A Family Membership module.
+- A member Referral System.
+- OTP/SMS integration for registration.
+- Advanced, filterable reports.
+- CMS for homepage content.</analysis>
