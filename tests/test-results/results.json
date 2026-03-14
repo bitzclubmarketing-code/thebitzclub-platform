@@ -1,0 +1,2860 @@
+{
+  "config": {
+    "configFile": "/app/tests/playwright.config.ts",
+    "rootDir": "/app/tests/e2e",
+    "forbidOnly": false,
+    "fullyParallel": false,
+    "globalSetup": null,
+    "globalTeardown": null,
+    "globalTimeout": 0,
+    "grep": {},
+    "grepInvert": null,
+    "maxFailures": 0,
+    "metadata": {},
+    "preserveOutput": "always",
+    "projects": [
+      {
+        "outputDir": "/app/tests/test-results",
+        "repeatEach": 1,
+        "retries": 1,
+        "metadata": {},
+        "id": "chromium",
+        "name": "chromium",
+        "testDir": "/app/tests/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "**/*.@(spec|test).?(c|m)[jt]s?(x)"
+        ],
+        "timeout": 60000
+      }
+    ],
+    "quiet": false,
+    "reporter": [
+      [
+        "list",
+        null
+      ],
+      [
+        "json",
+        {
+          "outputFile": "./test-results/results.json"
+        }
+      ]
+    ],
+    "reportSlowTests": {
+      "max": 5,
+      "threshold": 300000
+    },
+    "runAgents": "none",
+    "shard": null,
+    "tags": [],
+    "updateSnapshots": "missing",
+    "updateSourceMethod": "patch",
+    "version": "1.58.2",
+    "workers": 1,
+    "webServer": null
+  },
+  "suites": [
+    {
+      "title": "admin-plans.spec.ts",
+      "file": "admin-plans.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [],
+      "suites": [
+        {
+          "title": "Admin Plans Page - Plan CRUD",
+          "file": "admin-plans.spec.ts",
+          "line": 5,
+          "column": 6,
+          "specs": [
+            {
+              "title": "Plans page loads with existing plans",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "c4c025178a6624fc130f-84c34a9cc8b11d28de26",
+              "file": "admin-plans.spec.ts",
+              "line": 31,
+              "column": 7
+            },
+            {
+              "title": "Can open add plan modal",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "c4c025178a6624fc130f-ecd31f93b39e6243c0b8",
+              "file": "admin-plans.spec.ts",
+              "line": 44,
+              "column": 7
+            },
+            {
+              "title": "Can create a new plan",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "c4c025178a6624fc130f-a923c193c537de968760",
+              "file": "admin-plans.spec.ts",
+              "line": 58,
+              "column": 7
+            },
+            {
+              "title": "Can edit an existing plan",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "c4c025178a6624fc130f-99f80a6958e4e8c55eb8",
+              "file": "admin-plans.spec.ts",
+              "line": 96,
+              "column": 7
+            },
+            {
+              "title": "Plan cards display correct information",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "c4c025178a6624fc130f-f8459736cb165703c769",
+              "file": "admin-plans.spec.ts",
+              "line": 114,
+              "column": 7
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "title": "auth-flows.spec.ts",
+      "file": "auth-flows.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [],
+      "suites": [
+        {
+          "title": "Authentication Flows",
+          "file": "auth-flows.spec.ts",
+          "line": 4,
+          "column": 6,
+          "specs": [
+            {
+              "title": "Login page loads correctly",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "0c6c160bbdde4ceadf0a-61d407de041a7c32a3db",
+              "file": "auth-flows.spec.ts",
+              "line": 16,
+              "column": 7
+            },
+            {
+              "title": "Member login flow works correctly",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "0c6c160bbdde4ceadf0a-0a17217b9a54ba0956ba",
+              "file": "auth-flows.spec.ts",
+              "line": 29,
+              "column": 7
+            },
+            {
+              "title": "Admin login flow works correctly",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "0c6c160bbdde4ceadf0a-20a7eca4b8f48a36b6b6",
+              "file": "auth-flows.spec.ts",
+              "line": 53,
+              "column": 7
+            },
+            {
+              "title": "Invalid login shows error",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "0c6c160bbdde4ceadf0a-8904677fd58ac07e10b6",
+              "file": "auth-flows.spec.ts",
+              "line": 65,
+              "column": 7
+            },
+            {
+              "title": "Registration page loads and form is functional",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "0c6c160bbdde4ceadf0a-294606da83380aeb05a1",
+              "file": "auth-flows.spec.ts",
+              "line": 80,
+              "column": 7
+            },
+            {
+              "title": "Password validation works on registration",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "0c6c160bbdde4ceadf0a-f00910cbad51657e72b0",
+              "file": "auth-flows.spec.ts",
+              "line": 96,
+              "column": 7
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "title": "homepage-features.spec.ts",
+      "file": "homepage-features.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [],
+      "suites": [
+        {
+          "title": "Homepage Premium Features",
+          "file": "homepage-features.spec.ts",
+          "line": 3,
+          "column": 6,
+          "specs": [
+            {
+              "title": "Homepage hero section displays with rotating background",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "d4202f199ceabc326c8b-c27b2b32bc8110c7a48e",
+              "file": "homepage-features.spec.ts",
+              "line": 15,
+              "column": 7
+            },
+            {
+              "title": "Navigation menu has correct links",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "d4202f199ceabc326c8b-117fe2ab0dfc8ffd7883",
+              "file": "homepage-features.spec.ts",
+              "line": 31,
+              "column": 7
+            },
+            {
+              "title": "Mobile hamburger menu works",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "d4202f199ceabc326c8b-524a8dc19e1d55f0ea7e",
+              "file": "homepage-features.spec.ts",
+              "line": 50,
+              "column": 7
+            },
+            {
+              "title": "Lifestyle experiences gallery displays 8 categories",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "d4202f199ceabc326c8b-bed5355114afe7b73746",
+              "file": "homepage-features.spec.ts",
+              "line": 76,
+              "column": 7
+            },
+            {
+              "title": "Experience gallery shows discount badges",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "d4202f199ceabc326c8b-bf04dddc00ff5b85da48",
+              "file": "homepage-features.spec.ts",
+              "line": 97,
+              "column": 7
+            },
+            {
+              "title": "Desktop view shows featured experience carousel with dots",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "d4202f199ceabc326c8b-b6d6c4d52511a14e9e77",
+              "file": "homepage-features.spec.ts",
+              "line": 110,
+              "column": 7
+            },
+            {
+              "title": "Plans section loads with membership options",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "d4202f199ceabc326c8b-bfa84cfe7a98c7e2e72a",
+              "file": "homepage-features.spec.ts",
+              "line": 125,
+              "column": 7
+            },
+            {
+              "title": "Affiliations section loads (renamed from Partners)",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "d4202f199ceabc326c8b-9bf685bdf8b37fae563c",
+              "file": "homepage-features.spec.ts",
+              "line": 137,
+              "column": 7
+            },
+            {
+              "title": "Contact section displays correctly",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "d4202f199ceabc326c8b-f62d25e07ae20f179ccb",
+              "file": "homepage-features.spec.ts",
+              "line": 150,
+              "column": 7
+            },
+            {
+              "title": "Footer has correct links",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "d4202f199ceabc326c8b-6fcfaa123a9fc3d1e70f",
+              "file": "homepage-features.spec.ts",
+              "line": 166,
+              "column": 7
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "title": "marketing-landing.spec.ts",
+      "file": "marketing-landing.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [],
+      "suites": [
+        {
+          "title": "Marketing Landing Page - Lead Capture",
+          "file": "marketing-landing.spec.ts",
+          "line": 3,
+          "column": 6,
+          "specs": [
+            {
+              "title": "Marketing landing page loads at /join route",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "fcc612c523f06d698507-26e6a05b541b8d02036d",
+              "file": "marketing-landing.spec.ts",
+              "line": 15,
+              "column": 7
+            },
+            {
+              "title": "Marketing landing page loads at /marketing route",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "fcc612c523f06d698507-c3e928b43528ef7ea15a",
+              "file": "marketing-landing.spec.ts",
+              "line": 25,
+              "column": 7
+            },
+            {
+              "title": "Marketing landing page loads at /promo route",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "fcc612c523f06d698507-8e14162e2f4be3db1090",
+              "file": "marketing-landing.spec.ts",
+              "line": 30,
+              "column": 7
+            },
+            {
+              "title": "Step 1 form displays all required fields",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "fcc612c523f06d698507-a678f0c5cb418616cd81",
+              "file": "marketing-landing.spec.ts",
+              "line": 35,
+              "column": 7
+            },
+            {
+              "title": "Step 1 form validates required fields",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "fcc612c523f06d698507-9706bbcaff811fe8b4d7",
+              "file": "marketing-landing.spec.ts",
+              "line": 46,
+              "column": 7
+            },
+            {
+              "title": "Step 1 form validates mobile number format",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "fcc612c523f06d698507-dbaa85a29717d6cd0995",
+              "file": "marketing-landing.spec.ts",
+              "line": 56,
+              "column": 7
+            },
+            {
+              "title": "Step 1 successful submission advances to Step 2",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "fcc612c523f06d698507-ed3af9d88cdb6b64ec86",
+              "file": "marketing-landing.spec.ts",
+              "line": 69,
+              "column": 7
+            },
+            {
+              "title": "Referral code from URL is pre-filled",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "fcc612c523f06d698507-b32fda840a6f2216c793",
+              "file": "marketing-landing.spec.ts",
+              "line": 93,
+              "column": 7
+            }
+          ]
+        },
+        {
+          "title": "Marketing Landing Page - Step 2 Plan Selection",
+          "file": "marketing-landing.spec.ts",
+          "line": 102,
+          "column": 6,
+          "specs": [
+            {
+              "title": "Step 2 shows plan selection with prices",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "fcc612c523f06d698507-cd8b0a2603d12315036e",
+              "file": "marketing-landing.spec.ts",
+              "line": 114,
+              "column": 7
+            },
+            {
+              "title": "Step 2 validates password fields",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "fcc612c523f06d698507-41019c766980d6b106a8",
+              "file": "marketing-landing.spec.ts",
+              "line": 136,
+              "column": 7
+            },
+            {
+              "title": "Step 2 validates short password",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "fcc612c523f06d698507-ed92d10f1a6b40afd70d",
+              "file": "marketing-landing.spec.ts",
+              "line": 158,
+              "column": 7
+            },
+            {
+              "title": "Back button returns to Step 1",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "fcc612c523f06d698507-4cd58bf4599dae20b4b1",
+              "file": "marketing-landing.spec.ts",
+              "line": 180,
+              "column": 7
+            }
+          ]
+        },
+        {
+          "title": "Marketing Landing Page - Contact Options",
+          "file": "marketing-landing.spec.ts",
+          "line": 202,
+          "column": 6,
+          "specs": [
+            {
+              "title": "WhatsApp button is visible and has correct link",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "fcc612c523f06d698507-029863f82d676c4340b0",
+              "file": "marketing-landing.spec.ts",
+              "line": 213,
+              "column": 7
+            },
+            {
+              "title": "Call Now button is visible and has correct link",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "fcc612c523f06d698507-35f35858a8204fba3663",
+              "file": "marketing-landing.spec.ts",
+              "line": 224,
+              "column": 7
+            },
+            {
+              "title": "Chat button opens chat modal",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "fcc612c523f06d698507-e05660707c14302eab9e",
+              "file": "marketing-landing.spec.ts",
+              "line": 236,
+              "column": 7
+            },
+            {
+              "title": "Chat form validates required fields",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "fcc612c523f06d698507-2dd833b636adc577abcc",
+              "file": "marketing-landing.spec.ts",
+              "line": 259,
+              "column": 7
+            },
+            {
+              "title": "Chat form can be closed",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "fcc612c523f06d698507-d8165f44b29597aa93a9",
+              "file": "marketing-landing.spec.ts",
+              "line": 279,
+              "column": 7
+            },
+            {
+              "title": "Chat form submits enquiry successfully",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "fcc612c523f06d698507-a706c4d16cc62c3ff23d",
+              "file": "marketing-landing.spec.ts",
+              "line": 299,
+              "column": 7
+            }
+          ]
+        },
+        {
+          "title": "Marketing Landing Page - Benefits & Content",
+          "file": "marketing-landing.spec.ts",
+          "line": 327,
+          "column": 6,
+          "specs": [
+            {
+              "title": "Benefits section displays lifestyle experiences",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "fcc612c523f06d698507-1a6744322424bc03bde0",
+              "file": "marketing-landing.spec.ts",
+              "line": 338,
+              "column": 7
+            },
+            {
+              "title": "Hero stats are displayed",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "fcc612c523f06d698507-8daa2db3ae4da4dfe58f",
+              "file": "marketing-landing.spec.ts",
+              "line": 351,
+              "column": 7
+            },
+            {
+              "title": "Navigation bar shows phone and WhatsApp",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "fcc612c523f06d698507-4600f3e20be23c27497f",
+              "file": "marketing-landing.spec.ts",
+              "line": 361,
+              "column": 7
+            },
+            {
+              "title": "Footer has contact information",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "fcc612c523f06d698507-bea13099b540cc65bd5f",
+              "file": "marketing-landing.spec.ts",
+              "line": 369,
+              "column": 7
+            }
+          ]
+        },
+        {
+          "title": "Marketing Landing Page - Enhanced Features (Country & Referral)",
+          "file": "marketing-landing.spec.ts",
+          "line": 381,
+          "column": 6,
+          "specs": [
+            {
+              "title": "Country code selector is visible with default India (+91)",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "fcc612c523f06d698507-d8d56ece659a9706d673",
+              "file": "marketing-landing.spec.ts",
+              "line": 392,
+              "column": 7
+            },
+            {
+              "title": "Country code selector dropdown shows all 15 countries",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "fcc612c523f06d698507-0697a451f6d770148a16",
+              "file": "marketing-landing.spec.ts",
+              "line": 403,
+              "column": 7
+            },
+            {
+              "title": "Selecting UAE country code updates form",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "fcc612c523f06d698507-9b4e0f6f79df115e69a1",
+              "file": "marketing-landing.spec.ts",
+              "line": 420,
+              "column": 7
+            },
+            {
+              "title": "Selecting US country code updates placeholder",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "fcc612c523f06d698507-a508777490c818738a78",
+              "file": "marketing-landing.spec.ts",
+              "line": 437,
+              "column": 7
+            },
+            {
+              "title": "Referral code auto-populates from ?referral= URL param",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "fcc612c523f06d698507-ae6e82ec1a24d663c5f1",
+              "file": "marketing-landing.spec.ts",
+              "line": 453,
+              "column": 7
+            },
+            {
+              "title": "Referral code auto-populates from ?code= URL param",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "fcc612c523f06d698507-1be2e837e2d52858c566",
+              "file": "marketing-landing.spec.ts",
+              "line": 460,
+              "column": 7
+            },
+            {
+              "title": "Referral code auto-populates from ?promo= URL param",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "fcc612c523f06d698507-fe125245fe8a19a4de83",
+              "file": "marketing-landing.spec.ts",
+              "line": 466,
+              "column": 7
+            },
+            {
+              "title": "Referral code auto-populates from ?utm_campaign= URL param",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "fcc612c523f06d698507-79df421a71d72d79b36e",
+              "file": "marketing-landing.spec.ts",
+              "line": 472,
+              "column": 7
+            },
+            {
+              "title": "Referral code from ?ref= is applied correctly",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "fcc612c523f06d698507-143459e56d071c04910a",
+              "file": "marketing-landing.spec.ts",
+              "line": 478,
+              "column": 7
+            },
+            {
+              "title": "International user (UAE) validation accepts 9 digits",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "fcc612c523f06d698507-c4e3f3fb147243e0e2bd",
+              "file": "marketing-landing.spec.ts",
+              "line": 487,
+              "column": 7
+            }
+          ]
+        },
+        {
+          "title": "Marketing Landing Page - PIN Code Auto-fill (India)",
+          "file": "marketing-landing.spec.ts",
+          "line": 508,
+          "column": 6,
+          "specs": [
+            {
+              "title": "PIN code field is visible for Indian users in Step 2",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "fcc612c523f06d698507-0fedee0236eb785790ee",
+              "file": "marketing-landing.spec.ts",
+              "line": 519,
+              "column": 7
+            },
+            {
+              "title": "PIN code auto-fills city and state for valid Indian PIN",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "fcc612c523f06d698507-183a0d593aaa552f031d",
+              "file": "marketing-landing.spec.ts",
+              "line": 541,
+              "column": 7
+            },
+            {
+              "title": "Invalid PIN code shows error toast",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "fcc612c523f06d698507-94cffc9d56309e00a9fb",
+              "file": "marketing-landing.spec.ts",
+              "line": 568,
+              "column": 7
+            },
+            {
+              "title": "International user (UAE) does not see state field",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "fcc612c523f06d698507-103f888e107254823cd3",
+              "file": "marketing-landing.spec.ts",
+              "line": 589,
+              "column": 7
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "title": "member-dashboard.spec.ts",
+      "file": "member-dashboard.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [],
+      "suites": [
+        {
+          "title": "Member Dashboard & Membership Card",
+          "file": "member-dashboard.spec.ts",
+          "line": 3,
+          "column": 6,
+          "specs": [
+            {
+              "title": "Member dashboard loads with member data",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "c68ed26b91812b95810a-3fe891e979b55e9cd1af",
+              "file": "member-dashboard.spec.ts",
+              "line": 24,
+              "column": 7
+            },
+            {
+              "title": "Dashboard has tab navigation (My Card, My Profile, Affiliations, Bookings, Payments, Feedback)",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "c68ed26b91812b95810a-4e76f13320a2a14a31b5",
+              "file": "member-dashboard.spec.ts",
+              "line": 39,
+              "column": 7
+            },
+            {
+              "title": "Membership card displays correctly",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "c68ed26b91812b95810a-384f555f4d2ddbe22531",
+              "file": "member-dashboard.spec.ts",
+              "line": 53,
+              "column": 7
+            },
+            {
+              "title": "QR code renders on membership card",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "c68ed26b91812b95810a-00fb3e6b53b34b3df8cd",
+              "file": "member-dashboard.spec.ts",
+              "line": 68,
+              "column": 7
+            },
+            {
+              "title": "Download card button is present and functional",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "c68ed26b91812b95810a-870c52597d07e8666141",
+              "file": "member-dashboard.spec.ts",
+              "line": 81,
+              "column": 7
+            },
+            {
+              "title": "Share card button is present and functional",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "c68ed26b91812b95810a-049f04cce19562bcabc7",
+              "file": "member-dashboard.spec.ts",
+              "line": 93,
+              "column": 7
+            },
+            {
+              "title": "Membership validity section displays correctly",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "c68ed26b91812b95810a-25be6995bbb8c174cdde",
+              "file": "member-dashboard.spec.ts",
+              "line": 105,
+              "column": 7
+            },
+            {
+              "title": "Profile details show member information",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "c68ed26b91812b95810a-07332aa37130bb2c6de7",
+              "file": "member-dashboard.spec.ts",
+              "line": 112,
+              "column": 7
+            },
+            {
+              "title": "Affiliations tab shows partner venues",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "c68ed26b91812b95810a-d94e6689f4782189ca35",
+              "file": "member-dashboard.spec.ts",
+              "line": 122,
+              "column": 7
+            },
+            {
+              "title": "Bookings tab shows booking history",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "c68ed26b91812b95810a-bc30572ca1de27f989e8",
+              "file": "member-dashboard.spec.ts",
+              "line": 134,
+              "column": 7
+            },
+            {
+              "title": "Logout button works correctly",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "c68ed26b91812b95810a-c6a5b3a8aa4edc6e4290",
+              "file": "member-dashboard.spec.ts",
+              "line": 147,
+              "column": 7
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "title": "membership-card.spec.ts",
+      "file": "membership-card.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [],
+      "suites": [
+        {
+          "title": "Membership Card Feature",
+          "file": "membership-card.spec.ts",
+          "line": 3,
+          "column": 6,
+          "specs": [
+            {
+              "title": "Member Dashboard loads with membership card displayed",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "c8261bbf3d9655666e7a-395b2fbcf33e7d13949e",
+              "file": "membership-card.spec.ts",
+              "line": 27,
+              "column": 7
+            },
+            {
+              "title": "Card front side shows member photo placeholder, name, ID, QR code, plan, validity",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "c8261bbf3d9655666e7a-956bcd19f9c067a343c0",
+              "file": "membership-card.spec.ts",
+              "line": 42,
+              "column": 7
+            },
+            {
+              "title": "Card back side shows terms, contact info, usage instructions",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "c8261bbf3d9655666e7a-f131198d830454e09c09",
+              "file": "membership-card.spec.ts",
+              "line": 69,
+              "column": 7
+            },
+            {
+              "title": "Flip card button toggles between front and back",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "c8261bbf3d9655666e7a-cfca944d176cf2c784bd",
+              "file": "membership-card.spec.ts",
+              "line": 98,
+              "column": 7
+            },
+            {
+              "title": "Upload Photo button is present and functional",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "c8261bbf3d9655666e7a-1cdfff2a6ae019803371",
+              "file": "membership-card.spec.ts",
+              "line": 121,
+              "column": 7
+            },
+            {
+              "title": "Download PDF button triggers card download",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "c8261bbf3d9655666e7a-41017f7bf69469661d08",
+              "file": "membership-card.spec.ts",
+              "line": 132,
+              "column": 7
+            },
+            {
+              "title": "Download Image button triggers image download",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "c8261bbf3d9655666e7a-6fb3383ff6ac33bfe7a5",
+              "file": "membership-card.spec.ts",
+              "line": 141,
+              "column": 7
+            },
+            {
+              "title": "Share button is present and functional",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "c8261bbf3d9655666e7a-55e267ecbf529a4479b9",
+              "file": "membership-card.spec.ts",
+              "line": 150,
+              "column": 7
+            },
+            {
+              "title": "Profile Details section displays member information",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "c8261bbf3d9655666e7a-512ec61f9e6f213f9b39",
+              "file": "membership-card.spec.ts",
+              "line": 158,
+              "column": 7
+            },
+            {
+              "title": "Membership Validity section displays dates",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "c8261bbf3d9655666e7a-4704af36496d1990db28",
+              "file": "membership-card.spec.ts",
+              "line": 181,
+              "column": 7
+            },
+            {
+              "title": "Card has credit card dimensions note",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "c8261bbf3d9655666e7a-93cac33b87d83027e698",
+              "file": "membership-card.spec.ts",
+              "line": 188,
+              "column": 7
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "title": "mobile-responsiveness.spec.ts",
+      "file": "mobile-responsiveness.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [],
+      "suites": [
+        {
+          "title": "Mobile Responsiveness",
+          "file": "mobile-responsiveness.spec.ts",
+          "line": 3,
+          "column": 6,
+          "specs": [
+            {
+              "title": "Homepage loads correctly on mobile viewport",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "4e32140bb3e6bb696565-18ffd8ff748b6e65a319",
+              "file": "mobile-responsiveness.spec.ts",
+              "line": 15,
+              "column": 7
+            },
+            {
+              "title": "Landing page /landing works on mobile",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "4e32140bb3e6bb696565-f3054c95f7a370833c49",
+              "file": "mobile-responsiveness.spec.ts",
+              "line": 34,
+              "column": 7
+            },
+            {
+              "title": "Landing page enquiry form works on mobile",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "4e32140bb3e6bb696565-ca61138b09e151a3a15d",
+              "file": "mobile-responsiveness.spec.ts",
+              "line": 50,
+              "column": 7
+            },
+            {
+              "title": "Login page is usable on mobile",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "4e32140bb3e6bb696565-5100996f2f2627bbe102",
+              "file": "mobile-responsiveness.spec.ts",
+              "line": 66,
+              "column": 7
+            },
+            {
+              "title": "Member dashboard is responsive on mobile",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "4e32140bb3e6bb696565-15dc0db233dca20dea8c",
+              "file": "mobile-responsiveness.spec.ts",
+              "line": 83,
+              "column": 7
+            },
+            {
+              "title": "Membership card displays correctly on mobile viewport",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "4e32140bb3e6bb696565-caf469d7d3893587ba8f",
+              "file": "mobile-responsiveness.spec.ts",
+              "line": 101,
+              "column": 7
+            },
+            {
+              "title": "Register page works on mobile",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "4e32140bb3e6bb696565-4398914bcf55f8d20285",
+              "file": "mobile-responsiveness.spec.ts",
+              "line": 123,
+              "column": 7
+            },
+            {
+              "title": "Homepage contact section is accessible on mobile",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "4e32140bb3e6bb696565-385d22a917bbdb3080c5",
+              "file": "mobile-responsiveness.spec.ts",
+              "line": 137,
+              "column": 7
+            },
+            {
+              "title": "Homepage plans section displays on mobile",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "4e32140bb3e6bb696565-9b08176aef2423151534",
+              "file": "mobile-responsiveness.spec.ts",
+              "line": 152,
+              "column": 7
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "title": "modal-overlay.spec.ts",
+      "file": "modal-overlay.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [],
+      "suites": [
+        {
+          "title": "Modal and Dialog Tests",
+          "file": "modal-overlay.spec.ts",
+          "line": 3,
+          "column": 6,
+          "specs": [
+            {
+              "title": "Admin login and verify no overlay issues when navigating pages",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "2750fa2217fc67c48aa0-bbb62ea61b6c63c61956",
+              "file": "modal-overlay.spec.ts",
+              "line": 15,
+              "column": 7
+            },
+            {
+              "title": "Member dashboard has no stuck overlay elements",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "2750fa2217fc67c48aa0-245ee00f10292784683a",
+              "file": "modal-overlay.spec.ts",
+              "line": 39,
+              "column": 7
+            },
+            {
+              "title": "Toast notifications appear and can be dismissed",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "2750fa2217fc67c48aa0-b1e5b22f3de958a8e809",
+              "file": "modal-overlay.spec.ts",
+              "line": 62,
+              "column": 7
+            },
+            {
+              "title": "Invalid login toast appears correctly without blocking UI",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "2750fa2217fc67c48aa0-ed3a57846509ba095a75",
+              "file": "modal-overlay.spec.ts",
+              "line": 78,
+              "column": 7
+            },
+            {
+              "title": "Page navigation does not leave stale overlays",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "2750fa2217fc67c48aa0-88ef2eb06929bce3b0c9",
+              "file": "modal-overlay.spec.ts",
+              "line": 95,
+              "column": 7
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "title": "pwa-core.spec.ts",
+      "file": "pwa-core.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [],
+      "suites": [
+        {
+          "title": "PWA Core Features",
+          "file": "pwa-core.spec.ts",
+          "line": 3,
+          "column": 6,
+          "specs": [
+            {
+              "title": "PWA manifest.json is accessible and valid",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "fca338ba3334b028ce24-c657b5d4db90ae0e62da",
+              "file": "pwa-core.spec.ts",
+              "line": 5,
+              "column": 7
+            },
+            {
+              "title": "Service worker file is accessible",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "fca338ba3334b028ce24-5e2bdd08d96af2b74074",
+              "file": "pwa-core.spec.ts",
+              "line": 29,
+              "column": 7
+            },
+            {
+              "title": "PWA icons are accessible",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "fca338ba3334b028ce24-73ab9e46c539701c1fda",
+              "file": "pwa-core.spec.ts",
+              "line": 41,
+              "column": 7
+            },
+            {
+              "title": "HTML has correct PWA meta tags",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "fca338ba3334b028ce24-d28abe93e771724378b1",
+              "file": "pwa-core.spec.ts",
+              "line": 58,
+              "column": 7
+            },
+            {
+              "title": "Service worker registration works in browser",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "fca338ba3334b028ce24-38fbc51bfd48a5c4643d",
+              "file": "pwa-core.spec.ts",
+              "line": 78,
+              "column": 7
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "title": "registration-page.spec.ts",
+      "file": "registration-page.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [],
+      "suites": [
+        {
+          "title": "Registration Page - Plan Selection & Photo Upload",
+          "file": "registration-page.spec.ts",
+          "line": 6,
+          "column": 6,
+          "specs": [
+            {
+              "title": "Registration page loads with form and plan selection",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "d4136292105bfaee60ec-c7395f1a585831f07d7e",
+              "file": "registration-page.spec.ts",
+              "line": 16,
+              "column": 7
+            },
+            {
+              "title": "Plans are loaded dynamically from API",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "d4136292105bfaee60ec-5d2f39cbb9903e1bacbe",
+              "file": "registration-page.spec.ts",
+              "line": 29,
+              "column": 7
+            },
+            {
+              "title": "Photo upload section is visible",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "d4136292105bfaee60ec-3e4f7939c27a2c71c0e0",
+              "file": "registration-page.spec.ts",
+              "line": 43,
+              "column": 7
+            },
+            {
+              "title": "Can select different plans",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "d4136292105bfaee60ec-13d09f014b681f2f8333",
+              "file": "registration-page.spec.ts",
+              "line": 52,
+              "column": 7
+            },
+            {
+              "title": "Submit button shows selected plan price",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "d4136292105bfaee60ec-2f845ab77f1cd50325d5",
+              "file": "registration-page.spec.ts",
+              "line": 71,
+              "column": 7
+            },
+            {
+              "title": "Date of birth field has correct validation",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "d4136292105bfaee60ec-a618bba31fd611de0d53",
+              "file": "registration-page.spec.ts",
+              "line": 82,
+              "column": 7
+            },
+            {
+              "title": "Referral ID field accepts employee and associate IDs",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "d4136292105bfaee60ec-3b6e09692ac84db82c0e",
+              "file": "registration-page.spec.ts",
+              "line": 96,
+              "column": 7
+            },
+            {
+              "title": "Password visibility toggle works",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "d4136292105bfaee60ec-de40f4578edfbcd6a613",
+              "file": "registration-page.spec.ts",
+              "line": 114,
+              "column": 7
+            },
+            {
+              "title": "Password mismatch shows validation error",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "d4136292105bfaee60ec-fb63c93ff2de99f7f715",
+              "file": "registration-page.spec.ts",
+              "line": 133,
+              "column": 7
+            },
+            {
+              "title": "Mobile number validation requires 10 digits",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "d4136292105bfaee60ec-361969b20fcccd0071f5",
+              "file": "registration-page.spec.ts",
+              "line": 147,
+              "column": 7
+            },
+            {
+              "title": "Secure payment info is displayed",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "d4136292105bfaee60ec-b47865d1aaeb787989b0",
+              "file": "registration-page.spec.ts",
+              "line": 165,
+              "column": 7
+            },
+            {
+              "title": "Link to login page works",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "d4136292105bfaee60ec-bbf73488e89173e44855",
+              "file": "registration-page.spec.ts",
+              "line": 171,
+              "column": 7
+            },
+            {
+              "title": "Required field validation on empty submit",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "d4136292105bfaee60ec-9ea87573f7559047453f",
+              "file": "registration-page.spec.ts",
+              "line": 179,
+              "column": 7
+            }
+          ]
+        },
+        {
+          "title": "Registration Initiation API Integration",
+          "file": "registration-page.spec.ts",
+          "line": 192,
+          "column": 6,
+          "specs": [
+            {
+              "title": "Registration form submits and opens Razorpay",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "d4136292105bfaee60ec-02cc7f4e727266fb7b8d",
+              "file": "registration-page.spec.ts",
+              "line": 193,
+              "column": 7
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "title": "ui-updates-dashboard.spec.ts",
+      "file": "ui-updates-dashboard.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [],
+      "suites": [
+        {
+          "title": "Member Dashboard Tabs - UI Updates",
+          "file": "ui-updates-dashboard.spec.ts",
+          "line": 3,
+          "column": 6,
+          "specs": [
+            {
+              "title": "Dashboard has all 6 updated tabs (My Card, My Profile, Affiliations, Bookings, Payments, Feedback)",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "cca757dd3bc08c0d00a3-e37ce3e81dd586b88c57",
+              "file": "ui-updates-dashboard.spec.ts",
+              "line": 24,
+              "column": 7
+            },
+            {
+              "title": "My Card tab shows membership card",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "cca757dd3bc08c0d00a3-7766c98cb86c80392392",
+              "file": "ui-updates-dashboard.spec.ts",
+              "line": 37,
+              "column": 7
+            },
+            {
+              "title": "My Profile tab shows member information",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "cca757dd3bc08c0d00a3-ef5774a14c5caa3c9987",
+              "file": "ui-updates-dashboard.spec.ts",
+              "line": 49,
+              "column": 7
+            },
+            {
+              "title": "Affiliations tab shows partner venues with booking option",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "cca757dd3bc08c0d00a3-30d22e62b16a25211741",
+              "file": "ui-updates-dashboard.spec.ts",
+              "line": 61,
+              "column": 7
+            },
+            {
+              "title": "Bookings tab shows booking history",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "cca757dd3bc08c0d00a3-3ce64852249221e81a64",
+              "file": "ui-updates-dashboard.spec.ts",
+              "line": 78,
+              "column": 7
+            },
+            {
+              "title": "Payments tab is accessible",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "cca757dd3bc08c0d00a3-e9028e4eeea6a49bb774",
+              "file": "ui-updates-dashboard.spec.ts",
+              "line": 95,
+              "column": 7
+            },
+            {
+              "title": "Feedback tab allows submitting feedback",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "cca757dd3bc08c0d00a3-c295b4b07bc5650c80f5",
+              "file": "ui-updates-dashboard.spec.ts",
+              "line": 105,
+              "column": 7
+            },
+            {
+              "title": "Old tabs (Experiences, Benefits) should NOT be visible",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "cca757dd3bc08c0d00a3-0fbdcaaeccf822928970",
+              "file": "ui-updates-dashboard.spec.ts",
+              "line": 118,
+              "column": 7
+            },
+            {
+              "title": "Logout works correctly",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "cca757dd3bc08c0d00a3-d96b038d779107123598",
+              "file": "ui-updates-dashboard.spec.ts",
+              "line": 130,
+              "column": 7
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "title": "ui-updates-navigation.spec.ts",
+      "file": "ui-updates-navigation.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [],
+      "suites": [
+        {
+          "title": "Homepage Navigation - UI Updates",
+          "file": "ui-updates-navigation.spec.ts",
+          "line": 3,
+          "column": 6,
+          "specs": [
+            {
+              "title": "Navigation has correct updated links (About Us, Offers, Affiliations, Gallery, Contact)",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "e26eee2c70186a060371-ccf52c3c3e632f837aca",
+              "file": "ui-updates-navigation.spec.ts",
+              "line": 15,
+              "column": 7
+            },
+            {
+              "title": "Login is renamed to Member Login",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "e26eee2c70186a060371-b64fdcf19477db70b410",
+              "file": "ui-updates-navigation.spec.ts",
+              "line": 38,
+              "column": 7
+            },
+            {
+              "title": "Offers section displays exclusive offers",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "e26eee2c70186a060371-64034312b88ce39b7b26",
+              "file": "ui-updates-navigation.spec.ts",
+              "line": 49,
+              "column": 7
+            },
+            {
+              "title": "Affiliations section displays partners with enhanced details",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "e26eee2c70186a060371-fba849dcec33624d25a5",
+              "file": "ui-updates-navigation.spec.ts",
+              "line": 69,
+              "column": 7
+            },
+            {
+              "title": "Gallery section displays images",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "e26eee2c70186a060371-ca6c07ff388325425f85",
+              "file": "ui-updates-navigation.spec.ts",
+              "line": 91,
+              "column": 7
+            },
+            {
+              "title": "Mobile navigation shows updated menu items",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "e26eee2c70186a060371-69eb6ca28bad10621b41",
+              "file": "ui-updates-navigation.spec.ts",
+              "line": 109,
+              "column": 7
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "errors": [],
+  "stats": {
+    "startTime": "2026-03-14T16:18:18.131Z",
+    "duration": 270.6089999999999,
+    "expected": 0,
+    "skipped": 127,
+    "unexpected": 0,
+    "flaky": 0
+  }
+}

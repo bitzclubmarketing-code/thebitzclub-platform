@@ -234,22 +234,47 @@ class FacilityDiscount(BaseModel):
 class PartnerCreate(BaseModel):
     name: str
     description: str
+    category: Optional[str] = None  # Hotel, Restaurant, Spa, Gym, etc.
     logo_url: Optional[str] = None
+    image_url: Optional[str] = None  # Main image for the affiliation
     contact_email: Optional[EmailStr] = None
     contact_phone: Optional[str] = None
+    # Enhanced Affiliation Fields
+    contact_person_1: Optional[str] = None  # e.g., "Mr. Jerin T Jose"
+    contact_person_1_phone: Optional[str] = None
+    contact_person_2: Optional[str] = None
+    contact_person_2_phone: Optional[str] = None
     address: Optional[str] = None
+    city: Optional[str] = None
+    website: Optional[str] = None
+    # Offers - can be multiple
+    offers: Optional[str] = None  # e.g., "Stay 20% off, Food 15% off"
     facilities: List[FacilityDiscount] = []
     is_active: bool = True
+    # For booking
+    booking_enabled: bool = True
+    booking_instructions: Optional[str] = None
 
 class PartnerUpdate(BaseModel):
     name: Optional[str] = None
     description: Optional[str] = None
+    category: Optional[str] = None
     logo_url: Optional[str] = None
+    image_url: Optional[str] = None
     contact_email: Optional[EmailStr] = None
     contact_phone: Optional[str] = None
+    contact_person_1: Optional[str] = None
+    contact_person_1_phone: Optional[str] = None
+    contact_person_2: Optional[str] = None
+    contact_person_2_phone: Optional[str] = None
     address: Optional[str] = None
+    city: Optional[str] = None
+    website: Optional[str] = None
+    offers: Optional[str] = None
     facilities: Optional[List[FacilityDiscount]] = None
     is_active: Optional[bool] = None
+    booking_enabled: Optional[bool] = None
+    booking_instructions: Optional[str] = None
 
 # Telecaller Models
 class TelecallerCreate(BaseModel):
@@ -274,6 +299,60 @@ class FollowUpUpdate(BaseModel):
     notes: Optional[str] = None
     follow_up_date: Optional[str] = None
     status: Optional[str] = None
+
+# Booking Models (for Affiliate Bookings)
+class BookingCreate(BaseModel):
+    affiliate_id: str  # Partner/Affiliation ID
+    booking_date: str  # Date of visit/booking
+    notes: Optional[str] = None
+
+class BookingUpdate(BaseModel):
+    status: Optional[str] = None  # confirmed, cancelled, completed
+    notes: Optional[str] = None
+
+# Offers/Events Models
+class OfferCreate(BaseModel):
+    title: str
+    description: str
+    image_url: Optional[str] = None
+    discount_text: Optional[str] = None  # e.g., "20% OFF"
+    valid_from: Optional[str] = None
+    valid_until: Optional[str] = None
+    terms: Optional[str] = None
+    affiliate_id: Optional[str] = None  # Link to specific affiliate
+    category: Optional[str] = None  # Hotel, Restaurant, Event, etc.
+    is_active: bool = True
+    is_featured: bool = False
+
+class OfferUpdate(BaseModel):
+    title: Optional[str] = None
+    description: Optional[str] = None
+    image_url: Optional[str] = None
+    discount_text: Optional[str] = None
+    valid_from: Optional[str] = None
+    valid_until: Optional[str] = None
+    terms: Optional[str] = None
+    affiliate_id: Optional[str] = None
+    category: Optional[str] = None
+    is_active: Optional[bool] = None
+    is_featured: Optional[bool] = None
+
+# Gallery Models
+class GalleryItemCreate(BaseModel):
+    title: str
+    image_url: str
+    description: Optional[str] = None
+    category: Optional[str] = None  # events, partners, members, etc.
+    order: int = 0
+    is_active: bool = True
+
+class GalleryItemUpdate(BaseModel):
+    title: Optional[str] = None
+    image_url: Optional[str] = None
+    description: Optional[str] = None
+    category: Optional[str] = None
+    order: Optional[int] = None
+    is_active: Optional[bool] = None
 
 # Payment Models
 class PaymentCreate(BaseModel):
@@ -1811,6 +1890,119 @@ async def delete_partner(partner_id: str, admin: dict = Depends(require_admin)):
     if result.deleted_count == 0:
         raise HTTPException(status_code=404, detail="Partner not found")
     return {"message": "Partner deleted"}
+
+# ==================== AFFILIATE BOOKINGS ENDPOINTS ====================
+
+@api_router.post("/bookings")
+async def create_booking(booking: BookingCreate, user: dict = Depends(get_current_user)):
+    """Create a booking at an affiliate (for members)"""
+    # Get member details
+    member = await db.members.find_one({"user_id": user["id"]}, {"_id": 0})
+    if not member:
+        raise HTTPException(status_code=404, detail="Member not found")
+    
+    # Get affiliate/partner details
+    affiliate = await db.partners.find_one({"id": booking.affiliate_id}, {"_id": 0})
+    if not affiliate:
+        raise HTTPException(status_code=404, detail="Affiliate not found")
+    
+    if not affiliate.get("booking_enabled", True):
+        raise HTTPException(status_code=400, detail="Bookings not available for this affiliate")
+    
+    booking_id = str(uuid.uuid4())
+    booking_doc = {
+        "id": booking_id,
+        "member_id": member["member_id"],
+        "member_name": member["name"],
+        "member_email": member.get("email"),
+        "member_mobile": member.get("mobile"),
+        "user_id": user["id"],
+        "affiliate_id": booking.affiliate_id,
+        "affiliate_name": affiliate["name"],
+        "affiliate_offers": affiliate.get("offers"),
+        "affiliate_contact_1": affiliate.get("contact_person_1"),
+        "affiliate_contact_1_phone": affiliate.get("contact_person_1_phone"),
+        "affiliate_phone": affiliate.get("contact_phone"),
+        "affiliate_address": affiliate.get("address"),
+        "affiliate_website": affiliate.get("website"),
+        "booking_date": booking.booking_date,
+        "notes": booking.notes,
+        "status": "confirmed",
+        "created_at": datetime.now(timezone.utc).isoformat()
+    }
+    await db.bookings.insert_one(booking_doc)
+    
+    logger.info(f"[BOOKING] Created booking {booking_id} for {member['member_id']} at {affiliate['name']}")
+    
+    return {
+        "message": "Booking created successfully!",
+        "booking_id": booking_id,
+        "affiliate_name": affiliate["name"],
+        "booking_date": booking.booking_date
+    }
+
+@api_router.get("/bookings")
+async def get_my_bookings(user: dict = Depends(get_current_user)):
+    """Get member's booking history"""
+    bookings = await db.bookings.find(
+        {"user_id": user["id"]},
+        {"_id": 0}
+    ).sort("created_at", -1).to_list(100)
+    return bookings
+
+@api_router.get("/bookings/{booking_id}")
+async def get_booking_details(booking_id: str, user: dict = Depends(get_current_user)):
+    """Get booking details"""
+    booking = await db.bookings.find_one({"id": booking_id}, {"_id": 0})
+    if not booking:
+        raise HTTPException(status_code=404, detail="Booking not found")
+    
+    # Verify ownership or admin access
+    if booking["user_id"] != user["id"] and user.get("role") not in [UserRole.ADMIN, UserRole.SUPER_ADMIN]:
+        raise HTTPException(status_code=403, detail="Access denied")
+    
+    return booking
+
+@api_router.get("/admin/bookings")
+async def get_all_bookings(
+    affiliate_id: Optional[str] = None,
+    member_id: Optional[str] = None,
+    status: Optional[str] = None,
+    page: int = Query(1, ge=1),
+    limit: int = Query(20, ge=1, le=100),
+    admin: dict = Depends(require_admin)
+):
+    """Get all bookings for admin"""
+    query = {}
+    if affiliate_id:
+        query["affiliate_id"] = affiliate_id
+    if member_id:
+        query["member_id"] = member_id
+    if status:
+        query["status"] = status
+    
+    skip = (page - 1) * limit
+    total = await db.bookings.count_documents(query)
+    bookings = await db.bookings.find(query, {"_id": 0}).sort("created_at", -1).skip(skip).limit(limit).to_list(limit)
+    
+    return {
+        "bookings": bookings,
+        "total": total,
+        "page": page,
+        "limit": limit,
+        "pages": (total + limit - 1) // limit
+    }
+
+@api_router.put("/bookings/{booking_id}/status")
+async def update_booking_status(booking_id: str, status: str, admin: dict = Depends(require_admin)):
+    """Update booking status (admin only)"""
+    result = await db.bookings.update_one(
+        {"id": booking_id},
+        {"$set": {"status": status, "updated_at": datetime.now(timezone.utc).isoformat()}}
+    )
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Booking not found")
+    return {"message": "Booking status updated"}
 
 # ==================== TELECALLERS ENDPOINTS ====================
 
@@ -3774,6 +3966,104 @@ async def update_website_settings(settings: WebsiteSettings, admin: dict = Depen
     await db.settings.update_one({"type": "website"}, {"$set": update_data}, upsert=True)
     updated = await db.settings.find_one({"type": "website"}, {"_id": 0})
     return updated
+
+# ==================== OFFERS ENDPOINTS ====================
+
+@api_router.get("/offers")
+async def get_offers(is_active: Optional[bool] = True, is_featured: Optional[bool] = None):
+    """Get all offers for the website"""
+    query = {}
+    if is_active is not None:
+        query["is_active"] = is_active
+    if is_featured is not None:
+        query["is_featured"] = is_featured
+    
+    offers = await db.offers.find(query, {"_id": 0}).sort("created_at", -1).to_list(100)
+    
+    # If no offers, create sample offers
+    if not offers and is_active:
+        sample_offers = [
+            {
+                "id": "offer_hotel_1",
+                "title": "Weekend Getaway Special",
+                "description": "Enjoy 30% off on weekend stays at premium hotels",
+                "image_url": "https://images.unsplash.com/photo-1566073771259-6a8506099945?w=800&q=80",
+                "discount_text": "30% OFF",
+                "category": "Hotel",
+                "is_active": True,
+                "is_featured": True,
+                "created_at": datetime.now(timezone.utc).isoformat()
+            },
+            {
+                "id": "offer_dining_1",
+                "title": "Fine Dining Experience",
+                "description": "25% discount on dinner for two at partner restaurants",
+                "image_url": "https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=800&q=80",
+                "discount_text": "25% OFF",
+                "category": "Restaurant",
+                "is_active": True,
+                "is_featured": True,
+                "created_at": datetime.now(timezone.utc).isoformat()
+            },
+            {
+                "id": "offer_spa_1",
+                "title": "Spa & Wellness Retreat",
+                "description": "Complimentary spa session with any hotel booking",
+                "image_url": "https://images.unsplash.com/photo-1544161515-4ab6ce6db874?w=800&q=80",
+                "discount_text": "FREE SPA",
+                "category": "Spa",
+                "is_active": True,
+                "is_featured": False,
+                "created_at": datetime.now(timezone.utc).isoformat()
+            }
+        ]
+        await db.offers.insert_many(sample_offers)
+        return sample_offers
+    
+    return offers
+
+@api_router.get("/offers/{offer_id}")
+async def get_offer(offer_id: str):
+    """Get single offer details"""
+    offer = await db.offers.find_one({"id": offer_id}, {"_id": 0})
+    if not offer:
+        raise HTTPException(status_code=404, detail="Offer not found")
+    return offer
+
+@api_router.post("/offers")
+async def create_offer(offer: OfferCreate, admin: dict = Depends(require_admin)):
+    """Create a new offer"""
+    offer_id = f"offer_{uuid.uuid4().hex[:8]}"
+    offer_doc = {
+        "id": offer_id,
+        **offer.dict(),
+        "created_at": datetime.now(timezone.utc).isoformat(),
+        "created_by": admin["id"]
+    }
+    await db.offers.insert_one(offer_doc)
+    offer_doc.pop("_id", None)
+    return offer_doc
+
+@api_router.put("/offers/{offer_id}")
+async def update_offer(offer_id: str, offer: OfferUpdate, admin: dict = Depends(require_admin)):
+    """Update an offer"""
+    update_data = {k: v for k, v in offer.dict().items() if v is not None}
+    update_data["updated_at"] = datetime.now(timezone.utc).isoformat()
+    
+    result = await db.offers.update_one({"id": offer_id}, {"$set": update_data})
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Offer not found")
+    
+    updated = await db.offers.find_one({"id": offer_id}, {"_id": 0})
+    return updated
+
+@api_router.delete("/offers/{offer_id}")
+async def delete_offer(offer_id: str, admin: dict = Depends(require_admin)):
+    """Delete an offer"""
+    result = await db.offers.delete_one({"id": offer_id})
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Offer not found")
+    return {"message": "Offer deleted successfully"}
 
 # ==================== SEED DATA ====================
 

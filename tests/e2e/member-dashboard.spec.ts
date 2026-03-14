@@ -36,11 +36,14 @@ test.describe('Member Dashboard & Membership Card', () => {
     await expect(page.locator('text=BITZ-2026').first()).toBeVisible();
   });
 
-  test('Dashboard has tab navigation (My Card, Experiences, Benefits)', async ({ page }) => {
-    // Verify all three tabs are visible
+  test('Dashboard has tab navigation (My Card, My Profile, Affiliations, Bookings, Payments, Feedback)', async ({ page }) => {
+    // Verify all SIX tabs are visible (UPDATED from 3 to 6 tabs)
     await expect(page.getByRole('button', { name: /My Card/i })).toBeVisible({ timeout: 10000 });
-    await expect(page.getByRole('button', { name: /Experiences/i })).toBeVisible();
-    await expect(page.getByRole('button', { name: /Benefits/i })).toBeVisible();
+    await expect(page.getByRole('button', { name: /My Profile/i })).toBeVisible();
+    await expect(page.getByRole('button', { name: /Affiliations/i })).toBeVisible();
+    await expect(page.getByRole('button', { name: /Bookings/i })).toBeVisible();
+    await expect(page.getByRole('button', { name: /Payments/i })).toBeVisible();
+    await expect(page.getByRole('button', { name: /Feedback/i })).toBeVisible();
     
     // Default active tab should be My Card - it has a gold background
     const myCardTab = page.getByRole('button', { name: /My Card/i });
@@ -116,27 +119,29 @@ test.describe('Member Dashboard & Membership Card', () => {
     await expect(page.getByText('Status', { exact: true })).toBeVisible();
   });
 
-  test('Experiences tab shows lifestyle image gallery', async ({ page }) => {
-    // Click on Experiences tab
-    await page.getByRole('button', { name: /Experiences/i }).click();
+  test('Affiliations tab shows partner venues', async ({ page }) => {
+    // Click on Affiliations tab (UPDATED from Experiences)
+    await page.getByRole('button', { name: /Affiliations/i }).click();
     
-    // Verify Experiences tab content
-    await expect(page.locator('text=Exclusive Experiences')).toBeVisible({ timeout: 10000 });
-    await expect(page.locator('text=Unlock premium lifestyle experiences')).toBeVisible();
+    // Verify Affiliations tab content
+    await expect(page.locator('text=Our Affiliations')).toBeVisible({ timeout: 10000 });
+    await expect(page.locator('text=Book your visit').first()).toBeVisible();
     
-    // Verify some lifestyle categories are displayed
-    await expect(page.locator('text=Luxury Hotels')).toBeVisible();
-    await expect(page.locator('text=Fine Dining')).toBeVisible();
-    await expect(page.locator('text=Spa & Wellness')).toBeVisible();
+    // Verify some affiliates are displayed
+    await expect(page.locator('text=Luxury Spa & Wellness').first()).toBeVisible();
   });
 
-  test('Benefits tab shows partner discounts', async ({ page }) => {
-    // Click on Benefits tab
-    await page.getByRole('button', { name: /Benefits/i }).click();
+  test('Bookings tab shows booking history', async ({ page }) => {
+    // Click on Bookings tab (UPDATED from Benefits)
+    await page.getByRole('button', { name: /Bookings/i }).click();
     
-    // Verify Benefits tab content
-    await expect(page.locator('text=Partner Benefits').first()).toBeVisible({ timeout: 10000 });
-    await expect(page.locator('text=Show your membership card at these venues')).toBeVisible();
+    // Verify Bookings tab content
+    await expect(page.locator('text=Bookings History').first()).toBeVisible({ timeout: 10000 });
+    
+    // Either bookings or empty state should show
+    const hasBookings = await page.locator('text=CONFIRMED').first().isVisible().catch(() => false);
+    const noBookings = await page.locator('text=No bookings').first().isVisible().catch(() => false);
+    expect(hasBookings || noBookings).toBeTruthy();
   });
 
   test('Logout button works correctly', async ({ page }) => {

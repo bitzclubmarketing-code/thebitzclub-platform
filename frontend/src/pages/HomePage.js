@@ -36,6 +36,8 @@ const HomePage = () => {
   const [plans, setPlans] = useState([]);
   const [partners, setPartners] = useState([]);
   const [experiences, setExperiences] = useState([]);
+  const [offers, setOffers] = useState([]);
+  const [gallery, setGallery] = useState([]);
   const [settings, setSettings] = useState({});
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [activeGalleryIndex, setActiveGalleryIndex] = useState(0);
@@ -44,6 +46,8 @@ const HomePage = () => {
     fetchPlans();
     fetchPartners();
     fetchExperiences();
+    fetchOffers();
+    fetchGallery();
     fetchSettings();
   }, []);
 
@@ -91,6 +95,24 @@ const HomePage = () => {
     }
   };
 
+  const fetchOffers = async () => {
+    try {
+      const response = await axios.get(`${API}/offers?is_active=true`);
+      setOffers(response.data);
+    } catch (error) {
+      console.error('Failed to fetch offers:', error);
+    }
+  };
+
+  const fetchGallery = async () => {
+    try {
+      const response = await axios.get(`${API}/content/gallery`);
+      setGallery(response.data.filter(img => img.is_active));
+    } catch (error) {
+      console.error('Failed to fetch gallery:', error);
+    }
+  };
+
   const features = [
     { icon: Crown, title: 'Premium Benefits', description: 'Exclusive access to luxury partners and facilities' },
     { icon: CreditCard, title: 'Digital Membership', description: 'QR-enabled membership card accessible anywhere' },
@@ -124,9 +146,10 @@ const HomePage = () => {
           
           {/* Desktop Nav */}
           <div className="hidden md:flex items-center gap-8">
-            <a href="#experiences" className="text-gray-300 hover:text-[#D4AF37] transition-colors">Experiences</a>
-            <a href="#plans" className="text-gray-300 hover:text-[#D4AF37] transition-colors">Plans</a>
-            <a href="#partners" className="text-gray-300 hover:text-[#D4AF37] transition-colors">Partners</a>
+            <a href="#about" className="text-gray-300 hover:text-[#D4AF37] transition-colors">About Us</a>
+            <a href="#offers" className="text-gray-300 hover:text-[#D4AF37] transition-colors">Offers</a>
+            <a href="#affiliations" className="text-gray-300 hover:text-[#D4AF37] transition-colors">Affiliations</a>
+            <a href="#gallery" className="text-gray-300 hover:text-[#D4AF37] transition-colors">Gallery</a>
             <a href="#contact" className="text-gray-300 hover:text-[#D4AF37] transition-colors">Contact</a>
           </div>
           
@@ -136,7 +159,7 @@ const HomePage = () => {
               className="text-[#D4AF37] hover:text-[#E6D699] transition-colors text-sm sm:text-base"
               data-testid="login-link"
             >
-              Login
+              Member Login
             </Link>
             <Link 
               to="/register" 
@@ -164,9 +187,10 @@ const HomePage = () => {
             className="md:hidden bg-[#1A1A1C] border-t border-white/10 px-4 py-4"
           >
             <div className="flex flex-col gap-4">
-              <a href="#experiences" className="text-gray-300 hover:text-[#D4AF37] transition-colors py-2" onClick={() => setMobileMenuOpen(false)}>Experiences</a>
-              <a href="#plans" className="text-gray-300 hover:text-[#D4AF37] transition-colors py-2" onClick={() => setMobileMenuOpen(false)}>Plans</a>
-              <a href="#partners" className="text-gray-300 hover:text-[#D4AF37] transition-colors py-2" onClick={() => setMobileMenuOpen(false)}>Partners</a>
+              <a href="#about" className="text-gray-300 hover:text-[#D4AF37] transition-colors py-2" onClick={() => setMobileMenuOpen(false)}>About Us</a>
+              <a href="#offers" className="text-gray-300 hover:text-[#D4AF37] transition-colors py-2" onClick={() => setMobileMenuOpen(false)}>Offers</a>
+              <a href="#affiliations" className="text-gray-300 hover:text-[#D4AF37] transition-colors py-2" onClick={() => setMobileMenuOpen(false)}>Affiliations</a>
+              <a href="#gallery" className="text-gray-300 hover:text-[#D4AF37] transition-colors py-2" onClick={() => setMobileMenuOpen(false)}>Gallery</a>
               <a href="#contact" className="text-gray-300 hover:text-[#D4AF37] transition-colors py-2" onClick={() => setMobileMenuOpen(false)}>Contact</a>
             </div>
           </motion.div>
@@ -477,8 +501,66 @@ const HomePage = () => {
         </div>
       </section>
 
-      {/* Partners Section */}
-      <section id="partners" className="py-16 sm:py-24 bg-[#0F0F10]">
+      {/* Offers Section */}
+      <section id="offers" className="py-16 sm:py-24 bg-[#1A1A1C]">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            className="text-center mb-10 sm:mb-16"
+          >
+            <span className="text-[#D4AF37] text-xs sm:text-sm uppercase tracking-widest mb-3 block">Special Deals</span>
+            <h2 
+              className="text-3xl sm:text-4xl lg:text-5xl font-bold text-white mb-3 sm:mb-4"
+              style={{ fontFamily: 'Playfair Display, serif' }}
+            >
+              Exclusive <span className="text-[#D4AF37]">Offers</span>
+            </h2>
+            <p className="text-gray-400 max-w-2xl mx-auto">
+              Take advantage of special deals and discounts at our partner venues
+            </p>
+          </motion.div>
+
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+            {offers.map((offer, index) => (
+              <motion.div
+                key={offer.id}
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: index * 0.1 }}
+                className="card-dark card-interactive rounded-xl sm:rounded-2xl overflow-hidden"
+              >
+                {offer.image_url && (
+                  <div 
+                    className="h-40 sm:h-48 bg-cover bg-center relative"
+                    style={{ backgroundImage: `url(${offer.image_url})` }}
+                  >
+                    {offer.discount_text && (
+                      <div className="absolute top-3 right-3 bg-[#D4AF37] text-black px-3 py-1 rounded-full text-sm font-bold">
+                        {offer.discount_text}
+                      </div>
+                    )}
+                  </div>
+                )}
+                <div className="p-4 sm:p-6">
+                  <h3 className="text-lg sm:text-xl font-semibold text-white mb-2">{offer.title}</h3>
+                  <p className="text-gray-400 text-sm mb-4 line-clamp-2">{offer.description}</p>
+                  {offer.category && (
+                    <span className="inline-block bg-white/10 text-[#D4AF37] px-3 py-1 rounded text-xs">
+                      {offer.category}
+                    </span>
+                  )}
+                </div>
+              </motion.div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Affiliations Section (Partners) */}
+      <section id="affiliations" className="py-16 sm:py-24 bg-[#0F0F10]">
         <div className="max-w-7xl mx-auto px-4 sm:px-6">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -491,8 +573,11 @@ const HomePage = () => {
               className="text-3xl sm:text-4xl lg:text-5xl font-bold text-white mb-3 sm:mb-4"
               style={{ fontFamily: 'Playfair Display, serif' }}
             >
-              Partner <span className="text-[#D4AF37]">Venues</span>
+              Our <span className="text-[#D4AF37]">Affiliations</span>
             </h2>
+            <p className="text-gray-400 max-w-2xl mx-auto">
+              Premium partner venues where you can enjoy exclusive member benefits
+            </p>
           </motion.div>
 
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
@@ -505,28 +590,126 @@ const HomePage = () => {
                 transition={{ delay: index * 0.1 }}
                 className="card-dark card-interactive rounded-xl sm:rounded-2xl overflow-hidden"
               >
-                {partner.logo_url && (
+                {(partner.image_url || partner.logo_url) && (
                   <div 
                     className="h-40 sm:h-48 bg-cover bg-center"
-                    style={{ backgroundImage: `url(${partner.logo_url})` }}
+                    style={{ backgroundImage: `url(${partner.image_url || partner.logo_url})` }}
                   />
                 )}
                 <div className="p-4 sm:p-6">
-                  <h3 className="text-lg sm:text-xl font-semibold text-white mb-2">{partner.name}</h3>
-                  <p className="text-gray-400 text-sm mb-4 line-clamp-2">{partner.description}</p>
-                  {partner.facilities?.length > 0 && (
-                    <div className="space-y-2 pt-4 border-t border-white/10">
-                      {partner.facilities.slice(0, 3).map((facility, i) => (
-                        <div key={i} className="flex justify-between items-center text-sm">
-                          <span className="text-gray-300">{facility.facility_name}</span>
-                          <span className="text-[#D4AF37] font-semibold">{facility.discount_percentage}% OFF</span>
-                        </div>
-                      ))}
-                    </div>
+                  <div className="flex items-start justify-between mb-2">
+                    <h3 className="text-lg sm:text-xl font-semibold text-white">{partner.name}</h3>
+                    {partner.category && (
+                      <span className="text-xs bg-[#D4AF37]/20 text-[#D4AF37] px-2 py-1 rounded">{partner.category}</span>
+                    )}
+                  </div>
+                  
+                  {partner.offers && (
+                    <p className="text-[#D4AF37] text-sm font-semibold mb-2">{partner.offers}</p>
                   )}
+                  
+                  <p className="text-gray-400 text-sm mb-4 line-clamp-2">{partner.description}</p>
+                  
+                  {/* Affiliate Details */}
+                  <div className="space-y-2 pt-4 border-t border-white/10 text-sm">
+                    {partner.contact_person_1 && (
+                      <div className="flex justify-between">
+                        <span className="text-gray-500">Contact:</span>
+                        <span className="text-gray-300">{partner.contact_person_1}</span>
+                      </div>
+                    )}
+                    {partner.contact_phone && (
+                      <div className="flex justify-between">
+                        <span className="text-gray-500">Phone:</span>
+                        <span className="text-gray-300">{partner.contact_phone}</span>
+                      </div>
+                    )}
+                    {partner.city && (
+                      <div className="flex justify-between">
+                        <span className="text-gray-500">Location:</span>
+                        <span className="text-gray-300">{partner.city}</span>
+                      </div>
+                    )}
+                    {partner.facilities?.length > 0 && (
+                      <div className="pt-2 border-t border-white/5">
+                        {partner.facilities.slice(0, 2).map((facility, i) => (
+                          <div key={i} className="flex justify-between items-center">
+                            <span className="text-gray-400">{facility.facility_name}</span>
+                            <span className="text-[#D4AF37] font-semibold">{facility.discount_percentage}% OFF</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                 </div>
               </motion.div>
             ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Gallery Section */}
+      <section id="gallery" className="py-16 sm:py-24 bg-[#1A1A1C]">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            className="text-center mb-10 sm:mb-16"
+          >
+            <span className="text-[#D4AF37] text-xs sm:text-sm uppercase tracking-widest mb-3 block">Glimpses</span>
+            <h2 
+              className="text-3xl sm:text-4xl lg:text-5xl font-bold text-white mb-3 sm:mb-4"
+              style={{ fontFamily: 'Playfair Display, serif' }}
+            >
+              Photo <span className="text-[#D4AF37]">Gallery</span>
+            </h2>
+          </motion.div>
+
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4">
+            {gallery.length > 0 ? gallery.map((img, index) => (
+              <motion.div
+                key={img.id}
+                initial={{ opacity: 0, scale: 0.9 }}
+                whileInView={{ opacity: 1, scale: 1 }}
+                viewport={{ once: true }}
+                transition={{ delay: index * 0.05 }}
+                className="aspect-square rounded-lg overflow-hidden"
+              >
+                <img 
+                  src={img.image_url} 
+                  alt={img.title}
+                  className="w-full h-full object-cover hover:scale-110 transition-transform duration-300"
+                />
+              </motion.div>
+            )) : (
+              // Default gallery images
+              [
+                'https://images.unsplash.com/photo-1566073771259-6a8506099945?w=400&q=80',
+                'https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=400&q=80',
+                'https://images.unsplash.com/photo-1544161515-4ab6ce6db874?w=400&q=80',
+                'https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=400&q=80',
+                'https://images.unsplash.com/photo-1519671482749-fd09be7ccebf?w=400&q=80',
+                'https://images.unsplash.com/photo-1571896349842-33c89424de2d?w=400&q=80',
+                'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=400&q=80',
+                'https://images.unsplash.com/photo-1519741497674-611481863552?w=400&q=80'
+              ].map((url, index) => (
+                <motion.div
+                  key={index}
+                  initial={{ opacity: 0, scale: 0.9 }}
+                  whileInView={{ opacity: 1, scale: 1 }}
+                  viewport={{ once: true }}
+                  transition={{ delay: index * 0.05 }}
+                  className="aspect-square rounded-lg overflow-hidden"
+                >
+                  <img 
+                    src={url} 
+                    alt={`Gallery ${index + 1}`}
+                    className="w-full h-full object-cover hover:scale-110 transition-transform duration-300"
+                  />
+                </motion.div>
+              ))
+            )}
           </div>
         </div>
       </section>
