@@ -5,7 +5,7 @@ import json
 from datetime import datetime
 
 class BITZClubAPITester:
-    def __init__(self, base_url="https://bitz-membership-fix.preview.emergentagent.com"):
+    def __init__(self, base_url="https://club-membership-hub.preview.emergentagent.com"):
         self.base_url = base_url
         self.token = None
         self.tests_run = 0

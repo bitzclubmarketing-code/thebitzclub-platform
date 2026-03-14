@@ -36,6 +36,18 @@ export async function login(page: Page, mobile: string, password: string) {
   await page.getByTestId('login-submit').click();
 }
 
+export async function loginAsMember(page: Page) {
+  await login(page, '7777777777', 'member123');
+  // Wait for member dashboard
+  await expect(page).toHaveURL(/\/member/, { timeout: 15000 });
+}
+
+export async function loginAsAdmin(page: Page) {
+  await login(page, '9999999999', 'admin123');
+  // Wait for admin dashboard
+  await expect(page).toHaveURL(/\/admin/, { timeout: 15000 });
+}
+
 export async function removeEmergentBadge(page: Page) {
   await page.evaluate(() => {
     const badge = document.querySelector('#emergent-badge, [class*="emergent"], [id*="emergent-badge"]');

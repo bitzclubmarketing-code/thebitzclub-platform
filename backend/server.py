@@ -1,6 +1,7 @@
-from fastapi import FastAPI, APIRouter, HTTPException, Depends, Query, BackgroundTasks, Request
+from fastapi import FastAPI, APIRouter, HTTPException, Depends, Query, BackgroundTasks, Request, File, UploadFile
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from fastapi.responses import StreamingResponse
+from fastapi.staticfiles import StaticFiles
 from dotenv import load_dotenv
 from starlette.middleware.cors import CORSMiddleware
 from motor.motor_asyncio import AsyncIOMotorClient
@@ -130,6 +131,7 @@ class MemberUpdate(BaseModel):
     date_of_birth: Optional[str] = None
     plan_id: Optional[str] = None
     referral_id: Optional[str] = None
+    photo_url: Optional[str] = None
 
 # Plan Models
 class PlanCreate(BaseModel):
@@ -1043,6 +1045,79 @@ async def assign_member_telecaller(member_id: str, request: AssignTelecallerRequ
     if result.matched_count == 0:
         raise HTTPException(status_code=404, detail="Member not found")
     return {"message": "Telecaller assigned successfully"}
+
+
+# ==================== MEMBER PHOTO UPLOAD ====================
+
+UPLOAD_DIR = Path(__file__).parent / "uploads" / "photos"
+UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
+
+@api_router.post("/members/{member_id}/photo")
+async def upload_member_photo(member_id: str, file: UploadFile = File(...), user: dict = Depends(get_current_user)):
+    """Upload a photo for a member"""
+    # Validate file type
+    allowed_types = ["image/jpeg", "image/png", "image/webp", "image/jpg"]
+    if file.content_type not in allowed_types:
+        raise HTTPException(status_code=400, detail="Invalid file type. Only JPEG, PNG, and WebP images are allowed.")
+    
+    # Check file size (max 5MB)
+    contents = await file.read()
+    if len(contents) > 5 * 1024 * 1024:
+        raise HTTPException(status_code=400, detail="File size exceeds 5MB limit")
+    
+    # Find member
+    member = await db.members.find_one({"$or": [{"id": member_id}, {"member_id": member_id}]})
+    if not member:
+        raise HTTPException(status_code=404, detail="Member not found")
+    
+    # Members can only upload their own photo
+    if user["role"] == UserRole.MEMBER and member.get("user_id") != user["id"]:
+        raise HTTPException(status_code=403, detail="Access denied")
+    
+    # Generate unique filename
+    file_ext = file.filename.split(".")[-1] if "." in file.filename else "jpg"
+    filename = f"{member['member_id']}_{uuid.uuid4().hex[:8]}.{file_ext}"
+    file_path = UPLOAD_DIR / filename
+    
+    # Save file
+    with open(file_path, "wb") as f:
+        f.write(contents)
+    
+    # Generate photo URL
+    photo_url = f"/api/uploads/photos/{filename}"
+    
+    # Update member record
+    await db.members.update_one(
+        {"id": member["id"]},
+        {"$set": {"photo_url": photo_url, "updated_at": datetime.now(timezone.utc).isoformat()}}
+    )
+    
+    logger.info(f"[PHOTO] Uploaded photo for member {member['member_id']}: {filename}")
+    
+    return {"photo_url": photo_url, "message": "Photo uploaded successfully"}
+
+@api_router.get("/uploads/photos/{filename}")
+async def get_member_photo(filename: str):
+    """Serve uploaded member photos"""
+    file_path = UPLOAD_DIR / filename
+    if not file_path.exists():
+        raise HTTPException(status_code=404, detail="Photo not found")
+    
+    # Determine content type
+    ext = filename.split(".")[-1].lower()
+    content_types = {
+        "jpg": "image/jpeg",
+        "jpeg": "image/jpeg",
+        "png": "image/png",
+        "webp": "image/webp"
+    }
+    content_type = content_types.get(ext, "image/jpeg")
+    
+    return StreamingResponse(
+        open(file_path, "rb"),
+        media_type=content_type,
+        headers={"Cache-Control": "public, max-age=31536000"}
+    )
 
 
 # ==================== MEMBER VERIFICATION (PUBLIC) ====================

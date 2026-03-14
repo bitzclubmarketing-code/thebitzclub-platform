@@ -11,7 +11,7 @@ class TestAuthEndpoints:
         """Test member login with valid credentials"""
         response = requests.post(f"{BASE_URL}/api/auth/login", json={
             "identifier": "7777777777",
-            "password": "PWAtest123!"
+            "password": "member123"
         })
         
         # Skip if test member doesn't exist
@@ -170,7 +170,7 @@ class TestProtectedEndpoints:
         # First login
         login_response = requests.post(f"{BASE_URL}/api/auth/login", json={
             "identifier": "7777777777",
-            "password": "PWAtest123!"
+            "password": "member123"
         })
         
         # Skip if test member doesn't exist
@@ -215,7 +215,7 @@ class TestProtectedEndpoints:
         # Login as member
         login_response = requests.post(f"{BASE_URL}/api/auth/login", json={
             "identifier": "7777777777",
-            "password": "PWAtest123!"
+            "password": "member123"
         })
         
         # Skip if test member doesn't exist
@@ -369,7 +369,7 @@ class TestPlanCRUD:
         # Login as member
         login_response = requests.post(f"{BASE_URL}/api/auth/login", json={
             "identifier": "7777777777",
-            "password": "PWAtest123!"
+            "password": "member123"
         })
         
         # Skip if test member doesn't exist
@@ -456,3 +456,63 @@ class TestRazorpayIntegration:
             data = response.json()
             assert data["amount"] == amount * 100  # Paise conversion
             assert data["order_id"].startswith("order_")
+
+
+
+class TestMemberPhotoUpload:
+    """Test member photo upload endpoint"""
+    
+    @pytest.fixture
+    def member_token(self):
+        """Get member token"""
+        response = requests.post(f"{BASE_URL}/api/auth/login", json={
+            "identifier": "7777777777",
+            "password": "member123"
+        })
+        if response.status_code == 401:
+            pytest.skip("Test member 7777777777 doesn't exist")
+        assert response.status_code == 200
+        return response.json()
+    
+    def test_photo_upload_requires_auth(self):
+        """Test photo upload requires authentication"""
+        # Try to upload without auth
+        response = requests.post(f"{BASE_URL}/api/members/BITZ-2026-EGAX7B/photo")
+        assert response.status_code in [401, 403]
+    
+    def test_photo_upload_member_not_found(self, member_token):
+        """Test photo upload returns 404 for non-existent member"""
+        token = member_token["access_token"]
+        
+        # Create a simple test image file
+        import io
+        image_content = b'\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR\x00\x00\x00\x01\x00\x00\x00\x01\x08\x02\x00\x00\x00\x90wS\xde\x00\x00\x00\x0cIDATx\x9cc\xf8\x0f\x00\x00\x01\x01\x00\x05\x18\xd8N\x00\x00\x00\x00IEND\xaeB`\x82'
+        
+        files = {'file': ('test.png', io.BytesIO(image_content), 'image/png')}
+        response = requests.post(
+            f"{BASE_URL}/api/members/INVALID-MEMBER-ID/photo",
+            headers={"Authorization": f"Bearer {token}"},
+            files=files
+        )
+        assert response.status_code == 404
+    
+    def test_photo_upload_invalid_file_type(self, member_token):
+        """Test photo upload rejects non-image files"""
+        token = member_token["access_token"]
+        member_id = member_token["user"]["member_id"]
+        
+        # Try to upload a text file
+        import io
+        files = {'file': ('test.txt', io.BytesIO(b'This is not an image'), 'text/plain')}
+        response = requests.post(
+            f"{BASE_URL}/api/members/{member_id}/photo",
+            headers={"Authorization": f"Bearer {token}"},
+            files=files
+        )
+        # Will fail with 404 (member not in members collection) or 400 (invalid file type)
+        assert response.status_code in [400, 404]
+    
+    def test_photo_endpoint_returns_404_for_missing_photo(self):
+        """Test GET photo endpoint returns 404 for non-existent photo"""
+        response = requests.get(f"{BASE_URL}/api/uploads/photos/nonexistent.png")
+        assert response.status_code == 404

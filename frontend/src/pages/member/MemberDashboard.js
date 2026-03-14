@@ -1,26 +1,31 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
 import axios from 'axios';
-import QRCode from 'react-qr-code';
 import html2canvas from 'html2canvas';
 import { jsPDF } from 'jspdf';
 import {
   Crown, Calendar, LogOut, User, Download, Gift,
   CheckCircle, Clock, XCircle, Loader2, ChevronRight,
   Hotel, UtensilsCrossed, Sparkles, Dumbbell, Waves, Music, PartyPopper, Building2,
-  Share2, Star
+  Share2, Star, Camera, RotateCw, FileImage, FileText
 } from 'lucide-react';
 import { useAuth, API } from '@/context/AuthContext';
 import { toast } from 'sonner';
+import { MembershipCardFront, MembershipCardBack } from '@/components/MembershipCard';
 
 const MemberDashboard = () => {
   const { user, token, logout } = useAuth();
   const [member, setMember] = useState(null);
   const [partners, setPartners] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [qrSize, setQrSize] = useState(64);
   const [activeTab, setActiveTab] = useState('card');
-  const cardRef = useRef(null);
+  const [showCardBack, setShowCardBack] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [downloading, setDownloading] = useState(false);
+  
+  const cardFrontRef = useRef(null);
+  const cardBackRef = useRef(null);
+  const fileInputRef = useRef(null);
 
   // Premium lifestyle experiences
   const lifestyleExperiences = [
@@ -37,14 +42,6 @@ const MemberDashboard = () => {
   useEffect(() => {
     fetchMemberData();
     fetchPartners();
-    
-    // Handle responsive QR code size
-    const handleResize = () => {
-      setQrSize(window.innerWidth < 480 ? 50 : 64);
-    };
-    handleResize();
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
   }, []);
 
   const fetchMemberData = async () => {
@@ -55,7 +52,6 @@ const MemberDashboard = () => {
       setMember(response.data);
     } catch (error) {
       console.error('Failed to fetch member data:', error);
-      // If member profile doesn't exist, use user data
       setMember({
         member_id: user.member_id,
         name: user.name,
@@ -78,28 +74,144 @@ const MemberDashboard = () => {
     }
   };
 
-  const downloadCard = async () => {
-    if (!cardRef.current) return;
+  const handlePhotoUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      toast.error('Please select an image file');
+      return;
+    }
+
+    // Validate file size (5MB max)
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error('Image size must be less than 5MB');
+      return;
+    }
+
+    setUploading(true);
+    const formData = new FormData();
+    formData.append('file', file);
 
     try {
-      const canvas = await html2canvas(cardRef.current, {
-        backgroundColor: '#0F0F10',
-        scale: 2
+      const memberId = member?.member_id || user?.member_id;
+      const response = await axios.post(`${API}/members/${memberId}/photo`, formData, {
+        headers: { 
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'multipart/form-data'
+        }
       });
       
+      // Update member with new photo URL
+      setMember(prev => ({ ...prev, photo_url: response.data.photo_url }));
+      toast.success('Photo uploaded successfully!');
+    } catch (error) {
+      console.error('Photo upload failed:', error);
+      toast.error(error.response?.data?.detail || 'Failed to upload photo');
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const downloadCardAsImage = async () => {
+    if (!cardFrontRef.current || !cardBackRef.current) return;
+    
+    setDownloading(true);
+    try {
+      // Capture front side
+      const frontCanvas = await html2canvas(cardFrontRef.current, {
+        backgroundColor: null,
+        scale: 3,
+        useCORS: true,
+        allowTaint: true
+      });
+      
+      // Capture back side
+      const backCanvas = await html2canvas(cardBackRef.current, {
+        backgroundColor: null,
+        scale: 3,
+        useCORS: true,
+        allowTaint: true
+      });
+
+      // Create a combined canvas
+      const combinedCanvas = document.createElement('canvas');
+      const gap = 40;
+      combinedCanvas.width = frontCanvas.width;
+      combinedCanvas.height = frontCanvas.height + gap + backCanvas.height;
+      
+      const ctx = combinedCanvas.getContext('2d');
+      ctx.fillStyle = '#0F0F10';
+      ctx.fillRect(0, 0, combinedCanvas.width, combinedCanvas.height);
+      ctx.drawImage(frontCanvas, 0, 0);
+      ctx.drawImage(backCanvas, 0, frontCanvas.height + gap);
+      
+      // Download as PNG
+      const link = document.createElement('a');
+      link.download = `BITZ_Card_${member?.member_id || 'member'}.png`;
+      link.href = combinedCanvas.toDataURL('image/png', 1.0);
+      link.click();
+      
+      toast.success('Card image downloaded!');
+    } catch (error) {
+      console.error('Download failed:', error);
+      toast.error('Failed to download card image');
+    } finally {
+      setDownloading(false);
+    }
+  };
+
+  const downloadCardAsPDF = async () => {
+    if (!cardFrontRef.current || !cardBackRef.current) return;
+    
+    setDownloading(true);
+    try {
+      // Credit card size: 85.6mm x 53.98mm
+      const cardWidth = 85.6;
+      const cardHeight = 53.98;
+      
+      // Capture front side
+      const frontCanvas = await html2canvas(cardFrontRef.current, {
+        backgroundColor: null,
+        scale: 3,
+        useCORS: true,
+        allowTaint: true
+      });
+      
+      // Capture back side
+      const backCanvas = await html2canvas(cardBackRef.current, {
+        backgroundColor: null,
+        scale: 3,
+        useCORS: true,
+        allowTaint: true
+      });
+
+      // Create PDF with two pages (front and back)
       const pdf = new jsPDF({
         orientation: 'landscape',
         unit: 'mm',
-        format: [85.6, 53.98]
+        format: [cardWidth, cardHeight]
       });
       
-      const imgData = canvas.toDataURL('image/png');
-      pdf.addImage(imgData, 'PNG', 0, 0, 85.6, 53.98);
+      // Add front side
+      const frontImgData = frontCanvas.toDataURL('image/png', 1.0);
+      pdf.addImage(frontImgData, 'PNG', 0, 0, cardWidth, cardHeight);
+      
+      // Add back side on new page
+      pdf.addPage([cardWidth, cardHeight], 'landscape');
+      const backImgData = backCanvas.toDataURL('image/png', 1.0);
+      pdf.addImage(backImgData, 'PNG', 0, 0, cardWidth, cardHeight);
+      
+      // Save PDF
       pdf.save(`BITZ_Card_${member?.member_id || 'member'}.pdf`);
       
-      toast.success('Membership card downloaded!');
+      toast.success('Card PDF downloaded!');
     } catch (error) {
-      toast.error('Failed to download card');
+      console.error('PDF download failed:', error);
+      toast.error('Failed to download card PDF');
+    } finally {
+      setDownloading(false);
     }
   };
 
@@ -117,7 +229,6 @@ const MemberDashboard = () => {
         }
       }
     } else {
-      // Fallback: copy to clipboard
       navigator.clipboard.writeText(`I'm a proud member of BITZ Club! Check it out: ${window.location.origin}`);
       toast.success('Link copied to clipboard!');
     }
@@ -133,15 +244,6 @@ const MemberDashboard = () => {
         return <XCircle className="w-5 h-5 text-red-500" />;
       default:
         return <Clock className="w-5 h-5 text-gray-500" />;
-    }
-  };
-
-  const getStatusColor = (status) => {
-    switch (status) {
-      case 'active': return 'text-green-400 bg-green-500/10';
-      case 'pending': return 'text-yellow-400 bg-yellow-500/10';
-      case 'expired': return 'text-red-400 bg-red-500/10';
-      default: return 'text-gray-400 bg-gray-500/10';
     }
   };
 
@@ -222,139 +324,169 @@ const MemberDashboard = () => {
 
           {/* Card Tab */}
           {activeTab === 'card' && (
-            <div className="grid lg:grid-cols-2 gap-6 sm:gap-8">
-              {/* Membership Card */}
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <h2 className="text-base sm:text-lg font-semibold text-white">Membership Card</h2>
-                  <div className="flex gap-2">
-                    <button
-                      onClick={shareCard}
-                      className="flex items-center gap-2 text-gray-400 hover:text-[#D4AF37] transition-colors text-xs sm:text-sm"
-                      data-testid="share-card-btn"
-                    >
-                      <Share2 className="w-4 h-4" />
-                      <span className="hidden sm:inline">Share</span>
-                    </button>
-                    <button
-                      onClick={downloadCard}
-                      className="flex items-center gap-2 text-[#D4AF37] hover:text-[#E6D699] transition-colors text-xs sm:text-sm"
-                      data-testid="download-card-btn"
-                    >
-                      <Download className="w-4 h-4" />
-                      Download
-                    </button>
-                  </div>
+            <div className="space-y-8">
+              {/* Card Actions */}
+              <div className="flex flex-wrap items-center justify-between gap-4">
+                <div className="flex items-center gap-3">
+                  <input
+                    type="file"
+                    ref={fileInputRef}
+                    onChange={handlePhotoUpload}
+                    accept="image/*"
+                    className="hidden"
+                    data-testid="photo-upload-input"
+                  />
+                  <button
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={uploading}
+                    className="flex items-center gap-2 px-4 py-2 bg-[#1A1A1C] hover:bg-[#2A2A2C] text-white rounded-lg transition-colors border border-white/10 text-sm"
+                    data-testid="upload-photo-btn"
+                  >
+                    {uploading ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <Camera className="w-4 h-4" />
+                    )}
+                    {uploading ? 'Uploading...' : 'Upload Photo'}
+                  </button>
+                  <button
+                    onClick={() => setShowCardBack(!showCardBack)}
+                    className="flex items-center gap-2 px-4 py-2 bg-[#1A1A1C] hover:bg-[#2A2A2C] text-white rounded-lg transition-colors border border-white/10 text-sm"
+                    data-testid="flip-card-btn"
+                  >
+                    <RotateCw className="w-4 h-4" />
+                    {showCardBack ? 'Show Front' : 'Show Back'}
+                  </button>
                 </div>
-                
-                {/* Card Design */}
-                <div 
-                  ref={cardRef}
-                  className="membership-card relative overflow-hidden"
-                  data-testid="membership-card"
-                >
-                  <div className="relative z-10 h-full flex flex-col justify-between">
-                    <div className="flex items-start justify-between">
-                      <div className="flex items-center gap-2">
-                        <Crown className="w-6 h-6 sm:w-8 sm:h-8 text-[#D4AF37]" />
-                        <span className="text-base sm:text-lg font-bold text-white" style={{ fontFamily: 'Playfair Display, serif' }}>
-                          BITZ Club
-                        </span>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={shareCard}
+                    className="flex items-center gap-2 px-3 py-2 text-gray-400 hover:text-[#D4AF37] transition-colors text-sm"
+                    data-testid="share-card-btn"
+                  >
+                    <Share2 className="w-4 h-4" />
+                    <span className="hidden sm:inline">Share</span>
+                  </button>
+                  <button
+                    onClick={downloadCardAsImage}
+                    disabled={downloading}
+                    className="flex items-center gap-2 px-3 py-2 bg-[#D4AF37]/10 hover:bg-[#D4AF37]/20 text-[#D4AF37] rounded-lg transition-colors text-sm"
+                    data-testid="download-image-btn"
+                  >
+                    <FileImage className="w-4 h-4" />
+                    Image
+                  </button>
+                  <button
+                    onClick={downloadCardAsPDF}
+                    disabled={downloading}
+                    className="flex items-center gap-2 px-3 py-2 bg-[#D4AF37] hover:bg-[#E6D699] text-black rounded-lg transition-colors text-sm font-medium"
+                    data-testid="download-pdf-btn"
+                  >
+                    {downloading ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <FileText className="w-4 h-4" />
+                    )}
+                    Download PDF
+                  </button>
+                </div>
+              </div>
+
+              {/* Card Display */}
+              <div className="grid lg:grid-cols-2 gap-8">
+                {/* Membership Card Preview */}
+                <div className="space-y-4">
+                  <h2 className="text-base sm:text-lg font-semibold text-white">
+                    {showCardBack ? 'Back Side' : 'Front Side'}
+                  </h2>
+                  
+                  <div className="flex justify-center">
+                    <motion.div
+                      key={showCardBack ? 'back' : 'front'}
+                      initial={{ rotateY: 90, opacity: 0 }}
+                      animate={{ rotateY: 0, opacity: 1 }}
+                      transition={{ duration: 0.3 }}
+                      className="transform-gpu"
+                    >
+                      {showCardBack ? (
+                        <MembershipCardBack ref={cardBackRef} member={member} />
+                      ) : (
+                        <MembershipCardFront ref={cardFrontRef} member={member} user={user} qrSize={80} />
+                      )}
+                    </motion.div>
+                  </div>
+
+                  {/* Hidden cards for PDF generation */}
+                  <div className="fixed -left-[9999px] top-0">
+                    <MembershipCardFront ref={cardFrontRef} member={member} user={user} qrSize={80} />
+                    <MembershipCardBack ref={cardBackRef} member={member} />
+                  </div>
+
+                  <p className="text-xs text-gray-400 text-center">
+                    Credit card size (85.6mm × 53.98mm) - Print ready for both sides
+                  </p>
+                </div>
+
+                {/* Member Info */}
+                <div className="space-y-4 sm:space-y-6">
+                  <div className="card-dark rounded-xl sm:rounded-2xl">
+                    <h2 className="text-base sm:text-lg font-semibold text-white mb-4 flex items-center gap-2">
+                      <User className="w-5 h-5 text-[#D4AF37]" />
+                      Profile Details
+                    </h2>
+                    <div className="space-y-3 sm:space-y-4">
+                      <div className="flex justify-between items-center pb-3 border-b border-white/5">
+                        <span className="text-gray-400 text-sm">Member ID</span>
+                        <span className="font-mono text-[#D4AF37] text-sm">{member?.member_id || user?.member_id}</span>
                       </div>
-                      <div className={`px-2 sm:px-3 py-1 rounded text-[10px] sm:text-xs uppercase tracking-wider font-semibold ${getStatusColor(member?.status)}`}>
-                        {member?.status || 'Pending'}
+                      <div className="flex justify-between items-center pb-3 border-b border-white/5">
+                        <span className="text-gray-400 text-sm">Mobile</span>
+                        <span className="text-white text-sm">{member?.mobile || user?.mobile}</span>
+                      </div>
+                      <div className="flex justify-between items-center pb-3 border-b border-white/5">
+                        <span className="text-gray-400 text-sm">Email</span>
+                        <span className="text-white text-sm truncate ml-4">{member?.email || user?.email || 'Not provided'}</span>
+                      </div>
+                      <div className="flex justify-between items-center pb-3 border-b border-white/5">
+                        <span className="text-gray-400 text-sm">Plan</span>
+                        <span className="text-white text-sm">{member?.plan_name || 'Not Selected'}</span>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span className="text-gray-400 text-sm">Status</span>
+                        <div className="flex items-center gap-2">
+                          {getStatusIcon(member?.status)}
+                          <span className="text-white capitalize text-sm">{member?.status || 'Pending'}</span>
+                        </div>
                       </div>
                     </div>
-                    
-                    <div className="flex items-end justify-between gap-3">
-                      <div className="flex-1 min-w-0">
-                        <p className="text-[10px] sm:text-xs text-gray-400 uppercase tracking-wider mb-1">Member</p>
-                        <p className="text-base sm:text-xl font-semibold text-white truncate member-name">{member?.name || user?.name}</p>
-                        <p className="font-mono text-[#D4AF37] text-xs sm:text-sm mt-1 member-id">{member?.member_id || user?.member_id}</p>
-                        <p className="text-[10px] sm:text-xs text-gray-400 mt-2">
-                          {member?.plan_name || 'Plan'} | Valid: {
-                            member?.membership_end 
-                              ? new Date(member.membership_end).toLocaleDateString('en-IN', { month: 'short', year: 'numeric' })
-                              : 'N/A'
+                  </div>
+
+                  {/* Validity */}
+                  <div className="card-dark rounded-xl sm:rounded-2xl">
+                    <h2 className="text-base sm:text-lg font-semibold text-white mb-4 flex items-center gap-2">
+                      <Calendar className="w-5 h-5 text-[#D4AF37]" />
+                      Membership Validity
+                    </h2>
+                    <div className="flex justify-between items-center">
+                      <div>
+                        <p className="text-[10px] sm:text-xs text-gray-400 uppercase tracking-wider">Valid From</p>
+                        <p className="text-white text-sm sm:text-base">
+                          {member?.membership_start 
+                            ? new Date(member.membership_start).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })
+                            : 'Pending'
                           }
                         </p>
                       </div>
-                      <div className="bg-white p-1.5 sm:p-2 rounded flex-shrink-0">
-                        <QRCode
-                          value={member?.member_id || user?.member_id || 'BITZ'}
-                          size={qrSize}
-                          level="M"
-                        />
+                      <ChevronRight className="w-5 h-5 text-gray-600" />
+                      <div className="text-right">
+                        <p className="text-[10px] sm:text-xs text-gray-400 uppercase tracking-wider">Valid Until</p>
+                        <p className="text-white text-sm sm:text-base">
+                          {member?.membership_end 
+                            ? new Date(member.membership_end).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })
+                            : 'Pending'
+                          }
+                        </p>
                       </div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* QR Info */}
-                <p className="text-xs text-gray-400 text-center">
-                  Show QR code at partner venues for instant verification & discounts
-                </p>
-              </div>
-
-              {/* Member Info */}
-              <div className="space-y-4 sm:space-y-6">
-                <div className="card-dark rounded-xl sm:rounded-2xl">
-                  <h2 className="text-base sm:text-lg font-semibold text-white mb-4 flex items-center gap-2">
-                    <User className="w-5 h-5 text-[#D4AF37]" />
-                    Profile Details
-                  </h2>
-                  <div className="space-y-3 sm:space-y-4">
-                    <div className="flex justify-between items-center pb-3 border-b border-white/5">
-                      <span className="text-gray-400 text-sm">Member ID</span>
-                      <span className="font-mono text-[#D4AF37] text-sm">{member?.member_id || user?.member_id}</span>
-                    </div>
-                    <div className="flex justify-between items-center pb-3 border-b border-white/5">
-                      <span className="text-gray-400 text-sm">Mobile</span>
-                      <span className="text-white text-sm">{member?.mobile || user?.mobile}</span>
-                    </div>
-                    <div className="flex justify-between items-center pb-3 border-b border-white/5">
-                      <span className="text-gray-400 text-sm">Email</span>
-                      <span className="text-white text-sm truncate ml-4">{member?.email || user?.email || 'Not provided'}</span>
-                    </div>
-                    <div className="flex justify-between items-center pb-3 border-b border-white/5">
-                      <span className="text-gray-400 text-sm">Plan</span>
-                      <span className="text-white text-sm">{member?.plan_name || 'Not Selected'}</span>
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <span className="text-gray-400 text-sm">Status</span>
-                      <div className="flex items-center gap-2">
-                        {getStatusIcon(member?.status)}
-                        <span className="text-white capitalize text-sm">{member?.status || 'Pending'}</span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Validity */}
-                <div className="card-dark rounded-xl sm:rounded-2xl">
-                  <h2 className="text-base sm:text-lg font-semibold text-white mb-4 flex items-center gap-2">
-                    <Calendar className="w-5 h-5 text-[#D4AF37]" />
-                    Membership Validity
-                  </h2>
-                  <div className="flex justify-between items-center">
-                    <div>
-                      <p className="text-[10px] sm:text-xs text-gray-400 uppercase tracking-wider">Valid From</p>
-                      <p className="text-white text-sm sm:text-base">
-                        {member?.membership_start 
-                          ? new Date(member.membership_start).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })
-                          : 'Pending'
-                        }
-                      </p>
-                    </div>
-                    <ChevronRight className="w-5 h-5 text-gray-600" />
-                    <div className="text-right">
-                      <p className="text-[10px] sm:text-xs text-gray-400 uppercase tracking-wider">Valid Until</p>
-                      <p className="text-white text-sm sm:text-base">
-                        {member?.membership_end 
-                          ? new Date(member.membership_end).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })
-                          : 'Pending'
-                        }
-                      </p>
                     </div>
                   </div>
                 </div>

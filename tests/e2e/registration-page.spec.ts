@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test';
 
-const BASE_URL = process.env.REACT_APP_BACKEND_URL || 'https://bitz-membership-fix.preview.emergentagent.com';
+const BASE_URL = process.env.REACT_APP_BACKEND_URL || 'https://club-membership-hub.preview.emergentagent.com';
 
 test.describe('Registration Page - Dynamic Plans', () => {
   test.beforeEach(async ({ page }) => {
