@@ -94,16 +94,18 @@ class AdminRole:
 # Admin Management Models
 class AdminCreate(BaseModel):
     name: str
-    mobile: str
-    email: Optional[EmailStr] = None
-    username: str
+    email: EmailStr  # Email is primary login for admins
+    mobile: Optional[str] = None
     password: str
+    department: Optional[str] = None  # e.g., Operations, Marketing, Finance
     admin_role: str = AdminRole.MEMBERSHIP
-    permissions: List[str] = []
+    permissions: List[str] = []  # specific permissions like 'members', 'payments', 'leads', 'reports'
 
 class AdminUpdate(BaseModel):
     name: Optional[str] = None
     email: Optional[EmailStr] = None
+    mobile: Optional[str] = None
+    department: Optional[str] = None
     admin_role: Optional[str] = None
     permissions: Optional[List[str]] = None
     is_active: Optional[bool] = None
@@ -558,12 +560,19 @@ async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(s
         raise HTTPException(status_code=401, detail="Invalid token")
 
 async def require_admin(current_user: dict = Depends(get_current_user)):
-    if current_user.get("role") != UserRole.SUPER_ADMIN:
+    """Allow Super Admin and Admin users"""
+    if current_user.get("role") not in [UserRole.SUPER_ADMIN, UserRole.ADMIN]:
         raise HTTPException(status_code=403, detail="Admin access required")
     return current_user
 
+async def require_super_admin(current_user: dict = Depends(get_current_user)):
+    """Only Super Admin can access"""
+    if current_user.get("role") != UserRole.SUPER_ADMIN:
+        raise HTTPException(status_code=403, detail="Super Admin access required")
+    return current_user
+
 async def require_admin_or_telecaller(current_user: dict = Depends(get_current_user)):
-    if current_user.get("role") not in [UserRole.SUPER_ADMIN, UserRole.TELECALLER]:
+    if current_user.get("role") not in [UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.TELECALLER]:
         raise HTTPException(status_code=403, detail="Admin or Telecaller access required")
     return current_user
 
@@ -1117,11 +1126,24 @@ async def register_user(user_data: UserCreate, background_tasks: BackgroundTasks
 
 @api_router.post("/auth/login", response_model=TokenResponse)
 async def login(credentials: UserLogin):
-    # Find user by mobile or member_id
+    # First check if it's an admin login (by email)
+    if '@' in credentials.identifier:
+        # Admin login by email
+        admin = await db.admins.find_one({"email": credentials.identifier.lower()}, {"_id": 0})
+        if admin and pwd_context.verify(credentials.password, admin["password"]):
+            if not admin.get("is_active", True):
+                raise HTTPException(status_code=401, detail="Account is disabled")
+            
+            token = create_access_token({"sub": admin["id"], "role": admin.get("role", UserRole.ADMIN)})
+            admin_response = {k: v for k, v in admin.items() if k != "password"}
+            return TokenResponse(access_token=token, user=admin_response)
+    
+    # Regular user login by mobile or member_id
     user = await db.users.find_one({
         "$or": [
             {"mobile": credentials.identifier},
-            {"member_id": credentials.identifier}
+            {"member_id": credentials.identifier},
+            {"email": credentials.identifier.lower()}  # Also check email for regular users
         ]
     }, {"_id": 0})
     
@@ -1139,6 +1161,179 @@ async def login(credentials: UserLogin):
 @api_router.get("/auth/me")
 async def get_current_user_info(current_user: dict = Depends(get_current_user)):
     return {k: v for k, v in current_user.items() if k != "password"}
+
+# ==================== ADMIN USER MANAGEMENT (Super Admin Only) ====================
+
+def generate_admin_id():
+    """Generate unique admin ID like BITZ-ADM-001"""
+    import random
+    return f"BITZ-ADM-{random.randint(100, 999)}"
+
+@api_router.get("/superadmin/admins")
+async def get_all_admins(super_admin: dict = Depends(require_super_admin)):
+    """Get all admin users (Super Admin only)"""
+    admins = await db.admins.find({}, {"_id": 0, "password": 0}).sort("created_at", -1).to_list(100)
+    return admins
+
+@api_router.post("/superadmin/admins")
+async def create_admin(admin: AdminCreate, super_admin: dict = Depends(require_super_admin)):
+    """Create a new admin user (Super Admin only)"""
+    # Check if email already exists
+    existing = await db.admins.find_one({"email": admin.email.lower()})
+    if existing:
+        raise HTTPException(status_code=400, detail="Email already registered")
+    
+    admin_id = generate_admin_id()
+    user_id = str(uuid.uuid4())
+    
+    admin_doc = {
+        "id": user_id,
+        "admin_id": admin_id,
+        "name": admin.name,
+        "email": admin.email.lower(),
+        "mobile": admin.mobile,
+        "password": pwd_context.hash(admin.password),
+        "department": admin.department,
+        "role": UserRole.ADMIN,
+        "admin_role": admin.admin_role,
+        "permissions": admin.permissions or ["members", "leads"],  # Default permissions
+        "is_active": True,
+        "created_at": datetime.now(timezone.utc).isoformat(),
+        "created_by": super_admin["id"]
+    }
+    await db.admins.insert_one(admin_doc)
+    
+    # Log activity
+    await db.activity_logs.insert_one({
+        "id": str(uuid.uuid4()),
+        "admin_id": super_admin["id"],
+        "admin_name": super_admin.get("name", "Super Admin"),
+        "action": "create_admin",
+        "entity_type": "admin",
+        "entity_id": admin_id,
+        "details": f"Created admin: {admin.name} ({admin.email})",
+        "created_at": datetime.now(timezone.utc).isoformat()
+    })
+    
+    logger.info(f"[ADMIN] Created new admin user: {admin_id} - {admin.name}")
+    
+    return {
+        "message": "Admin created successfully",
+        "admin_id": admin_id,
+        "email": admin.email.lower(),
+        "name": admin.name
+    }
+
+@api_router.get("/superadmin/admins/{admin_id}")
+async def get_admin(admin_id: str, super_admin: dict = Depends(require_super_admin)):
+    """Get admin details by ID"""
+    admin = await db.admins.find_one(
+        {"$or": [{"id": admin_id}, {"admin_id": admin_id}]},
+        {"_id": 0, "password": 0}
+    )
+    if not admin:
+        raise HTTPException(status_code=404, detail="Admin not found")
+    return admin
+
+@api_router.put("/superadmin/admins/{admin_id}")
+async def update_admin(admin_id: str, update: AdminUpdate, super_admin: dict = Depends(require_super_admin)):
+    """Update admin details"""
+    update_data = {k: v for k, v in update.dict().items() if v is not None}
+    if not update_data:
+        raise HTTPException(status_code=400, detail="No update data provided")
+    
+    update_data["updated_at"] = datetime.now(timezone.utc).isoformat()
+    update_data["updated_by"] = super_admin["id"]
+    
+    result = await db.admins.update_one(
+        {"$or": [{"id": admin_id}, {"admin_id": admin_id}]},
+        {"$set": update_data}
+    )
+    
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Admin not found")
+    
+    # Log activity
+    await db.activity_logs.insert_one({
+        "id": str(uuid.uuid4()),
+        "admin_id": super_admin["id"],
+        "admin_name": super_admin.get("name", "Super Admin"),
+        "action": "update_admin",
+        "entity_type": "admin",
+        "entity_id": admin_id,
+        "details": f"Updated admin: {admin_id}",
+        "created_at": datetime.now(timezone.utc).isoformat()
+    })
+    
+    return {"message": "Admin updated successfully"}
+
+@api_router.delete("/superadmin/admins/{admin_id}")
+async def delete_admin(admin_id: str, super_admin: dict = Depends(require_super_admin)):
+    """Disable admin (soft delete)"""
+    result = await db.admins.update_one(
+        {"$or": [{"id": admin_id}, {"admin_id": admin_id}]},
+        {"$set": {"is_active": False, "deleted_at": datetime.now(timezone.utc).isoformat()}}
+    )
+    
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Admin not found")
+    
+    # Log activity
+    await db.activity_logs.insert_one({
+        "id": str(uuid.uuid4()),
+        "admin_id": super_admin["id"],
+        "admin_name": super_admin.get("name", "Super Admin"),
+        "action": "delete_admin",
+        "entity_type": "admin",
+        "entity_id": admin_id,
+        "details": f"Disabled admin: {admin_id}",
+        "created_at": datetime.now(timezone.utc).isoformat()
+    })
+    
+    return {"message": "Admin disabled successfully"}
+
+@api_router.put("/superadmin/admins/{admin_id}/reset-password")
+async def reset_admin_password(admin_id: str, new_password: str, super_admin: dict = Depends(require_super_admin)):
+    """Reset admin password"""
+    result = await db.admins.update_one(
+        {"$or": [{"id": admin_id}, {"admin_id": admin_id}]},
+        {"$set": {
+            "password": pwd_context.hash(new_password),
+            "password_reset_at": datetime.now(timezone.utc).isoformat()
+        }}
+    )
+    
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Admin not found")
+    
+    return {"message": "Password reset successfully"}
+
+@api_router.get("/superadmin/activity-logs")
+async def get_activity_logs(
+    admin_id: Optional[str] = None,
+    action: Optional[str] = None,
+    page: int = Query(1, ge=1),
+    limit: int = Query(50, ge=1, le=200),
+    super_admin: dict = Depends(require_super_admin)
+):
+    """Get activity logs"""
+    query = {}
+    if admin_id:
+        query["admin_id"] = admin_id
+    if action:
+        query["action"] = action
+    
+    skip = (page - 1) * limit
+    total = await db.activity_logs.count_documents(query)
+    logs = await db.activity_logs.find(query, {"_id": 0}).sort("created_at", -1).skip(skip).limit(limit).to_list(limit)
+    
+    return {
+        "logs": logs,
+        "total": total,
+        "page": page,
+        "limit": limit,
+        "pages": (total + limit - 1) // limit
+    }
 
 # ==================== REGISTRATION WITH PAYMENT FLOW ====================
 

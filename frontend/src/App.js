@@ -29,6 +29,7 @@ import ContentPage from '@/pages/admin/ContentPage';
 import PaymentsPage from '@/pages/admin/PaymentsPage';
 import CouponsPage from '@/pages/admin/CouponsPage';
 import MaintenancePage from '@/pages/admin/MaintenancePage';
+import AdminUsersPage from '@/pages/admin/AdminUsersPage';
 
 // Telecaller Pages
 import TelecallerDashboard from '@/pages/telecaller/TelecallerDashboard';
@@ -72,7 +73,7 @@ function App() {
 
             {/* Admin Routes */}
             <Route path="/admin" element={
-              <ProtectedRoute allowedRoles={['super_admin']}>
+              <ProtectedRoute allowedRoles={['super_admin', 'admin']}>
                 <AdminLayout />
               </ProtectedRoute>
             }>
@@ -87,6 +88,7 @@ function App() {
               <Route path="maintenance" element={<MaintenancePage />} />
               <Route path="reports" element={<ReportsPage />} />
               <Route path="content" element={<ContentPage />} />
+              <Route path="admin-users" element={<AdminUsersPage />} />
             </Route>
 
             {/* Telecaller Routes */}
