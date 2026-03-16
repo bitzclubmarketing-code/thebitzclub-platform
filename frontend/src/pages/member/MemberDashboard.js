@@ -8,7 +8,7 @@ import {
   CheckCircle, Clock, XCircle, Loader2, ChevronRight,
   Hotel, UtensilsCrossed, Sparkles, Dumbbell, Waves, Music, PartyPopper, Building2,
   Share2, Star, Camera, RotateCw, FileImage, FileText, CreditCard, History, MessageSquare,
-  MapPin, Phone, Globe, CalendarDays
+  MapPin, Phone, Globe, CalendarDays, Users, Copy, MessageCircle, Send
 } from 'lucide-react';
 import { useAuth, API } from '@/context/AuthContext';
 import { toast } from 'sonner';
@@ -388,6 +388,7 @@ const MemberDashboard = () => {
             {[
               { id: 'card', label: 'My Card', icon: Crown },
               { id: 'profile', label: 'My Profile', icon: User },
+              { id: 'referral', label: 'Refer & Earn', icon: Gift },
               { id: 'affiliations', label: 'Affiliations', icon: Building2 },
               { id: 'bookings', label: 'Bookings', icon: CalendarDays },
               { id: 'payments', label: 'Payments', icon: CreditCard },
@@ -642,6 +643,156 @@ const MemberDashboard = () => {
                       <p className="text-white mt-1">{member.address}, {member.city} {member.pincode}</p>
                     </div>
                   )}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Refer & Earn Tab */}
+          {activeTab === 'referral' && (
+            <div className="space-y-8">
+              {/* Referral Header */}
+              <div className="text-center">
+                <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-[#D4AF37] to-[#B8860B] rounded-2xl mb-4">
+                  <Gift className="w-8 h-8 text-white" />
+                </div>
+                <h2 className="text-2xl font-bold text-white mb-2" style={{ fontFamily: 'Playfair Display, serif' }}>
+                  Refer Friends & <span className="text-[#D4AF37]">Earn Rewards</span>
+                </h2>
+                <p className="text-gray-400 max-w-md mx-auto">
+                  Share BITZ Club with friends and family. When they join using your referral code, you both get exclusive benefits!
+                </p>
+              </div>
+
+              {/* Referral Code Card */}
+              <div className="max-w-2xl mx-auto">
+                <div className="bg-gradient-to-br from-[#1A1A1C] to-[#2A2A2C] rounded-2xl p-6 border border-[#D4AF37]/20">
+                  <div className="text-center mb-6">
+                    <p className="text-gray-400 text-sm mb-2">Your Referral Code</p>
+                    <div className="flex items-center justify-center gap-3">
+                      <span 
+                        className="text-3xl sm:text-4xl font-bold text-[#D4AF37] font-mono tracking-wider"
+                        data-testid="referral-code"
+                      >
+                        {member?.member_id || user?.member_id || 'BITZ-XXXX-XXXX'}
+                      </span>
+                      <button
+                        onClick={() => {
+                          navigator.clipboard.writeText(member?.member_id || user?.member_id);
+                          toast.success('Referral code copied!');
+                        }}
+                        className="p-2 bg-[#D4AF37]/10 hover:bg-[#D4AF37]/20 rounded-lg transition-colors"
+                        data-testid="copy-referral-code-btn"
+                      >
+                        <Copy className="w-5 h-5 text-[#D4AF37]" />
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Share Buttons */}
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    {/* WhatsApp Share */}
+                    <button
+                      onClick={() => {
+                        const text = encodeURIComponent(
+                          `🌟 Join BITZ Club - Premium Lifestyle Membership!\n\n` +
+                          `I'm a member of BITZ Club and I love the exclusive benefits! Use my referral code to join and get special discounts.\n\n` +
+                          `🎁 Referral Code: ${member?.member_id || user?.member_id}\n\n` +
+                          `✨ Benefits:\n` +
+                          `• Up to 40% off at luxury hotels\n` +
+                          `• Exclusive dining discounts\n` +
+                          `• Premium spa & wellness offers\n` +
+                          `• And much more!\n\n` +
+                          `👉 Join now: ${window.location.origin}/join?ref=${member?.member_id || user?.member_id}`
+                        );
+                        window.open(`https://wa.me/?text=${text}`, '_blank');
+                        toast.success('Opening WhatsApp...');
+                      }}
+                      className="flex items-center justify-center gap-2 px-4 py-3 bg-[#25D366] hover:bg-[#22c55e] text-white rounded-xl font-medium transition-colors"
+                      data-testid="share-whatsapp-btn"
+                    >
+                      <MessageCircle className="w-5 h-5" />
+                      WhatsApp
+                    </button>
+
+                    {/* SMS Share */}
+                    <button
+                      onClick={() => {
+                        const text = encodeURIComponent(
+                          `Join BITZ Club with my referral code: ${member?.member_id || user?.member_id}. ` +
+                          `Get exclusive discounts at luxury hotels, restaurants & more! ` +
+                          `Join: ${window.location.origin}/join?ref=${member?.member_id || user?.member_id}`
+                        );
+                        window.open(`sms:?body=${text}`, '_blank');
+                        toast.success('Opening Messages...');
+                      }}
+                      className="flex items-center justify-center gap-2 px-4 py-3 bg-[#3B82F6] hover:bg-[#2563eb] text-white rounded-xl font-medium transition-colors"
+                      data-testid="share-sms-btn"
+                    >
+                      <Send className="w-5 h-5" />
+                      SMS
+                    </button>
+
+                    {/* Copy Link */}
+                    <button
+                      onClick={() => {
+                        const link = `${window.location.origin}/join?ref=${member?.member_id || user?.member_id}`;
+                        navigator.clipboard.writeText(link);
+                        toast.success('Referral link copied to clipboard!');
+                      }}
+                      className="flex items-center justify-center gap-2 px-4 py-3 bg-[#1A1A1C] hover:bg-[#2A2A2C] text-white rounded-xl font-medium transition-colors border border-white/10"
+                      data-testid="copy-link-btn"
+                    >
+                      <Copy className="w-5 h-5" />
+                      Copy Link
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {/* How It Works */}
+              <div className="max-w-3xl mx-auto">
+                <h3 className="text-lg font-semibold text-white mb-6 text-center">How It Works</h3>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  <div className="bg-[#1A1A1C] rounded-xl p-5 text-center border border-white/5">
+                    <div className="w-10 h-10 bg-[#D4AF37]/10 rounded-full flex items-center justify-center mx-auto mb-3">
+                      <Share2 className="w-5 h-5 text-[#D4AF37]" />
+                    </div>
+                    <h4 className="text-white font-medium mb-1">1. Share Your Code</h4>
+                    <p className="text-gray-400 text-sm">Send your unique referral code to friends via WhatsApp, SMS or copy the link</p>
+                  </div>
+                  <div className="bg-[#1A1A1C] rounded-xl p-5 text-center border border-white/5">
+                    <div className="w-10 h-10 bg-[#D4AF37]/10 rounded-full flex items-center justify-center mx-auto mb-3">
+                      <Users className="w-5 h-5 text-[#D4AF37]" />
+                    </div>
+                    <h4 className="text-white font-medium mb-1">2. Friend Joins</h4>
+                    <p className="text-gray-400 text-sm">Your friend uses your code while signing up for BITZ Club membership</p>
+                  </div>
+                  <div className="bg-[#1A1A1C] rounded-xl p-5 text-center border border-white/5">
+                    <div className="w-10 h-10 bg-[#D4AF37]/10 rounded-full flex items-center justify-center mx-auto mb-3">
+                      <Gift className="w-5 h-5 text-[#D4AF37]" />
+                    </div>
+                    <h4 className="text-white font-medium mb-1">3. Both Get Rewards</h4>
+                    <p className="text-gray-400 text-sm">You and your friend both receive exclusive benefits and discounts</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Benefits Preview */}
+              <div className="max-w-3xl mx-auto bg-gradient-to-r from-[#D4AF37]/10 to-[#B8860B]/10 rounded-2xl p-6 border border-[#D4AF37]/20">
+                <div className="flex flex-col sm:flex-row items-center gap-4 sm:gap-6">
+                  <div className="flex-shrink-0">
+                    <div className="w-16 h-16 bg-[#D4AF37] rounded-full flex items-center justify-center">
+                      <Star className="w-8 h-8 text-black" />
+                    </div>
+                  </div>
+                  <div className="text-center sm:text-left">
+                    <h4 className="text-white font-semibold text-lg mb-1">Referral Benefits</h4>
+                    <p className="text-gray-400 text-sm">
+                      For every successful referral, earn extended membership validity, additional discounts at partner venues, 
+                      and exclusive access to premium events. The more you refer, the more you earn!
+                    </p>
+                  </div>
                 </div>
               </div>
             </div>

@@ -10,6 +10,14 @@ A comprehensive membership management web application for BITZ Club featuring me
 - **Backend Service**: systemd (bitz-backend.service)
 - **Frontend**: Static build served via Nginx
 
+## Latest Features Added (March 16, 2026)
+- **Refer & Earn Feature**: Members can now share their referral code via WhatsApp, SMS, or copy link directly from the Member Dashboard
+- **Referral Sharing Options**: 
+  - WhatsApp: Opens WhatsApp with pre-filled referral message
+  - SMS: Opens SMS app with referral link
+  - Copy Link: Copies referral URL to clipboard
+- **How It Works**: Visual guide explaining the referral process
+
 ## Original Problem Statement
 Build a membership management web application for BITZ Club with:
 - Public website homepage
