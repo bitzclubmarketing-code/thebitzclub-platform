@@ -3083,6 +3083,7 @@ async def get_telecaller_performance(
         # Build query for date range
         lead_query = {"assigned_to": tc_id}
         member_query = {"created_by": tc_id}
+        payment_query = {"created_by": tc_id}
         
         if start_date or end_date:
             date_filter = {}
@@ -3092,6 +3093,7 @@ async def get_telecaller_performance(
                 date_filter["$lte"] = end_date + "T23:59:59"
             lead_query["created_at"] = date_filter
             member_query["created_at"] = date_filter
+            payment_query["created_at"] = date_filter
         
         # Leads stats
         leads_assigned = await db.leads.count_documents(lead_query)
@@ -3101,6 +3103,11 @@ async def get_telecaller_performance(
         
         # Members created by telecaller
         members_created = await db.members.count_documents(member_query)
+        
+        # Payments collected by telecaller
+        payments = await db.payments.find(payment_query, {"amount": 1}).to_list(10000)
+        payments_collected = sum(p.get("amount", 0) for p in payments)
+        payments_count = len(payments)
         
         conversion_rate = (leads_converted / leads_assigned * 100) if leads_assigned > 0 else 0
         
@@ -3113,6 +3120,8 @@ async def get_telecaller_performance(
             "leads_converted": leads_converted,
             "leads_pending": leads_pending,
             "members_created": members_created,
+            "payments_count": payments_count,
+            "payments_collected": payments_collected,
             "conversion_rate": round(conversion_rate, 2)
         })
     

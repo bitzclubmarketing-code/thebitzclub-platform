@@ -49,12 +49,14 @@ const ReportsPage = () => {
     status: '',
     plan_id: '',
     city: '',
+    area: '',
     pincode: '',
     referral_id: '',
     start_date: '',
     end_date: '',
     expiry_start: '',
-    expiry_end: ''
+    expiry_end: '',
+    dob_month: ''
   });
   
   const [paymentFilters, setPaymentFilters] = useState({
@@ -515,6 +517,39 @@ const ReportsPage = () => {
                   />
                 </div>
                 <div>
+                  <label className="input-label">Area</label>
+                  <input
+                    type="text"
+                    value={memberFilters.area}
+                    onChange={(e) => setMemberFilters({ ...memberFilters, area: e.target.value })}
+                    className="input-gold"
+                    placeholder="Enter area"
+                  />
+                </div>
+                <div>
+                  <label className="input-label">Birthday Month</label>
+                  <Select value={memberFilters.dob_month} onValueChange={(v) => setMemberFilters({ ...memberFilters, dob_month: v })}>
+                    <SelectTrigger className="bg-[#0F0F10] border-white/10">
+                      <SelectValue placeholder="All Months" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="">All Months</SelectItem>
+                      <SelectItem value="1">January</SelectItem>
+                      <SelectItem value="2">February</SelectItem>
+                      <SelectItem value="3">March</SelectItem>
+                      <SelectItem value="4">April</SelectItem>
+                      <SelectItem value="5">May</SelectItem>
+                      <SelectItem value="6">June</SelectItem>
+                      <SelectItem value="7">July</SelectItem>
+                      <SelectItem value="8">August</SelectItem>
+                      <SelectItem value="9">September</SelectItem>
+                      <SelectItem value="10">October</SelectItem>
+                      <SelectItem value="11">November</SelectItem>
+                      <SelectItem value="12">December</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
                   <label className="input-label">Referral ID</label>
                   <input
                     type="text"
@@ -813,6 +848,12 @@ const ReportsPage = () => {
 
         {/* Telecaller Performance */}
         <TabsContent value="telecaller" className="space-y-4">
+          <div className="flex gap-2 print:hidden mb-4">
+            <button onClick={() => exportToExcel('telecaller')} disabled={exporting} className="btn-primary flex items-center gap-2 text-sm">
+              <FileSpreadsheet className="w-4 h-4" />
+              Export Telecaller Report
+            </button>
+          </div>
           <div className="card-dark rounded-xl overflow-hidden">
             <div className="overflow-x-auto">
               <table className="w-full">
@@ -823,14 +864,16 @@ const ReportsPage = () => {
                     <th className="text-center py-3 px-4 text-xs uppercase tracking-wider text-gray-400">Contacted</th>
                     <th className="text-center py-3 px-4 text-xs uppercase tracking-wider text-gray-400">Converted</th>
                     <th className="text-center py-3 px-4 text-xs uppercase tracking-wider text-gray-400">Pending</th>
+                    <th className="text-center py-3 px-4 text-xs uppercase tracking-wider text-gray-400">Members Created</th>
+                    <th className="text-center py-3 px-4 text-xs uppercase tracking-wider text-gray-400">Payments Collected</th>
                     <th className="text-center py-3 px-4 text-xs uppercase tracking-wider text-gray-400">Conversion %</th>
                   </tr>
                 </thead>
                 <tbody>
                   {loading ? (
-                    <tr><td colSpan={6} className="py-8 text-center text-gray-400"><Loader2 className="w-6 h-6 animate-spin mx-auto" /></td></tr>
+                    <tr><td colSpan={8} className="py-8 text-center text-gray-400"><Loader2 className="w-6 h-6 animate-spin mx-auto" /></td></tr>
                   ) : telecallerData.length === 0 ? (
-                    <tr><td colSpan={6} className="py-8 text-center text-gray-400">No telecaller data</td></tr>
+                    <tr><td colSpan={8} className="py-8 text-center text-gray-400">No telecaller data</td></tr>
                   ) : (
                     telecallerData.map((tc) => (
                       <tr key={tc.telecaller_id} className="border-b border-white/5">
@@ -842,6 +885,11 @@ const ReportsPage = () => {
                         <td className="py-3 px-4 text-center text-blue-400">{tc.leads_contacted}</td>
                         <td className="py-3 px-4 text-center text-green-400">{tc.leads_converted}</td>
                         <td className="py-3 px-4 text-center text-yellow-400">{tc.leads_pending}</td>
+                        <td className="py-3 px-4 text-center text-purple-400">{tc.members_created || 0}</td>
+                        <td className="py-3 px-4 text-center">
+                          <span className="text-[#D4AF37] font-semibold">₹{(tc.payments_collected || 0).toLocaleString()}</span>
+                          <span className="text-gray-500 text-xs ml-1">({tc.payments_count || 0})</span>
+                        </td>
                         <td className="py-3 px-4 text-center">
                           <span className={`px-2 py-1 rounded text-sm font-semibold ${tc.conversion_rate >= 50 ? 'bg-green-500/20 text-green-400' : tc.conversion_rate >= 25 ? 'bg-yellow-500/20 text-yellow-400' : 'bg-red-500/20 text-red-400'}`}>
                             {tc.conversion_rate}%
@@ -899,15 +947,31 @@ const ReportsPage = () => {
                     <tr><td colSpan={3} className="py-8 text-center text-gray-400">No referral data</td></tr>
                   ) : (
                     (referralData.referrals || []).map((ref) => (
-                      <tr key={ref.referral_id} className="border-b border-white/5">
-                        <td className="py-3 px-4 font-mono text-[#D4AF37]">{ref.referral_id}</td>
-                        <td className="py-3 px-4">
-                          <span className={`px-2 py-1 rounded text-xs uppercase ${ref.referral_type === 'employee' ? 'bg-blue-500/20 text-blue-400' : ref.referral_type === 'associate' ? 'bg-green-500/20 text-green-400' : 'bg-purple-500/20 text-purple-400'}`}>
-                            {ref.referral_type}
-                          </span>
-                        </td>
-                        <td className="py-3 px-4 text-center text-white font-semibold">{ref.count}</td>
-                      </tr>
+                      <React.Fragment key={ref.referral_id}>
+                        <tr className="border-b border-white/10 bg-[#0F0F10]">
+                          <td className="py-3 px-4 font-mono text-[#D4AF37] font-semibold">{ref.referral_id}</td>
+                          <td className="py-3 px-4">
+                            <span className={`px-2 py-1 rounded text-xs uppercase ${ref.referral_type === 'employee' ? 'bg-blue-500/20 text-blue-400' : ref.referral_type === 'associate' ? 'bg-green-500/20 text-green-400' : 'bg-purple-500/20 text-purple-400'}`}>
+                              {ref.referral_type}
+                            </span>
+                          </td>
+                          <td className="py-3 px-4 text-center text-white font-semibold">{ref.count} members</td>
+                        </tr>
+                        {/* Show referred members */}
+                        {ref.members_referred && ref.members_referred.map((m, idx) => (
+                          <tr key={`${ref.referral_id}-${idx}`} className="border-b border-white/5">
+                            <td className="py-2 px-4 pl-8">
+                              <span className="text-gray-500">↳</span>
+                              <span className="text-white ml-2">{m.name}</span>
+                              <span className="text-gray-500 ml-2 text-xs">({m.member_id})</span>
+                            </td>
+                            <td className="py-2 px-4 text-gray-400 text-sm">{m.plan}</td>
+                            <td className="py-2 px-4 text-center text-gray-400 text-sm">
+                              {m.joined_at ? new Date(m.joined_at).toLocaleDateString('en-IN') : '-'}
+                            </td>
+                          </tr>
+                        ))}
+                      </React.Fragment>
                     ))
                   )}
                 </tbody>
