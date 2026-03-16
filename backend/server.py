@@ -1909,6 +1909,62 @@ async def get_member_photo(filename: str):
 
 # ==================== MEMBER VERIFICATION (PUBLIC) ====================
 
+@api_router.get("/members/{member_id}/card")
+async def get_member_card(member_id: str, user: dict = Depends(get_current_user)):
+    """Get membership card data with QR code for download"""
+    member = await db.members.find_one(
+        {"$or": [{"id": member_id}, {"member_id": member_id}]}, 
+        {"_id": 0}
+    )
+    if not member:
+        raise HTTPException(status_code=404, detail="Member not found")
+    
+    # Members can only access their own card
+    if user["role"] == UserRole.MEMBER and member.get("user_id") != user["id"]:
+        raise HTTPException(status_code=403, detail="Access denied")
+    
+    # Generate QR code with verification URL
+    qr_data = f"https://thebitzclub.com/verify/{member['member_id']}"
+    qr_base64 = generate_qr_code(qr_data)
+    
+    return {
+        "member_id": member["member_id"],
+        "name": member["name"],
+        "email": member.get("email", ""),
+        "mobile": member.get("mobile", ""),
+        "plan_name": member.get("plan_name", ""),
+        "status": member["status"],
+        "photo_url": member.get("photo_url"),
+        "membership_start": member.get("membership_start"),
+        "membership_end": member.get("membership_end"),
+        "qr_code": f"data:image/png;base64,{qr_base64}",
+        "verification_url": qr_data
+    }
+
+@api_router.get("/members/{member_id}/qr")
+async def get_member_qr(member_id: str, user: dict = Depends(get_current_user)):
+    """Get QR code for member verification"""
+    member = await db.members.find_one(
+        {"$or": [{"id": member_id}, {"member_id": member_id}]}, 
+        {"_id": 0}
+    )
+    if not member:
+        raise HTTPException(status_code=404, detail="Member not found")
+    
+    # Members can only access their own QR
+    if user["role"] == UserRole.MEMBER and member.get("user_id") != user["id"]:
+        raise HTTPException(status_code=403, detail="Access denied")
+    
+    # Generate QR code
+    qr_data = f"https://thebitzclub.com/verify/{member['member_id']}"
+    qr_base64 = generate_qr_code(qr_data)
+    
+    return {
+        "member_id": member["member_id"],
+        "qr_code": f"data:image/png;base64,{qr_base64}",
+        "verification_url": qr_data
+    }
+
 @api_router.get("/verify/{member_id}")
 async def verify_member(member_id: str):
     """Public endpoint for QR code verification"""
