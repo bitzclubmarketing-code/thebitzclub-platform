@@ -550,8 +550,17 @@ async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(s
     try:
         payload = jwt.decode(credentials.credentials, SECRET_KEY, algorithms=[ALGORITHM])
         user_id = payload.get("sub")
+        role = payload.get("role")
         if user_id is None:
             raise HTTPException(status_code=401, detail="Invalid token")
+        
+        # Check if it's an admin/super_admin - they're in the admins collection
+        if role in [UserRole.SUPER_ADMIN, UserRole.ADMIN]:
+            user = await db.admins.find_one({"id": user_id}, {"_id": 0})
+            if user:
+                return user
+        
+        # Check regular users collection
         user = await db.users.find_one({"id": user_id}, {"_id": 0})
         if not user:
             raise HTTPException(status_code=401, detail="User not found")

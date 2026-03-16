@@ -30,7 +30,7 @@ const LoginPage = () => {
       toast.success(`Welcome back, ${user.name}!`);
       
       // Redirect based on role
-      if (user.role === 'super_admin') {
+      if (user.role === 'super_admin' || user.role === 'admin') {
         navigate('/admin');
       } else if (user.role === 'telecaller') {
         navigate('/telecaller');

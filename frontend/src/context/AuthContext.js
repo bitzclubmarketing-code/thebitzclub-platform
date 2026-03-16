@@ -65,7 +65,8 @@ export const AuthProvider = ({ children }) => {
     setUser(null);
   };
 
-  const isAdmin = () => user?.role === 'super_admin';
+  const isAdmin = () => user?.role === 'super_admin' || user?.role === 'admin';
+  const isSuperAdmin = () => user?.role === 'super_admin';
   const isTelecaller = () => user?.role === 'telecaller';
   const isMember = () => user?.role === 'member';
 

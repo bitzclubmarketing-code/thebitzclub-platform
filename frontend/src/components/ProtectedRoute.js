@@ -21,7 +21,7 @@ export const ProtectedRoute = ({ children, allowedRoles }) => {
 
   if (allowedRoles && !allowedRoles.includes(user?.role)) {
     // Redirect based on role
-    if (user?.role === 'super_admin') {
+    if (user?.role === 'super_admin' || user?.role === 'admin') {
       return <Navigate to="/admin" replace />;
     } else if (user?.role === 'telecaller') {
       return <Navigate to="/telecaller" replace />;
@@ -46,7 +46,7 @@ export const PublicRoute = ({ children }) => {
 
   if (isAuthenticated) {
     // Redirect based on role
-    if (user?.role === 'super_admin') {
+    if (user?.role === 'super_admin' || user?.role === 'admin') {
       return <Navigate to="/admin" replace />;
     } else if (user?.role === 'telecaller') {
       return <Navigate to="/telecaller" replace />;
