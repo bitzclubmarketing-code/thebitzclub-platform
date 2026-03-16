@@ -4,7 +4,7 @@ import axios from 'axios';
 import {
   Search, Plus, Edit, Trash2, Eye, Loader2, ChevronLeft, ChevronRight,
   Filter, Download, UserPlus, RefreshCw, CreditCard, X, Calendar, Phone,
-  Mail, MapPin, User, Clock, CheckCircle, AlertCircle, History
+  Mail, MapPin, User, Clock, CheckCircle, AlertCircle, History, PlayCircle, FileText, QrCode
 } from 'lucide-react';
 import { useAuth, API } from '@/context/AuthContext';
 import { toast } from 'sonner';
@@ -38,11 +38,14 @@ const MembersPage = () => {
   const [modalOpen, setModalOpen] = useState(false);
   const [viewModalOpen, setViewModalOpen] = useState(false);
   const [renewModalOpen, setRenewModalOpen] = useState(false);
+  const [activateModalOpen, setActivateModalOpen] = useState(false);
+  const [cardModalOpen, setCardModalOpen] = useState(false);
   const [paymentHistoryOpen, setPaymentHistoryOpen] = useState(false);
   
   const [selectedMember, setSelectedMember] = useState(null);
   const [memberPayments, setMemberPayments] = useState([]);
   const [loadingPayments, setLoadingPayments] = useState(false);
+  const [activating, setActivating] = useState(false);
   
   const [formData, setFormData] = useState({
     name: '',
@@ -52,6 +55,13 @@ const MembersPage = () => {
     address: '',
     referral_id: '',
     date_of_birth: ''
+  });
+  
+  const [activateData, setActivateData] = useState({
+    payment_method: 'cash',
+    amount: 0,
+    transaction_id: '',
+    notes: ''
   });
   
   const [renewData, setRenewData] = useState({
@@ -199,6 +209,59 @@ const MembersPage = () => {
       notes: ''
     });
     setRenewModalOpen(true);
+  };
+
+  const openActivateModal = (member) => {
+    setSelectedMember(member);
+    const memberPlan = plans.find(p => p.id === member.plan_id);
+    setActivateData({
+      payment_method: 'cash',
+      amount: memberPlan?.price || 0,
+      transaction_id: '',
+      notes: ''
+    });
+    setActivateModalOpen(true);
+  };
+
+  const openCardModal = (member) => {
+    setSelectedMember(member);
+    setCardModalOpen(true);
+  };
+
+  const handleActivateMember = async () => {
+    if (!selectedMember) return;
+    
+    setActivating(true);
+    try {
+      // First record the payment
+      await axios.post(`${API}/payments`, {
+        member_id: selectedMember.member_id,
+        amount: activateData.amount,
+        payment_type: 'membership',
+        payment_method: activateData.payment_method,
+        transaction_id: activateData.transaction_id || `CASH-${Date.now()}`,
+        notes: activateData.notes || 'Membership activation payment'
+      }, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+
+      // Then activate the member
+      await axios.put(`${API}/members/${selectedMember.id}`, {
+        status: 'active',
+        membership_start: new Date().toISOString(),
+        membership_end: new Date(Date.now() + (selectedMember.plan_duration || 12) * 30 * 24 * 60 * 60 * 1000).toISOString()
+      }, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+
+      toast.success('Member activated successfully!');
+      setActivateModalOpen(false);
+      fetchMembers();
+    } catch (error) {
+      toast.error(error.response?.data?.detail || 'Failed to activate member');
+    } finally {
+      setActivating(false);
+    }
   };
 
   const openPaymentHistory = (member) => {
@@ -368,14 +431,43 @@ const MembersPage = () => {
                         >
                           <Edit className="w-4 h-4" />
                         </button>
-                        <button
-                          onClick={() => openRenewModal(member)}
-                          className="p-2 text-gray-400 hover:text-green-400 hover:bg-green-400/10 rounded-lg transition-colors"
-                          title="Renew Membership"
-                          data-testid={`renew-member-${member.id}`}
-                        >
-                          <RefreshCw className="w-4 h-4" />
-                        </button>
+                        
+                        {/* ACTIVATE button for PENDING members */}
+                        {member.status === 'pending' && (
+                          <button
+                            onClick={() => openActivateModal(member)}
+                            className="p-2 text-gray-400 hover:text-green-400 hover:bg-green-400/10 rounded-lg transition-colors"
+                            title="Activate Membership"
+                            data-testid={`activate-member-${member.id}`}
+                          >
+                            <PlayCircle className="w-4 h-4" />
+                          </button>
+                        )}
+                        
+                        {/* RENEW button for ACTIVE or EXPIRED members */}
+                        {(member.status === 'active' || member.status === 'expired') && (
+                          <button
+                            onClick={() => openRenewModal(member)}
+                            className="p-2 text-gray-400 hover:text-green-400 hover:bg-green-400/10 rounded-lg transition-colors"
+                            title="Renew Membership"
+                            data-testid={`renew-member-${member.id}`}
+                          >
+                            <RefreshCw className="w-4 h-4" />
+                          </button>
+                        )}
+                        
+                        {/* View Card button for ACTIVE members */}
+                        {member.status === 'active' && (
+                          <button
+                            onClick={() => openCardModal(member)}
+                            className="p-2 text-gray-400 hover:text-cyan-400 hover:bg-cyan-400/10 rounded-lg transition-colors"
+                            title="View Membership Card"
+                            data-testid={`card-member-${member.id}`}
+                          >
+                            <QrCode className="w-4 h-4" />
+                          </button>
+                        )}
+                        
                         <button
                           onClick={() => openPaymentHistory(member)}
                           className="p-2 text-gray-400 hover:text-purple-400 hover:bg-purple-400/10 rounded-lg transition-colors"
@@ -508,9 +600,19 @@ const MembersPage = () => {
                 <button onClick={() => { setViewModalOpen(false); openEditModal(selectedMember); }} className="btn-secondary flex-1 flex items-center justify-center gap-2">
                   <Edit className="w-4 h-4" /> Edit
                 </button>
-                <button onClick={() => { setViewModalOpen(false); openRenewModal(selectedMember); }} className="btn-primary flex-1 flex items-center justify-center gap-2">
-                  <RefreshCw className="w-4 h-4" /> Renew
-                </button>
+                {selectedMember?.status === 'pending' ? (
+                  <button onClick={() => { setViewModalOpen(false); openActivateModal(selectedMember); }} className="btn-primary flex-1 flex items-center justify-center gap-2">
+                    <PlayCircle className="w-4 h-4" /> Activate
+                  </button>
+                ) : selectedMember?.status === 'active' ? (
+                  <button onClick={() => { setViewModalOpen(false); openCardModal(selectedMember); }} className="btn-primary flex-1 flex items-center justify-center gap-2">
+                    <QrCode className="w-4 h-4" /> View Card
+                  </button>
+                ) : (
+                  <button onClick={() => { setViewModalOpen(false); openRenewModal(selectedMember); }} className="btn-primary flex-1 flex items-center justify-center gap-2">
+                    <RefreshCw className="w-4 h-4" /> Renew
+                  </button>
+                )}
               </div>
             </div>
           )}
@@ -721,6 +823,172 @@ const MembersPage = () => {
                   ))}
                 </div>
               )}
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Activate Member Modal */}
+      <Dialog open={activateModalOpen} onOpenChange={setActivateModalOpen}>
+        <DialogContent className="bg-[#1A1A1C] border-white/10 text-white max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2" style={{ fontFamily: 'Playfair Display, serif' }}>
+              <PlayCircle className="w-5 h-5 text-green-400" />
+              Activate Membership
+            </DialogTitle>
+          </DialogHeader>
+          
+          {selectedMember && (
+            <div className="mt-4 space-y-4">
+              <div className="p-3 bg-[#0F0F10] rounded-lg">
+                <p className="text-sm text-gray-400">Member</p>
+                <p className="text-white font-medium">{selectedMember.name}</p>
+                <p className="text-[#D4AF37] text-sm font-mono">{selectedMember.member_id}</p>
+              </div>
+              
+              <div className="p-3 bg-[#0F0F10] rounded-lg">
+                <p className="text-sm text-gray-400">Plan</p>
+                <p className="text-white">{selectedMember.plan_name || 'No plan selected'}</p>
+              </div>
+
+              <div>
+                <label className="block text-sm text-gray-400 mb-2">Payment Amount (₹)</label>
+                <input
+                  type="number"
+                  value={activateData.amount}
+                  onChange={(e) => setActivateData({...activateData, amount: Number(e.target.value)})}
+                  className="w-full px-4 py-3 bg-[#0F0F10] border border-white/10 rounded-lg text-white"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm text-gray-400 mb-2">Payment Method</label>
+                <Select value={activateData.payment_method} onValueChange={(v) => setActivateData({...activateData, payment_method: v})}>
+                  <SelectTrigger className="w-full bg-[#0F0F10] border-white/10 text-white">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent className="bg-[#1A1A1C] border-white/10">
+                    <SelectItem value="cash">Cash</SelectItem>
+                    <SelectItem value="upi">UPI</SelectItem>
+                    <SelectItem value="card">Card</SelectItem>
+                    <SelectItem value="bank_transfer">Bank Transfer</SelectItem>
+                    <SelectItem value="razorpay">Razorpay (Online)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div>
+                <label className="block text-sm text-gray-400 mb-2">Transaction ID (Optional)</label>
+                <input
+                  type="text"
+                  value={activateData.transaction_id}
+                  onChange={(e) => setActivateData({...activateData, transaction_id: e.target.value})}
+                  placeholder="Enter transaction reference"
+                  className="w-full px-4 py-3 bg-[#0F0F10] border border-white/10 rounded-lg text-white placeholder-gray-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm text-gray-400 mb-2">Notes (Optional)</label>
+                <textarea
+                  value={activateData.notes}
+                  onChange={(e) => setActivateData({...activateData, notes: e.target.value})}
+                  placeholder="Add payment notes..."
+                  rows={2}
+                  className="w-full px-4 py-3 bg-[#0F0F10] border border-white/10 rounded-lg text-white placeholder-gray-500"
+                />
+              </div>
+
+              <div className="flex gap-3 pt-2">
+                <button
+                  onClick={() => setActivateModalOpen(false)}
+                  className="btn-secondary flex-1"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleActivateMember}
+                  disabled={activating || activateData.amount <= 0}
+                  className="btn-primary flex-1 flex items-center justify-center gap-2"
+                >
+                  {activating ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle className="w-4 h-4" />}
+                  Activate & Record Payment
+                </button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* View Membership Card Modal */}
+      <Dialog open={cardModalOpen} onOpenChange={setCardModalOpen}>
+        <DialogContent className="bg-[#1A1A1C] border-white/10 text-white max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2" style={{ fontFamily: 'Playfair Display, serif' }}>
+              <QrCode className="w-5 h-5 text-cyan-400" />
+              Membership Card
+            </DialogTitle>
+          </DialogHeader>
+          
+          {selectedMember && (
+            <div className="mt-4 space-y-4">
+              {/* Card Preview */}
+              <div className="bg-gradient-to-br from-[#1a1a1c] to-[#0f0f10] border border-[#D4AF37]/30 rounded-xl p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-2">
+                    <div className="w-8 h-8 bg-[#D4AF37] rounded-full flex items-center justify-center">
+                      <span className="text-black font-bold text-sm">B</span>
+                    </div>
+                    <span className="text-white font-bold">BITZ Club</span>
+                  </div>
+                  <span className="px-2 py-1 bg-green-500/20 text-green-400 text-xs rounded uppercase">Active</span>
+                </div>
+                
+                <div className="flex items-center gap-4">
+                  <div className="w-16 h-16 bg-[#D4AF37]/20 rounded-full flex items-center justify-center">
+                    <span className="text-[#D4AF37] text-2xl font-bold">{selectedMember.name?.charAt(0)}</span>
+                  </div>
+                  <div>
+                    <p className="text-white font-semibold">{selectedMember.name}</p>
+                    <p className="text-[#D4AF37] font-mono text-sm">{selectedMember.member_id}</p>
+                    <p className="text-gray-400 text-xs">Plan: {selectedMember.plan_name}</p>
+                  </div>
+                </div>
+                
+                <div className="mt-4 pt-4 border-t border-white/10 flex justify-between text-xs">
+                  <div>
+                    <p className="text-gray-500">Valid From</p>
+                    <p className="text-white">{selectedMember.membership_start ? new Date(selectedMember.membership_start).toLocaleDateString('en-IN') : '-'}</p>
+                  </div>
+                  <div>
+                    <p className="text-gray-500">Valid Until</p>
+                    <p className="text-white">{selectedMember.membership_end ? new Date(selectedMember.membership_end).toLocaleDateString('en-IN') : '-'}</p>
+                  </div>
+                </div>
+              </div>
+              
+              <p className="text-sm text-gray-400 text-center">
+                Member can view and download their full card with QR code from their dashboard at<br/>
+                <span className="text-[#D4AF37]">thebitzclub.com/member</span>
+              </p>
+              
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setCardModalOpen(false)}
+                  className="btn-secondary flex-1"
+                >
+                  Close
+                </button>
+                <button
+                  onClick={() => {
+                    window.open(`/member?member_id=${selectedMember.member_id}`, '_blank');
+                  }}
+                  className="btn-primary flex-1 flex items-center justify-center gap-2"
+                >
+                  <FileText className="w-4 h-4" />
+                  Open Member Portal
+                </button>
+              </div>
             </div>
           )}
         </DialogContent>
