@@ -11,7 +11,7 @@ export default defineConfig({
     ['json', { outputFile: '/root/.emergent/automation_output/20260314_161729/results.json' }],
   ],
   use: {
-    baseURL: 'https://reporting-center-1.preview.emergentagent.com',
+    baseURL: 'https://membership-go-live.preview.emergentagent.com',
     screenshot: 'only-on-failure',
     trace: 'off',
     headless: true,

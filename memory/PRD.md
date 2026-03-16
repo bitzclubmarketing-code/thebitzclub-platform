@@ -3,6 +3,13 @@
 ## Project Overview
 A comprehensive membership management web application for BITZ Club featuring member registration, QR-based verification, partner discounts, telecaller management, lead capture, family members management, and advanced reporting.
 
+## Deployment Status
+- **Live URL**: https://thebitzclub.com
+- **Server**: DigitalOcean (139.59.24.136)
+- **Last Deployed**: March 16, 2026
+- **Backend Service**: systemd (bitz-backend.service)
+- **Frontend**: Static build served via Nginx
+
 ## Original Problem Statement
 Build a membership management web application for BITZ Club with:
 - Public website homepage
