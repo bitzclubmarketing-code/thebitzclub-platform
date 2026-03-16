@@ -22,6 +22,9 @@ const PlansPage = () => {
     description: '',
     duration_months: 12,
     price: 0,
+    currency: 'INR',
+    price_usd: '',
+    price_aed: '',
     features: [''],
     is_active: true
   });

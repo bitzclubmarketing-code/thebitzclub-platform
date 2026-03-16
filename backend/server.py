@@ -148,20 +148,26 @@ class TokenResponse(BaseModel):
 class RegistrationInitiate(BaseModel):
     name: str
     mobile: str
+    country_code: Optional[str] = "+91"  # International dialing code
     email: Optional[EmailStr] = None
     date_of_birth: Optional[str] = None
     password: str
     plan_id: str
     referral_id: Optional[str] = None
     photo_base64: Optional[str] = None  # Base64 encoded photo
+    country: Optional[str] = "India"
+    state: Optional[str] = None
 
 # Member Models
 class MemberCreate(BaseModel):
     name: str
     mobile: str
+    country_code: Optional[str] = "+91"  # International dialing code
     email: EmailStr  # Email is now MANDATORY for reminders and notifications
     address: Optional[str] = None
     city: Optional[str] = None
+    state: Optional[str] = None
+    country: Optional[str] = "India"
     pincode: Optional[str] = None
     area: Optional[str] = None
     date_of_birth: Optional[str] = None
@@ -172,8 +178,11 @@ class MemberCreate(BaseModel):
 class MemberUpdate(BaseModel):
     name: Optional[str] = None
     email: Optional[EmailStr] = None
+    country_code: Optional[str] = None
     address: Optional[str] = None
     city: Optional[str] = None
+    state: Optional[str] = None
+    country: Optional[str] = None
     pincode: Optional[str] = None
     area: Optional[str] = None
     date_of_birth: Optional[str] = None
@@ -211,6 +220,9 @@ class PlanCreate(BaseModel):
     description: str
     duration_months: int
     price: float
+    currency: str = "INR"  # INR, USD, AED, GBP, EUR, etc.
+    price_usd: Optional[float] = None  # Price in USD for international members
+    price_aed: Optional[float] = None  # Price in AED for UAE members
     features: List[str] = []
     is_active: bool = True
     # Maintenance configuration per plan
@@ -222,6 +234,9 @@ class PlanUpdate(BaseModel):
     description: Optional[str] = None
     duration_months: Optional[int] = None
     price: Optional[float] = None
+    currency: Optional[str] = None
+    price_usd: Optional[float] = None
+    price_aed: Optional[float] = None
     features: Optional[List[str]] = None
     is_active: Optional[bool] = None
     maintenance_amount: Optional[float] = None
@@ -355,6 +370,47 @@ class GalleryItemUpdate(BaseModel):
     category: Optional[str] = None
     order: Optional[int] = None
     is_active: Optional[bool] = None
+
+# Event Models
+class EventCreate(BaseModel):
+    title: str
+    description: str
+    event_date: str  # ISO format date
+    event_time: Optional[str] = None
+    venue: str
+    venue_address: Optional[str] = None
+    city: Optional[str] = None
+    image_url: Optional[str] = None
+    category: Optional[str] = None  # party, networking, workshop, etc.
+    max_attendees: Optional[int] = None
+    entry_fee: float = 0
+    currency: str = "INR"
+    is_members_only: bool = True
+    is_active: bool = True
+    registration_deadline: Optional[str] = None
+
+class EventUpdate(BaseModel):
+    title: Optional[str] = None
+    description: Optional[str] = None
+    event_date: Optional[str] = None
+    event_time: Optional[str] = None
+    venue: Optional[str] = None
+    venue_address: Optional[str] = None
+    city: Optional[str] = None
+    image_url: Optional[str] = None
+    category: Optional[str] = None
+    max_attendees: Optional[int] = None
+    entry_fee: Optional[float] = None
+    currency: Optional[str] = None
+    is_members_only: Optional[bool] = None
+    is_active: Optional[bool] = None
+    registration_deadline: Optional[str] = None
+
+class EventRegistration(BaseModel):
+    event_id: str
+    member_id: str
+    guests: int = 0
+    notes: Optional[str] = None
 
 # Payment Models
 class PaymentCreate(BaseModel):
@@ -1663,8 +1719,14 @@ async def create_member(member: MemberCreate, background_tasks: BackgroundTasks,
         "member_id": member_id,
         "name": member.name,
         "mobile": member.mobile,
+        "country_code": member.country_code or "+91",
         "email": member.email,
         "address": member.address,
+        "city": member.city,
+        "state": member.state,
+        "country": member.country or "India",
+        "pincode": member.pincode,
+        "area": member.area,
         "date_of_birth": member.date_of_birth,
         "plan_id": member.plan_id,
         "plan_name": plan["name"],
@@ -4233,6 +4295,151 @@ async def update_website_settings(settings: WebsiteSettings, admin: dict = Depen
     await db.settings.update_one({"type": "website"}, {"$set": update_data}, upsert=True)
     updated = await db.settings.find_one({"type": "website"}, {"_id": 0})
     return updated
+
+# ==================== EVENTS ENDPOINTS ====================
+
+@api_router.get("/events")
+async def get_events(is_active: Optional[bool] = True, is_members_only: Optional[bool] = None):
+    """Get all events"""
+    query = {}
+    if is_active is not None:
+        query["is_active"] = is_active
+    if is_members_only is not None:
+        query["is_members_only"] = is_members_only
+    
+    events = await db.events.find(query, {"_id": 0}).sort("event_date", 1).to_list(100)
+    return events
+
+@api_router.post("/events")
+async def create_event(event: EventCreate, admin: dict = Depends(require_admin)):
+    """Create a new event (admin only)"""
+    event_dict = event.dict()
+    event_dict["id"] = str(uuid.uuid4())
+    event_dict["created_at"] = datetime.now(timezone.utc).isoformat()
+    event_dict["created_by"] = admin["id"]
+    event_dict["attendees"] = []
+    event_dict["attendee_count"] = 0
+    
+    await db.events.insert_one(event_dict)
+    logger.info(f"[EVENT] Created event: {event.title} by {admin.get('name', admin['id'])}")
+    
+    return {k: v for k, v in event_dict.items() if k != "_id"}
+
+@api_router.get("/events/{event_id}")
+async def get_event(event_id: str):
+    """Get event details"""
+    event = await db.events.find_one({"id": event_id}, {"_id": 0})
+    if not event:
+        raise HTTPException(status_code=404, detail="Event not found")
+    return event
+
+@api_router.put("/events/{event_id}")
+async def update_event(event_id: str, event: EventUpdate, admin: dict = Depends(require_admin)):
+    """Update event (admin only)"""
+    existing = await db.events.find_one({"id": event_id})
+    if not existing:
+        raise HTTPException(status_code=404, detail="Event not found")
+    
+    update_data = {k: v for k, v in event.dict().items() if v is not None}
+    update_data["updated_at"] = datetime.now(timezone.utc).isoformat()
+    
+    await db.events.update_one({"id": event_id}, {"$set": update_data})
+    
+    updated = await db.events.find_one({"id": event_id}, {"_id": 0})
+    return updated
+
+@api_router.delete("/events/{event_id}")
+async def delete_event(event_id: str, admin: dict = Depends(require_admin)):
+    """Delete event (admin only)"""
+    result = await db.events.delete_one({"id": event_id})
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Event not found")
+    return {"message": "Event deleted successfully"}
+
+@api_router.post("/events/{event_id}/register")
+async def register_for_event(event_id: str, registration: EventRegistration, user: dict = Depends(get_current_user)):
+    """Register a member for an event"""
+    event = await db.events.find_one({"id": event_id})
+    if not event:
+        raise HTTPException(status_code=404, detail="Event not found")
+    
+    if not event.get("is_active", True):
+        raise HTTPException(status_code=400, detail="Event is not active")
+    
+    # Check if member is already registered
+    existing_reg = await db.event_registrations.find_one({
+        "event_id": event_id,
+        "member_id": registration.member_id
+    })
+    if existing_reg:
+        raise HTTPException(status_code=400, detail="Already registered for this event")
+    
+    # Check max attendees
+    if event.get("max_attendees"):
+        current_count = await db.event_registrations.count_documents({"event_id": event_id})
+        if current_count >= event["max_attendees"]:
+            raise HTTPException(status_code=400, detail="Event is full")
+    
+    reg_dict = {
+        "id": str(uuid.uuid4()),
+        "event_id": event_id,
+        "member_id": registration.member_id,
+        "guests": registration.guests,
+        "notes": registration.notes,
+        "status": "registered",
+        "registered_at": datetime.now(timezone.utc).isoformat()
+    }
+    
+    await db.event_registrations.insert_one(reg_dict)
+    
+    # Update attendee count
+    await db.events.update_one(
+        {"id": event_id},
+        {"$inc": {"attendee_count": 1 + registration.guests}}
+    )
+    
+    return {"message": "Successfully registered for event", "registration_id": reg_dict["id"]}
+
+@api_router.get("/events/{event_id}/registrations")
+async def get_event_registrations(event_id: str, admin: dict = Depends(require_admin)):
+    """Get all registrations for an event (admin only)"""
+    registrations = await db.event_registrations.find(
+        {"event_id": event_id}, {"_id": 0}
+    ).to_list(500)
+    
+    # Enrich with member details
+    for reg in registrations:
+        member = await db.members.find_one({"member_id": reg["member_id"]}, {"_id": 0, "name": 1, "mobile": 1, "email": 1})
+        if member:
+            reg["member_name"] = member.get("name")
+            reg["member_mobile"] = member.get("mobile")
+            reg["member_email"] = member.get("email")
+    
+    return registrations
+
+@api_router.get("/member/events")
+async def get_member_events(user: dict = Depends(get_current_user)):
+    """Get events the member has registered for"""
+    if user["role"] != UserRole.MEMBER:
+        raise HTTPException(status_code=403, detail="Members only")
+    
+    member = await db.members.find_one({"user_id": user["id"]}, {"_id": 0})
+    if not member:
+        raise HTTPException(status_code=404, detail="Member not found")
+    
+    registrations = await db.event_registrations.find(
+        {"member_id": member["member_id"]}, {"_id": 0}
+    ).to_list(100)
+    
+    # Get event details
+    events = []
+    for reg in registrations:
+        event = await db.events.find_one({"id": reg["event_id"]}, {"_id": 0})
+        if event:
+            event["registration"] = reg
+            events.append(event)
+    
+    return events
 
 # ==================== OFFERS ENDPOINTS ====================
 

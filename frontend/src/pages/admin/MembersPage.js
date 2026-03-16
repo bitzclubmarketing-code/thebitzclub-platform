@@ -54,7 +54,12 @@ const MembersPage = () => {
     plan_id: '',
     address: '',
     referral_id: '',
-    date_of_birth: ''
+    date_of_birth: '',
+    country_code: '+91',
+    country: 'India',
+    state: '',
+    city: '',
+    pincode: ''
   });
   
   const [activateData, setActivateData] = useState({
@@ -632,13 +637,71 @@ const MembersPage = () => {
               <label className="input-label">Full Name *</label>
               <input type="text" value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} className="input-gold" required data-testid="member-name-input" />
             </div>
-            <div>
-              <label className="input-label">Mobile *</label>
-              <input type="tel" value={formData.mobile} onChange={(e) => setFormData({ ...formData, mobile: e.target.value })} className="input-gold" required disabled={!!selectedMember} data-testid="member-mobile-input" />
+            <div className="grid grid-cols-3 gap-2">
+              <div>
+                <label className="input-label">Country Code</label>
+                <Select value={formData.country_code} onValueChange={(v) => setFormData({ ...formData, country_code: v })}>
+                  <SelectTrigger className="w-full bg-[#0F0F10] border-white/10">
+                    <SelectValue placeholder="+91" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-[#1A1A1C] border-white/10 max-h-60">
+                    <SelectItem value="+91">🇮🇳 +91</SelectItem>
+                    <SelectItem value="+1">🇺🇸 +1</SelectItem>
+                    <SelectItem value="+971">🇦🇪 +971</SelectItem>
+                    <SelectItem value="+44">🇬🇧 +44</SelectItem>
+                    <SelectItem value="+65">🇸🇬 +65</SelectItem>
+                    <SelectItem value="+61">🇦🇺 +61</SelectItem>
+                    <SelectItem value="+49">🇩🇪 +49</SelectItem>
+                    <SelectItem value="+33">🇫🇷 +33</SelectItem>
+                    <SelectItem value="+81">🇯🇵 +81</SelectItem>
+                    <SelectItem value="+86">🇨🇳 +86</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="col-span-2">
+                <label className="input-label">Mobile *</label>
+                <input type="tel" value={formData.mobile} onChange={(e) => setFormData({ ...formData, mobile: e.target.value })} className="input-gold" required disabled={!!selectedMember} data-testid="member-mobile-input" />
+              </div>
             </div>
             <div>
-              <label className="input-label">Email</label>
-              <input type="email" value={formData.email} onChange={(e) => setFormData({ ...formData, email: e.target.value })} className="input-gold" data-testid="member-email-input" />
+              <label className="input-label">Email *</label>
+              <input type="email" value={formData.email} onChange={(e) => setFormData({ ...formData, email: e.target.value })} className="input-gold" required data-testid="member-email-input" />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="input-label">Country</label>
+                <Select value={formData.country} onValueChange={(v) => setFormData({ ...formData, country: v })}>
+                  <SelectTrigger className="w-full bg-[#0F0F10] border-white/10">
+                    <SelectValue placeholder="Select Country" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-[#1A1A1C] border-white/10 max-h-60">
+                    <SelectItem value="India">India</SelectItem>
+                    <SelectItem value="United States">United States</SelectItem>
+                    <SelectItem value="UAE">UAE</SelectItem>
+                    <SelectItem value="United Kingdom">United Kingdom</SelectItem>
+                    <SelectItem value="Singapore">Singapore</SelectItem>
+                    <SelectItem value="Australia">Australia</SelectItem>
+                    <SelectItem value="Germany">Germany</SelectItem>
+                    <SelectItem value="France">France</SelectItem>
+                    <SelectItem value="Canada">Canada</SelectItem>
+                    <SelectItem value="Other">Other</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <label className="input-label">State</label>
+                <input type="text" value={formData.state} onChange={(e) => setFormData({ ...formData, state: e.target.value })} className="input-gold" placeholder="State/Province" />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="input-label">City</label>
+                <input type="text" value={formData.city} onChange={(e) => setFormData({ ...formData, city: e.target.value })} className="input-gold" placeholder="City" />
+              </div>
+              <div>
+                <label className="input-label">Pincode</label>
+                <input type="text" value={formData.pincode} onChange={(e) => setFormData({ ...formData, pincode: e.target.value })} className="input-gold" placeholder="Pincode/ZIP" />
+              </div>
             </div>
             <div>
               <label className="input-label">Date of Birth</label>
@@ -659,7 +722,7 @@ const MembersPage = () => {
             </div>
             <div>
               <label className="input-label">Referral ID</label>
-              <input type="text" value={formData.referral_id} onChange={(e) => setFormData({ ...formData, referral_id: e.target.value })} className="input-gold" placeholder="e.g., BITZ-E001" data-testid="member-referral-input" />
+              <input type="text" value={formData.referral_id} onChange={(e) => setFormData({ ...formData, referral_id: e.target.value })} className="input-gold" placeholder="e.g., BITZ-2603-0001" data-testid="member-referral-input" />
             </div>
             <div>
               <label className="input-label">Address</label>
