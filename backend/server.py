@@ -1598,6 +1598,7 @@ async def complete_registration(
             logger.error(f"Failed to save photo for {member_id}: {str(e)}")
     
     # Create member record
+    referred_by = temp_reg.get("referral_id")  # The member who referred this new member
     member_doc = {
         "id": str(uuid.uuid4()),
         "user_id": user_id,
@@ -1613,10 +1614,28 @@ async def complete_registration(
         "status": MembershipStatus.ACTIVE,
         "qr_code": generate_qr_code(member_id),
         "photo_url": photo_url,
-        "referral_id": temp_reg.get("referral_id"),
+        "referral_id": referred_by,  # Legacy field - who referred this member
+        "referred_by": referred_by,  # New field - who referred this member
         "created_at": datetime.now(timezone.utc).isoformat()
     }
     await db.members.insert_one(member_doc)
+    
+    # Create referral reward if referred by a member
+    if referred_by and (referred_by.startswith("26") or referred_by.startswith("BITZ-")):
+        # Create a pending referral reward
+        reward_doc = {
+            "id": str(uuid.uuid4()),
+            "referrer_member_id": referred_by,
+            "referred_member_id": member_id,
+            "referred_name": temp_reg["name"],
+            "reward_amount": 0,  # Admin can set this later
+            "reward_type": "pending",
+            "status": "pending",
+            "notes": f"Auto-created: {temp_reg['name']} joined via referral",
+            "created_at": datetime.now(timezone.utc).isoformat()
+        }
+        await db.referral_rewards.insert_one(reward_doc)
+        logger.info(f"[REFERRAL] Created referral reward for {referred_by} (referred {member_id})")
     
     # Create payment record
     payment_doc = {
@@ -3429,6 +3448,214 @@ async def get_referral_report(
     }
     
     return {"referrals": result, "summary": summary}
+
+# ==================== MEMBER REFERRAL SYSTEM ====================
+
+@api_router.get("/members/{member_id}/referral-stats")
+async def get_member_referral_stats(member_id: str, user: dict = Depends(get_current_user)):
+    """Get referral statistics for a specific member"""
+    # Get the member
+    member = await db.members.find_one(
+        {"$or": [{"id": member_id}, {"member_id": member_id}]},
+        {"_id": 0}
+    )
+    if not member:
+        raise HTTPException(status_code=404, detail="Member not found")
+    
+    # Members can only view their own stats
+    if user["role"] == UserRole.MEMBER and member.get("user_id") != user["id"]:
+        raise HTTPException(status_code=403, detail="Access denied")
+    
+    referral_code = member.get("member_id")
+    
+    # Get all members referred by this member
+    referred_members = await db.members.find(
+        {"referred_by": referral_code},
+        {"_id": 0, "member_id": 1, "name": 1, "status": 1, "plan_name": 1, "created_at": 1}
+    ).sort("created_at", -1).to_list(100)
+    
+    # Calculate stats
+    total_referred = len(referred_members)
+    active_referrals = sum(1 for m in referred_members if m.get("status") == "active")
+    pending_referrals = sum(1 for m in referred_members if m.get("status") == "pending")
+    
+    # Get referral rewards (if any)
+    rewards = await db.referral_rewards.find(
+        {"referrer_member_id": referral_code},
+        {"_id": 0}
+    ).sort("created_at", -1).to_list(50)
+    
+    total_rewards = sum(r.get("reward_amount", 0) for r in rewards)
+    pending_rewards = sum(r.get("reward_amount", 0) for r in rewards if r.get("status") == "pending")
+    claimed_rewards = sum(r.get("reward_amount", 0) for r in rewards if r.get("status") == "claimed")
+    
+    return {
+        "referral_code": referral_code,
+        "referral_link": f"https://thebitzclub.com/join?ref={referral_code}",
+        "total_referred": total_referred,
+        "active_referrals": active_referrals,
+        "pending_referrals": pending_referrals,
+        "referred_members": referred_members,
+        "rewards": {
+            "total": total_rewards,
+            "pending": pending_rewards,
+            "claimed": claimed_rewards,
+            "history": rewards
+        }
+    }
+
+@api_router.get("/referrals/validate")
+async def validate_referral_code(referral_code: str = Query(...)):
+    """Validate if a referral code exists and is valid"""
+    # Check if it's a valid member ID
+    member = await db.members.find_one(
+        {"member_id": referral_code, "status": "active"},
+        {"_id": 0, "member_id": 1, "name": 1}
+    )
+    
+    if member:
+        return {
+            "valid": True,
+            "type": "member",
+            "referrer_name": member.get("name", "").split()[0] if member.get("name") else "Member",
+            "message": f"Referral code valid! Referred by {member.get('name', '').split()[0]}"
+        }
+    
+    # Check if it's an employee or associate code
+    if referral_code.startswith("BITZ-E") or referral_code.startswith("BITZ-A"):
+        return {
+            "valid": True,
+            "type": "employee" if referral_code.startswith("BITZ-E") else "associate",
+            "referrer_name": "BITZ Team",
+            "message": "Referral code valid!"
+        }
+    
+    return {
+        "valid": False,
+        "type": None,
+        "referrer_name": None,
+        "message": "Invalid referral code"
+    }
+
+@api_router.get("/admin/referrals")
+async def get_admin_referral_dashboard(
+    page: int = Query(1, ge=1),
+    limit: int = Query(20, ge=1, le=100),
+    referral_type: Optional[str] = None,
+    search: Optional[str] = None,
+    admin: dict = Depends(require_admin)
+):
+    """Admin dashboard for referral management"""
+    
+    # Get all members who have referred someone
+    pipeline = [
+        {"$match": {"referred_by": {"$exists": True, "$nin": [None, ""]}}},
+        {"$group": {
+            "_id": "$referred_by",
+            "count": {"$sum": 1},
+            "active_count": {"$sum": {"$cond": [{"$eq": ["$status", "active"]}, 1, 0]}},
+            "members": {"$push": {
+                "member_id": "$member_id",
+                "name": "$name",
+                "status": "$status",
+                "plan_name": "$plan_name",
+                "created_at": "$created_at"
+            }}
+        }},
+        {"$sort": {"count": -1}}
+    ]
+    
+    referral_groups = await db.members.aggregate(pipeline).to_list(1000)
+    
+    # Enrich with referrer details
+    result = []
+    for group in referral_groups:
+        referral_code = group["_id"]
+        
+        # Determine referral type
+        ref_type = "member"
+        if referral_code.startswith("BITZ-E"):
+            ref_type = "employee"
+        elif referral_code.startswith("BITZ-A"):
+            ref_type = "associate"
+        
+        if referral_type and ref_type != referral_type:
+            continue
+        
+        # Get referrer details if it's a member
+        referrer = None
+        if ref_type == "member":
+            referrer = await db.members.find_one(
+                {"member_id": referral_code},
+                {"_id": 0, "name": 1, "mobile": 1, "email": 1, "member_id": 1}
+            )
+        
+        if search:
+            search_lower = search.lower()
+            if referral_code.lower().find(search_lower) == -1:
+                if not referrer or referrer.get("name", "").lower().find(search_lower) == -1:
+                    continue
+        
+        result.append({
+            "referral_code": referral_code,
+            "referral_type": ref_type,
+            "referrer": referrer,
+            "total_referrals": group["count"],
+            "active_referrals": group["active_count"],
+            "recent_referrals": group["members"][:5]  # Last 5
+        })
+    
+    # Pagination
+    total = len(result)
+    start = (page - 1) * limit
+    end = start + limit
+    paginated = result[start:end]
+    
+    # Summary stats
+    summary = {
+        "total_referrers": len(result),
+        "total_referred_members": sum(r["total_referrals"] for r in result),
+        "by_type": {
+            "employee": sum(1 for r in result if r["referral_type"] == "employee"),
+            "associate": sum(1 for r in result if r["referral_type"] == "associate"),
+            "member": sum(1 for r in result if r["referral_type"] == "member")
+        }
+    }
+    
+    return {
+        "referrals": paginated,
+        "summary": summary,
+        "total": total,
+        "page": page,
+        "limit": limit,
+        "pages": (total + limit - 1) // limit
+    }
+
+@api_router.post("/admin/referral-rewards")
+async def create_referral_reward(
+    referrer_member_id: str,
+    referred_member_id: str,
+    reward_amount: float,
+    reward_type: str = "cashback",  # cashback, discount, points
+    notes: Optional[str] = None,
+    admin: dict = Depends(require_admin)
+):
+    """Create a referral reward for a referrer"""
+    reward = {
+        "id": str(uuid.uuid4()),
+        "referrer_member_id": referrer_member_id,
+        "referred_member_id": referred_member_id,
+        "reward_amount": reward_amount,
+        "reward_type": reward_type,
+        "status": "pending",  # pending, claimed, expired
+        "notes": notes,
+        "created_at": datetime.now(timezone.utc).isoformat(),
+        "created_by": admin.get("id")
+    }
+    
+    await db.referral_rewards.insert_one(reward)
+    
+    return {"message": "Reward created successfully", "reward_id": reward["id"]}
 
 @api_router.get("/reports/birthday")
 async def get_birthday_report(

@@ -46,7 +46,9 @@ const MembersPage = () => {
   
   const [selectedMember, setSelectedMember] = useState(null);
   const [memberPayments, setMemberPayments] = useState([]);
+  const [memberFamily, setMemberFamily] = useState([]);
   const [loadingPayments, setLoadingPayments] = useState(false);
+  const [loadingFamily, setLoadingFamily] = useState(false);
   const [activating, setActivating] = useState(false);
   
   const [formData, setFormData] = useState({
@@ -187,9 +189,23 @@ const MembersPage = () => {
     }
   };
 
-  const openViewModal = (member) => {
+  const openViewModal = async (member) => {
     setSelectedMember(member);
     setViewModalOpen(true);
+    setMemberFamily([]);
+    
+    // Fetch family members
+    setLoadingFamily(true);
+    try {
+      const response = await axios.get(`${API}/members/${member.member_id}/family`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setMemberFamily(response.data.family_members || []);
+    } catch (error) {
+      console.error('Failed to fetch family members:', error);
+    } finally {
+      setLoadingFamily(false);
+    }
   };
 
   const openEditModal = (member) => {
@@ -591,12 +607,23 @@ const MembersPage = () => {
                 </div>
               </div>
               
-              {selectedMember.address && (
+              {(selectedMember.address || selectedMember.area || selectedMember.city || selectedMember.state || selectedMember.pincode) && (
                 <div className="p-3 bg-[#0F0F10] rounded-lg">
                   <div className="flex items-center gap-2 text-gray-400 text-sm mb-1">
                     <MapPin className="w-3 h-3" /> Address
                   </div>
-                  <p className="text-white">{selectedMember.address}</p>
+                  <div className="text-white text-sm space-y-1">
+                    {selectedMember.address && <p>{selectedMember.address}</p>}
+                    {selectedMember.area && <p>{selectedMember.area}</p>}
+                    <p>
+                      {[selectedMember.city, selectedMember.state, selectedMember.pincode]
+                        .filter(Boolean)
+                        .join(', ')}
+                    </p>
+                    {selectedMember.country && selectedMember.country !== 'India' && (
+                      <p>{selectedMember.country}</p>
+                    )}
+                  </div>
                 </div>
               )}
               
@@ -606,6 +633,36 @@ const MembersPage = () => {
                   <p className="text-[#D4AF37] font-mono">{selectedMember.referral_id}</p>
                 </div>
               )}
+              
+              {/* Family Members Section */}
+              <div className="p-3 bg-[#0F0F10] rounded-lg">
+                <div className="flex items-center gap-2 text-gray-400 text-sm mb-2">
+                  <User className="w-3 h-3" /> Family Members
+                </div>
+                {loadingFamily ? (
+                  <div className="flex items-center justify-center py-2">
+                    <Loader2 className="w-4 h-4 text-[#D4AF37] animate-spin" />
+                  </div>
+                ) : memberFamily.length > 0 ? (
+                  <div className="space-y-2">
+                    {memberFamily.map((family, index) => (
+                      <div key={index} className="flex items-center justify-between p-2 bg-[#1A1A1C] rounded">
+                        <div>
+                          <p className="text-white text-sm">{family.name}</p>
+                          <p className="text-xs text-gray-500">{family.relationship}</p>
+                        </div>
+                        {family.date_of_birth && (
+                          <p className="text-xs text-gray-400">
+                            DOB: {new Date(family.date_of_birth).toLocaleDateString('en-IN')}
+                          </p>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-gray-500 text-sm">No family members added</p>
+                )}
+              </div>
               
               <div className="flex gap-3 pt-4 border-t border-white/10">
                 <button onClick={() => { setViewModalOpen(false); openEditModal(selectedMember); }} className="btn-secondary flex-1 flex items-center justify-center gap-2">

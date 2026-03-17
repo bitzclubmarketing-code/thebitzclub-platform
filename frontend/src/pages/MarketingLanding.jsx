@@ -8,7 +8,7 @@ import {
   Hotel, UtensilsCrossed, Sparkles, Dumbbell, PartyPopper,
   Waves, Baby, Music, Building2, CheckCircle, Loader2, 
   User, Mail, MapPin, Calendar, Lock, Upload, Camera,
-  CreditCard, Shield, Gift, Send, ChevronDown, Globe
+  CreditCard, Shield, Gift, Send, ChevronDown, Globe, XCircle
 } from 'lucide-react';
 import { API, useAuth } from '@/context/AuthContext';
 
@@ -118,15 +118,38 @@ const MarketingLanding = () => {
   const photoInputRef = useRef(null);
   const idInputRef = useRef(null);
 
+  const [referralValid, setReferralValid] = useState(null);
+  const [referralInfo, setReferralInfo] = useState(null);
+
   useEffect(() => {
     fetchPlans();
     
-    // Show referral code toast if pre-filled from URL
+    // Show referral code toast if pre-filled from URL and validate it
     const referral = getReferralFromURL();
     if (referral) {
-      toast.success(`Referral code "${referral}" applied!`);
+      validateReferralCode(referral);
     }
   }, []);
+
+  const validateReferralCode = async (code) => {
+    if (!code || code.length < 4) {
+      setReferralValid(null);
+      setReferralInfo(null);
+      return;
+    }
+    
+    try {
+      const response = await axios.get(`${API}/referrals/validate?referral_code=${code}`);
+      setReferralValid(response.data.valid);
+      setReferralInfo(response.data);
+      if (response.data.valid) {
+        toast.success(response.data.message);
+      }
+    } catch (error) {
+      setReferralValid(false);
+      setReferralInfo(null);
+    }
+  };
 
   // Auto-fill city/state from PIN code (India Post API)
   const fetchLocationFromPincode = useCallback(async (pincode) => {
@@ -840,14 +863,36 @@ const MarketingLanding = () => {
                     <label className="text-sm text-gray-400 flex items-center gap-2">
                       <Gift className="w-4 h-4" /> Referral Code
                     </label>
-                    <input
-                      type="text"
-                      value={step1Data.referral_code}
-                      onChange={(e) => setStep1Data({ ...step1Data, referral_code: e.target.value.toUpperCase() })}
-                      className="input-gold mt-1"
-                      placeholder="Enter referral code (if any)"
-                      data-testid="step1-referral"
-                    />
+                    <div className="relative">
+                      <input
+                        type="text"
+                        value={step1Data.referral_code}
+                        onChange={(e) => {
+                          const code = e.target.value.toUpperCase();
+                          setStep1Data({ ...step1Data, referral_code: code });
+                          if (code.length >= 4) {
+                            validateReferralCode(code);
+                          } else {
+                            setReferralValid(null);
+                            setReferralInfo(null);
+                          }
+                        }}
+                        className={`input-gold mt-1 pr-10 ${referralValid === true ? 'border-green-500' : referralValid === false ? 'border-red-500' : ''}`}
+                        placeholder="Enter referral code (if any)"
+                        data-testid="step1-referral"
+                      />
+                      {referralValid === true && (
+                        <CheckCircle className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-green-500" />
+                      )}
+                      {referralValid === false && (
+                        <XCircle className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-red-500" />
+                      )}
+                    </div>
+                    {referralInfo?.valid && referralInfo?.referrer_name && (
+                      <p className="text-xs text-green-400 mt-1">
+                        Referred by {referralInfo.referrer_name}
+                      </p>
+                    )}
                   </div>
 
                   <button

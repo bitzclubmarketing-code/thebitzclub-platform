@@ -20,7 +20,11 @@ const MemberDashboard = () => {
   const [partners, setPartners] = useState([]);
   const [bookings, setBookings] = useState([]);
   const [payments, setPayments] = useState([]);
+  const [familyMembers, setFamilyMembers] = useState([]);
+  const [referralStats, setReferralStats] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [loadingFamily, setLoadingFamily] = useState(false);
+  const [loadingReferrals, setLoadingReferrals] = useState(false);
   const [activeTab, setActiveTab] = useState('card');
   const [showCardBack, setShowCardBack] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -52,6 +56,8 @@ const MemberDashboard = () => {
     fetchPartners();
     fetchBookings();
     fetchPayments();
+    fetchFamilyMembers();
+    fetchReferralStats();
   }, []);
 
   const fetchMemberData = async () => {
@@ -103,6 +109,34 @@ const MemberDashboard = () => {
       setPayments(response.data);
     } catch (error) {
       console.error('Failed to fetch payments:', error);
+    }
+  };
+
+  const fetchFamilyMembers = async () => {
+    setLoadingFamily(true);
+    try {
+      const response = await axios.get(`${API}/members/${user.member_id}/family`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setFamilyMembers(response.data.family_members || []);
+    } catch (error) {
+      console.error('Failed to fetch family members:', error);
+    } finally {
+      setLoadingFamily(false);
+    }
+  };
+
+  const fetchReferralStats = async () => {
+    setLoadingReferrals(true);
+    try {
+      const response = await axios.get(`${API}/members/${user.member_id}/referral-stats`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setReferralStats(response.data);
+    } catch (error) {
+      console.error('Failed to fetch referral stats:', error);
+    } finally {
+      setLoadingReferrals(false);
     }
   };
 
@@ -388,6 +422,7 @@ const MemberDashboard = () => {
             {[
               { id: 'card', label: 'My Card', icon: Crown },
               { id: 'profile', label: 'My Profile', icon: User },
+              { id: 'family', label: 'Family', icon: Users },
               { id: 'referral', label: 'Refer & Earn', icon: Gift },
               { id: 'affiliations', label: 'Affiliations', icon: Building2 },
               { id: 'bookings', label: 'Bookings', icon: CalendarDays },
@@ -637,14 +672,98 @@ const MemberDashboard = () => {
                       </p>
                     </div>
                   </div>
-                  {member?.address && (
+                  {(member?.address || member?.area || member?.city || member?.state || member?.pincode) && (
                     <div>
                       <label className="text-xs text-gray-400 uppercase tracking-wider">Address</label>
-                      <p className="text-white mt-1">{member.address}, {member.city} {member.pincode}</p>
+                      <div className="text-white mt-1 space-y-1">
+                        {member?.address && <p>{member.address}</p>}
+                        {member?.area && <p>{member.area}</p>}
+                        <p>
+                          {[member?.city, member?.state, member?.pincode]
+                            .filter(Boolean)
+                            .join(', ')}
+                        </p>
+                        {member?.country && member.country !== 'India' && (
+                          <p>{member.country}</p>
+                        )}
+                      </div>
                     </div>
                   )}
                 </div>
               </div>
+            </div>
+          )}
+
+          {/* Family Tab */}
+          {activeTab === 'family' && (
+            <div className="space-y-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h2 className="text-xl font-bold text-white" style={{ fontFamily: 'Playfair Display, serif' }}>
+                    Family <span className="text-[#D4AF37]">Members</span>
+                  </h2>
+                  <p className="text-gray-400 text-sm mt-1">
+                    Your family members added to the membership
+                  </p>
+                </div>
+              </div>
+
+              {loadingFamily ? (
+                <div className="flex items-center justify-center py-12">
+                  <Loader2 className="w-6 h-6 text-[#D4AF37] animate-spin" />
+                </div>
+              ) : familyMembers.length > 0 ? (
+                <div className="grid gap-4 md:grid-cols-2">
+                  {familyMembers.map((family, index) => (
+                    <div 
+                      key={index} 
+                      className="bg-[#1A1A1C] rounded-xl p-4 border border-white/5"
+                    >
+                      <div className="flex items-center gap-4">
+                        <div className="w-12 h-12 rounded-full bg-[#D4AF37]/20 flex items-center justify-center">
+                          <span className="text-[#D4AF37] font-bold text-lg">
+                            {family.name?.charAt(0) || 'F'}
+                          </span>
+                        </div>
+                        <div className="flex-1">
+                          <h3 className="text-white font-semibold">{family.name}</h3>
+                          <p className="text-[#D4AF37] text-sm">{family.relationship}</p>
+                        </div>
+                      </div>
+                      <div className="mt-4 grid grid-cols-2 gap-4 text-sm">
+                        {family.date_of_birth && (
+                          <div>
+                            <p className="text-gray-500 text-xs">Date of Birth</p>
+                            <p className="text-gray-300">
+                              {new Date(family.date_of_birth).toLocaleDateString('en-IN')}
+                            </p>
+                          </div>
+                        )}
+                        {family.mobile && (
+                          <div>
+                            <p className="text-gray-500 text-xs">Mobile</p>
+                            <p className="text-gray-300">{family.mobile}</p>
+                          </div>
+                        )}
+                        {family.email && (
+                          <div className="col-span-2">
+                            <p className="text-gray-500 text-xs">Email</p>
+                            <p className="text-gray-300">{family.email}</p>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-12 bg-[#1A1A1C] rounded-xl">
+                  <Users className="w-12 h-12 text-gray-600 mx-auto mb-4" />
+                  <p className="text-gray-400">No family members added yet</p>
+                  <p className="text-gray-500 text-sm mt-2">
+                    Contact admin to add family members to your membership
+                  </p>
+                </div>
+              )}
             </div>
           )}
 
@@ -687,7 +806,28 @@ const MemberDashboard = () => {
                         <Copy className="w-5 h-5 text-[#D4AF37]" />
                       </button>
                     </div>
+                    <p className="text-gray-500 text-xs mt-2">
+                      Referral Link: <span className="text-[#D4AF37]">{window.location.origin}/join?ref={member?.member_id || user?.member_id}</span>
+                    </p>
                   </div>
+
+                  {/* Referral Stats */}
+                  {referralStats && (
+                    <div className="grid grid-cols-3 gap-4 mb-6 pt-4 border-t border-white/10">
+                      <div className="text-center">
+                        <p className="text-2xl font-bold text-white">{referralStats.total_referred || 0}</p>
+                        <p className="text-xs text-gray-400">Total Referrals</p>
+                      </div>
+                      <div className="text-center">
+                        <p className="text-2xl font-bold text-green-400">{referralStats.active_referrals || 0}</p>
+                        <p className="text-xs text-gray-400">Active</p>
+                      </div>
+                      <div className="text-center">
+                        <p className="text-2xl font-bold text-yellow-400">{referralStats.pending_referrals || 0}</p>
+                        <p className="text-xs text-gray-400">Pending</p>
+                      </div>
+                    </div>
+                  )}
 
                   {/* Share Buttons */}
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">

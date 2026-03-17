@@ -32,6 +32,7 @@ import MaintenancePage from '@/pages/admin/MaintenancePage';
 import AdminUsersPage from '@/pages/admin/AdminUsersPage';
 import EventsPage from '@/pages/admin/EventsPage';
 import OfflineMemberPage from '@/pages/admin/OfflineMemberPage';
+import ReferralsPage from '@/pages/admin/ReferralsPage';
 
 // Telecaller Pages
 import TelecallerDashboard from '@/pages/telecaller/TelecallerDashboard';
@@ -93,6 +94,7 @@ function App() {
               <Route path="admin-users" element={<AdminUsersPage />} />
               <Route path="events" element={<EventsPage />} />
               <Route path="members/add" element={<OfflineMemberPage />} />
+              <Route path="referrals" element={<ReferralsPage />} />
             </Route>
 
             {/* Telecaller Routes */}

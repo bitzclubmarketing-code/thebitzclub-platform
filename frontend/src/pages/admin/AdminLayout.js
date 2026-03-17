@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   Crown, LayoutDashboard, Users, CreditCard, Building2, Phone,
   BarChart3, Settings, LogOut, Menu, X, ChevronLeft, UserPlus, Image,
-  Wallet, Tag, Wrench, ShieldCheck, Calendar
+  Wallet, Tag, Wrench, ShieldCheck, Calendar, Gift
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 
@@ -19,6 +19,7 @@ const AdminLayout = () => {
     { icon: LayoutDashboard, label: 'Dashboard', path: '/admin' },
     { icon: Users, label: 'Members', path: '/admin/members' },
     { icon: UserPlus, label: 'Leads', path: '/admin/leads' },
+    { icon: Gift, label: 'Referrals', path: '/admin/referrals' },
     { icon: Wallet, label: 'Payments', path: '/admin/payments' },
     { icon: CreditCard, label: 'Plans', path: '/admin/plans' },
     { icon: Tag, label: 'Coupons', path: '/admin/coupons' },
