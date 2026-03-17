@@ -6,17 +6,40 @@ A comprehensive membership management web application for BITZ Club featuring me
 ## Deployment Status
 - **Live URL**: https://thebitzclub.com
 - **Server**: DigitalOcean (139.59.24.136)
-- **Last Deployed**: March 16, 2026
+- **Last Deployed**: March 17, 2026
 - **Backend Service**: systemd (bitz-backend.service)
 - **Frontend**: Static build served via Nginx
 
-## Latest Features Added (March 16, 2026)
-- **Refer & Earn Feature**: Members can now share their referral code via WhatsApp, SMS, or copy link directly from the Member Dashboard
-- **Referral Sharing Options**: 
-  - WhatsApp: Opens WhatsApp with pre-filled referral message
-  - SMS: Opens SMS app with referral link
-  - Copy Link: Copies referral URL to clipboard
-- **How It Works**: Visual guide explaining the referral process
+## Latest Features Added (March 17, 2026)
+### Core System Enhancements
+1. **Julian Member ID Format (10-digit)**: `YYDDDNNNNN`
+   - YY: Last 2 digits of year (26 for 2026)
+   - DDD: Day of year (001-366)
+   - NNNNN: Sequential 5-digit counter
+   - Example: `2607600001` (Year 2026, Day 76, Sequence 00001)
+   - Counter stored in MongoDB `counters` collection
+
+2. **Offline Member Creation (Admin)**
+   - New dedicated page at `/admin/members/add`
+   - Three-tab form matching existing system:
+     - **Brief Tab**: Title, First/Middle/Last Name, Email, Password, Mobile, Joining Date, Photo Upload
+     - **Personal Details Tab**: DOB, Gender, Address, Area, Pin Code, City, State, Country, Family Members section
+     - **Payment Details Tab**: Card Type/Plan selection, Payment Method (Cash/Cheque/UPI/Card/Bank Transfer/Online), Payment Summary with GST, Referral ID, Notes
+   - Family Members management with Add/Remove
+
+3. **Maintenance Configuration (Plans)**
+   - Maintenance Type: None / Inclusive / Enter Value
+   - Maintenance Amount and GST %
+   - Billing Cycle: Monthly / Quarterly / Half-Yearly / Yearly
+   - Renewal Amount field
+
+4. **Enhanced Payment Verification**
+   - Primary: Razorpay signature verification
+   - Fallback: Direct payment status check via API if signature fails
+
+## Previous Features (March 16, 2026)
+- **Refer & Earn Feature**: Members can share referral code via WhatsApp, SMS, or copy link
+- **Referral Sharing Options**: WhatsApp, SMS, Copy Link with pre-filled messages
 
 ## Original Problem Statement
 Build a membership management web application for BITZ Club with:
@@ -79,10 +102,15 @@ Build a membership management web application for BITZ Club with:
 
 ### Member Management
 - CRUD operations
-- Member ID generation (BITZ-YYYY-XXXXXX format)
+- **Member ID generation: 10-digit Julian format (YYDDDNNNNN)**
+  - YY = Year (26 for 2026)
+  - DDD = Day of year (001-366)
+  - NNNNN = Sequential counter (00001-99999)
+  - Example: `2607600001`
 - QR code generation for verification
 - Status tracking (active, pending, expired, cancelled)
 - **Referral ID tracking (BITZ-E*** for Employees, BITZ-A*** for Associates)**
+- **Offline Member Creation with 3-tab form (Brief, Personal Details, Payment Details)**
 
 ### Plans Management
 - Multiple tiers (Silver, Gold, Platinum)
