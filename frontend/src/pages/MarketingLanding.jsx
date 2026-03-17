@@ -73,8 +73,28 @@ const MarketingLanding = () => {
     name: '',
     mobile: '',
     email: '',
-    referral_code: getReferralFromURL()
+    referral_code: getReferralFromURL(),
+    member_type: 'indian' // indian, nri, foreigner
   });
+  
+  // Member types with pricing currency
+  const MEMBER_TYPES = [
+    { id: 'indian', label: 'Indian', flag: '🇮🇳', currency: 'INR', symbol: '₹' },
+    { id: 'nri', label: 'NRI', flag: '🌍', currency: 'USD', symbol: '$' },
+    { id: 'foreigner', label: 'Foreigner', flag: '🌐', currency: 'USD', symbol: '$' }
+  ];
+  
+  const getCurrentMemberType = () => MEMBER_TYPES.find(t => t.id === step1Data.member_type) || MEMBER_TYPES[0];
+  
+  const getPriceForMemberType = (plan) => {
+    const memberType = getCurrentMemberType();
+    if (memberType.id === 'indian') {
+      return { price: plan.price || 0, currency: 'INR', symbol: '₹' };
+    }
+    // For NRI/Foreigner use USD price or convert from INR
+    const usdPrice = plan.price_usd || Math.round((plan.price || 0) / 83);
+    return { price: usdPrice, currency: 'USD', symbol: '$' };
+  };
   
   const [step2Data, setStep2Data] = useState({
     address: '',
@@ -688,6 +708,42 @@ const MarketingLanding = () => {
                     <p className="text-gray-400 text-sm mt-1">Start your premium lifestyle journey</p>
                   </div>
 
+                  {/* Member Type Selection */}
+                  <div>
+                    <label className="text-sm text-gray-400 mb-2 block">Member Type *</label>
+                    <div className="grid grid-cols-3 gap-2">
+                      {MEMBER_TYPES.map((type) => (
+                        <button
+                          key={type.id}
+                          type="button"
+                          onClick={() => {
+                            setStep1Data({ ...step1Data, member_type: type.id });
+                            // Auto-select country based on member type
+                            if (type.id === 'indian') {
+                              setSelectedCountry(COUNTRY_CODES[0]); // India
+                            } else if (type.id === 'nri' || type.id === 'foreigner') {
+                              setSelectedCountry(COUNTRY_CODES[1]); // US as default for international
+                            }
+                          }}
+                          className={`p-3 rounded-lg border-2 transition-all text-center ${
+                            step1Data.member_type === type.id
+                              ? 'border-[#D4AF37] bg-[#D4AF37]/10'
+                              : 'border-white/10 bg-white/5 hover:border-white/20'
+                          }`}
+                          data-testid={`member-type-${type.id}`}
+                        >
+                          <span className="text-2xl">{type.flag}</span>
+                          <p className={`text-sm mt-1 ${step1Data.member_type === type.id ? 'text-[#D4AF37]' : 'text-gray-400'}`}>
+                            {type.label}
+                          </p>
+                        </button>
+                      ))}
+                    </div>
+                    <p className="text-xs text-gray-500 mt-2 text-center">
+                      Pricing in {getCurrentMemberType().symbol} ({getCurrentMemberType().currency})
+                    </p>
+                  </div>
+
                   <div>
                     <label className="text-sm text-gray-400 flex items-center gap-2">
                       <User className="w-4 h-4" /> Full Name *
@@ -856,7 +912,14 @@ const MarketingLanding = () => {
                               </div>
                             </div>
                             <div className="text-right">
-                              <p className="text-[#D4AF37] font-bold text-lg">₹{plan.price.toLocaleString()}</p>
+                              {(() => {
+                                const pricing = getPriceForMemberType(plan);
+                                return (
+                                  <p className="text-[#D4AF37] font-bold text-lg">
+                                    {pricing.symbol}{pricing.price.toLocaleString()}
+                                  </p>
+                                );
+                              })()}
                               {index === 1 && (
                                 <span className="text-xs bg-[#D4AF37] text-black px-2 py-0.5 rounded">Popular</span>
                               )}

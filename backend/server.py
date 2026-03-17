@@ -525,6 +525,7 @@ class MarketingLeadCreate(BaseModel):
     referral_code: Optional[str] = None
     country_code: Optional[str] = '+91'
     country: Optional[str] = 'India'
+    member_type: Optional[str] = 'indian'  # indian, nri, foreigner
     source: str = 'marketing_landing'
 
 class MarketingLeadStep2(BaseModel):
@@ -3034,6 +3035,80 @@ async def get_payments_report(
             "online_amount": online_amount,
             "offline_amount": offline_amount
         }
+    }
+
+@api_router.get("/reports/leads-dashboard")
+async def get_leads_dashboard(
+    start_date: Optional[str] = None,
+    end_date: Optional[str] = None,
+    admin: dict = Depends(require_admin)
+):
+    """Leads dashboard for marketing - source, city, conversions"""
+    query = {}
+    if start_date or end_date:
+        date_filter = {}
+        if start_date:
+            date_filter["$gte"] = start_date
+        if end_date:
+            date_filter["$lte"] = end_date + "T23:59:59"
+        query["created_at"] = date_filter
+    
+    # Total leads
+    total_leads = await db.leads.count_documents(query)
+    
+    # Leads by source
+    source_stats = await db.leads.aggregate([
+        {"$match": query},
+        {"$group": {"_id": "$source", "count": {"$sum": 1}}},
+        {"$sort": {"count": -1}}
+    ]).to_list(50)
+    
+    # Leads by city
+    city_stats = await db.leads.aggregate([
+        {"$match": {**query, "city": {"$exists": True, "$nin": [None, ""]}}},
+        {"$group": {"_id": "$city", "count": {"$sum": 1}}},
+        {"$sort": {"count": -1}},
+        {"$limit": 20}
+    ]).to_list(20)
+    
+    # Leads by member type
+    member_type_stats = await db.leads.aggregate([
+        {"$match": query},
+        {"$group": {"_id": {"$ifNull": ["$member_type", "indian"]}, "count": {"$sum": 1}}},
+        {"$sort": {"count": -1}}
+    ]).to_list(10)
+    
+    # Leads by status (conversion tracking)
+    status_stats = await db.leads.aggregate([
+        {"$match": query},
+        {"$group": {"_id": "$status", "count": {"$sum": 1}}},
+        {"$sort": {"count": -1}}
+    ]).to_list(20)
+    
+    # Calculate conversion rate
+    converted = await db.leads.count_documents({**query, "status": "converted"})
+    conversion_rate = (converted / total_leads * 100) if total_leads > 0 else 0
+    
+    # Daily leads trend (last 30 days)
+    thirty_days_ago = (datetime.now(timezone.utc) - timedelta(days=30)).isoformat()
+    daily_trend = await db.leads.aggregate([
+        {"$match": {"created_at": {"$gte": thirty_days_ago}}},
+        {"$project": {
+            "date": {"$substr": ["$created_at", 0, 10]}
+        }},
+        {"$group": {"_id": "$date", "count": {"$sum": 1}}},
+        {"$sort": {"_id": 1}}
+    ]).to_list(30)
+    
+    return {
+        "total_leads": total_leads,
+        "converted_leads": converted,
+        "conversion_rate": round(conversion_rate, 2),
+        "by_source": [{"source": s["_id"] or "unknown", "count": s["count"]} for s in source_stats],
+        "by_city": [{"city": c["_id"], "count": c["count"]} for c in city_stats],
+        "by_member_type": [{"type": m["_id"], "count": m["count"]} for m in member_type_stats],
+        "by_status": [{"status": s["_id"] or "new", "count": s["count"]} for s in status_stats],
+        "daily_trend": [{"date": d["_id"], "count": d["count"]} for d in daily_trend]
     }
 
 @api_router.get("/reports/location")

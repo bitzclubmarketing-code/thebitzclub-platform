@@ -23,17 +23,40 @@ const MarketingLandingPage = () => {
   const [leadData, setLeadData] = useState({
     name: '',
     mobile: '',
-    email: ''
+    email: '',
+    country_code: '+91',
+    member_type: 'indian' // indian, nri, foreigner
   });
   
   // Step 2 - Membership Details
   const [memberDetails, setMemberDetails] = useState({
     city: '',
+    state: '',
+    country: 'India',
     address: '',
     date_of_birth: '',
     referral_code: '',
     pincode: ''
   });
+  
+  // Currency based on member type
+  const getCurrency = () => {
+    if (leadData.member_type === 'indian') return 'INR';
+    return 'USD';
+  };
+  
+  const getCurrencySymbol = () => {
+    if (leadData.member_type === 'indian') return '₹';
+    return '$';
+  };
+  
+  const getPriceForMemberType = (plan) => {
+    if (leadData.member_type === 'indian') {
+      return plan.price || 0;
+    }
+    // For NRI/Foreigner, use USD price or convert
+    return plan.price_usd || Math.round(plan.price / 83); // Approx conversion
+  };
   
   // Photo uploads
   const [profilePhoto, setProfilePhoto] = useState(null);
@@ -427,6 +450,41 @@ const MarketingLandingPage = () => {
               </div>
 
               <form onSubmit={handleStep1Submit} className="glass-gold p-6 sm:p-8 rounded-2xl space-y-5">
+                {/* Member Type Selection */}
+                <div>
+                  <label className="input-label mb-3">Member Type *</label>
+                  <div className="grid grid-cols-3 gap-2">
+                    {[
+                      { id: 'indian', label: 'Indian', flag: '🇮🇳', code: '+91' },
+                      { id: 'nri', label: 'NRI', flag: '🌍', code: '+1' },
+                      { id: 'foreigner', label: 'Foreigner', flag: '🌐', code: '+1' }
+                    ].map((type) => (
+                      <button
+                        key={type.id}
+                        type="button"
+                        onClick={() => setLeadData({ 
+                          ...leadData, 
+                          member_type: type.id,
+                          country_code: type.code
+                        })}
+                        className={`p-3 rounded-lg border-2 transition-all text-center ${
+                          leadData.member_type === type.id
+                            ? 'border-[#D4AF37] bg-[#D4AF37]/10'
+                            : 'border-white/10 bg-white/5 hover:border-white/20'
+                        }`}
+                      >
+                        <span className="text-2xl">{type.flag}</span>
+                        <p className={`text-sm mt-1 ${leadData.member_type === type.id ? 'text-[#D4AF37]' : 'text-gray-400'}`}>
+                          {type.label}
+                        </p>
+                      </button>
+                    ))}
+                  </div>
+                  <p className="text-xs text-gray-500 mt-2">
+                    {leadData.member_type === 'indian' ? 'Pricing in INR (₹)' : 'Pricing in USD ($)'}
+                  </p>
+                </div>
+
                 <div>
                   <label className="input-label flex items-center gap-2">
                     <User className="w-4 h-4 text-[#D4AF37]" /> Full Name *
@@ -445,15 +503,30 @@ const MarketingLandingPage = () => {
                   <label className="input-label flex items-center gap-2">
                     <Phone className="w-4 h-4 text-[#D4AF37]" /> Mobile Number *
                   </label>
-                  <input
-                    type="tel"
-                    value={leadData.mobile}
-                    onChange={(e) => setLeadData({ ...leadData, mobile: e.target.value.replace(/\D/g, '').slice(0, 10) })}
-                    className="input-gold"
-                    placeholder="10-digit mobile number"
-                    maxLength={10}
-                    required
-                  />
+                  <div className="flex gap-2">
+                    <select
+                      value={leadData.country_code}
+                      onChange={(e) => setLeadData({ ...leadData, country_code: e.target.value })}
+                      className="input-gold w-24"
+                    >
+                      <option value="+91">🇮🇳 +91</option>
+                      <option value="+1">🇺🇸 +1</option>
+                      <option value="+971">🇦🇪 +971</option>
+                      <option value="+44">🇬🇧 +44</option>
+                      <option value="+65">🇸🇬 +65</option>
+                      <option value="+61">🇦🇺 +61</option>
+                      <option value="+49">🇩🇪 +49</option>
+                      <option value="+33">🇫🇷 +33</option>
+                    </select>
+                    <input
+                      type="tel"
+                      value={leadData.mobile}
+                      onChange={(e) => setLeadData({ ...leadData, mobile: e.target.value.replace(/\D/g, '').slice(0, 15) })}
+                      className="input-gold flex-1"
+                      placeholder="Mobile number"
+                      required
+                    />
+                  </div>
                 </div>
 
                 <div>
@@ -515,12 +588,50 @@ const MarketingLandingPage = () => {
                             <p className="text-white font-semibold">{plan.name}</p>
                             <p className="text-sm text-gray-400">{plan.duration_months} months</p>
                           </div>
-                          <p className="text-xl font-bold text-[#D4AF37]">₹{plan.price?.toLocaleString()}</p>
+                          <p className="text-xl font-bold text-[#D4AF37]">
+                            {getCurrencySymbol()}{getPriceForMemberType(plan).toLocaleString()}
+                          </p>
                         </div>
                       </div>
                     ))}
                   </div>
                 </div>
+
+                {/* Country/State for NRI/Foreigner */}
+                {leadData.member_type !== 'indian' && (
+                  <div className="grid sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className="input-label">Country *</label>
+                      <select
+                        value={memberDetails.country}
+                        onChange={(e) => setMemberDetails({ ...memberDetails, country: e.target.value })}
+                        className="input-gold"
+                        required
+                      >
+                        <option value="">Select Country</option>
+                        <option value="United States">United States</option>
+                        <option value="UAE">UAE</option>
+                        <option value="United Kingdom">United Kingdom</option>
+                        <option value="Singapore">Singapore</option>
+                        <option value="Australia">Australia</option>
+                        <option value="Canada">Canada</option>
+                        <option value="Germany">Germany</option>
+                        <option value="France">France</option>
+                        <option value="Other">Other</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="input-label">State/Province</label>
+                      <input
+                        type="text"
+                        value={memberDetails.state}
+                        onChange={(e) => setMemberDetails({ ...memberDetails, state: e.target.value })}
+                        className="input-gold"
+                        placeholder="State/Province"
+                      />
+                    </div>
+                  </div>
+                )}
 
                 <div className="grid sm:grid-cols-2 gap-4">
                   <div>
@@ -537,14 +648,14 @@ const MarketingLandingPage = () => {
                     />
                   </div>
                   <div>
-                    <label className="input-label">Pincode</label>
+                    <label className="input-label">{leadData.member_type === 'indian' ? 'Pincode' : 'ZIP Code'}</label>
                     <input
                       type="text"
                       value={memberDetails.pincode}
                       onChange={(e) => setMemberDetails({ ...memberDetails, pincode: e.target.value })}
                       className="input-gold"
-                      placeholder="Pincode"
-                      maxLength={6}
+                      placeholder={leadData.member_type === 'indian' ? 'Pincode' : 'ZIP Code'}
+                      maxLength={10}
                     />
                   </div>
                 </div>

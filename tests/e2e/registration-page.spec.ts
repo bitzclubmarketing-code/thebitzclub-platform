@@ -1,7 +1,7 @@
 import { test, expect } from '@playwright/test';
 import { dismissToasts, removeEmergentBadge } from '../fixtures/helpers';
 
-const BASE_URL = process.env.REACT_APP_BACKEND_URL || 'https://membership-go-live.preview.emergentagent.com';
+const BASE_URL = process.env.REACT_APP_BACKEND_URL || 'https://join-razorpay-debug.preview.emergentagent.com';
 
 test.describe('Registration Page - Plan Selection & Photo Upload', () => {
   test.beforeEach(async ({ page }) => {
