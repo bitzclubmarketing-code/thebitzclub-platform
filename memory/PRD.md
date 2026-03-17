@@ -37,6 +37,24 @@ A comprehensive membership management web application for BITZ Club featuring me
    - Primary: Razorpay signature verification
    - Fallback: Direct payment status check via API if signature fails
 
+5. **Complete Referral System**
+   - **Referral Code**: Each member's `member_id` serves as their referral code
+   - **Referral Link**: `/join?ref=<member_id>` auto-populates and validates
+   - **Tracking**: New members have `referred_by` field tracking who referred them
+   - **Admin Dashboard**: New `/admin/referrals` page with:
+     - Summary cards (Total Referrers, Total Referred, Employee/Member refs)
+     - Search and filter by type (Employee/Associate/Member)
+     - Export report functionality
+     - Expandable list showing recent referrals per referrer
+   - **Member Stats**: Members can see their referral stats in dashboard
+   - **Validation**: Real-time validation shows referrer name on join page
+   - **Reward Tracking**: `referral_rewards` collection for future reward logic
+
+6. **Address & Family Details Display**
+   - Admin Member View shows complete address (street, area, city, state, pincode, country)
+   - Admin Member View shows Family Members section
+   - Member Dashboard has new "Family" tab showing all family members
+
 ## Previous Features (March 16, 2026)
 - **Refer & Earn Feature**: Members can share referral code via WhatsApp, SMS, or copy link
 - **Referral Sharing Options**: WhatsApp, SMS, Copy Link with pre-filled messages
