@@ -226,8 +226,12 @@ class PlanCreate(BaseModel):
     features: List[str] = []
     is_active: bool = True
     # Maintenance configuration per plan
+    maintenance_type: str = 'none'  # 'none', 'inclusive', 'enter_value'
     maintenance_amount: float = 0  # Monthly maintenance amount for this plan
-    maintenance_frequency: str = 'monthly'  # monthly, quarterly, yearly
+    maintenance_gst: float = 0  # GST percentage
+    maintenance_billing_cycle: str = 'monthly'  # monthly, quarterly, half_yearly, yearly
+    maintenance_frequency: str = 'monthly'  # Legacy field, same as billing_cycle
+    renewal_amount: float = 0  # Amount to charge on renewal
 
 class PlanUpdate(BaseModel):
     name: Optional[str] = None
@@ -239,8 +243,12 @@ class PlanUpdate(BaseModel):
     price_aed: Optional[float] = None
     features: Optional[List[str]] = None
     is_active: Optional[bool] = None
+    maintenance_type: Optional[str] = None
     maintenance_amount: Optional[float] = None
+    maintenance_gst: Optional[float] = None
+    maintenance_billing_cycle: Optional[str] = None
     maintenance_frequency: Optional[str] = None
+    renewal_amount: Optional[float] = None
 
 # Partner Models
 class FacilityDiscount(BaseModel):
@@ -581,11 +589,44 @@ class WebsiteSettings(BaseModel):
 
 # ==================== UTILITY FUNCTIONS ====================
 
-def generate_member_id():
-    """Generate unique member ID like BITZ-2024-XXXX"""
-    year = datetime.now().year
-    random_part = ''.join(random.choices(string.ascii_uppercase + string.digits, k=6))
-    return f"BITZ-{year}-{random_part}"
+async def generate_member_id():
+    """
+    Generate unique 10-digit Julian member ID in format: YYDDDNNNNN
+    - YY: Last 2 digits of year (26 for 2026)
+    - DDD: Day of year (001-366)
+    - NNNNN: Sequential 5-digit counter
+    
+    Example: 2609300001 (Year 2026, Day 93, Member #00001)
+    """
+    now = datetime.now()
+    year_part = str(now.year)[2:]  # Last 2 digits: "26" for 2026
+    day_of_year = now.timetuple().tm_yday  # Day of year (1-366)
+    day_part = str(day_of_year).zfill(3)  # Pad to 3 digits: "093"
+    
+    # Get and increment counter from database (atomic operation)
+    counter_doc = await db.counters.find_one_and_update(
+        {"_id": "member_id"},
+        {"$inc": {"sequence_value": 1}},
+        upsert=True,
+        return_document=True
+    )
+    
+    sequence = counter_doc.get("sequence_value", 1)
+    sequence_part = str(sequence).zfill(5)  # Pad to 5 digits: "00001"
+    
+    member_id = f"{year_part}{day_part}{sequence_part}"
+    logger.info(f"[MEMBER ID] Generated Julian ID: {member_id}")
+    
+    return member_id
+
+def generate_member_id_sync():
+    """Synchronous fallback for non-async contexts (legacy)"""
+    now = datetime.now()
+    year_part = str(now.year)[2:]
+    day_of_year = now.timetuple().tm_yday
+    day_part = str(day_of_year).zfill(3)
+    random_part = ''.join(random.choices(string.digits, k=5))
+    return f"{year_part}{day_part}{random_part}"
 
 def generate_qr_code(data: str) -> str:
     """Generate QR code and return base64 string"""
@@ -686,16 +727,26 @@ class RazorpayService:
     def verify_payment_signature(payment_id: str, order_id: str, signature: str) -> bool:
         """Verify Razorpay payment signature"""
         try:
+            logger.info(f"[RAZORPAY] Verifying signature for payment: {payment_id}, order: {order_id}")
             params_dict = {
                 'razorpay_order_id': order_id,
                 'razorpay_payment_id': payment_id,
                 'razorpay_signature': signature
             }
             razorpay_client.utility.verify_payment_signature(params_dict)
-            logger.info(f"[RAZORPAY] Payment signature verified for: {payment_id}")
+            logger.info(f"[RAZORPAY] Payment signature verified successfully for: {payment_id}")
             return True
         except razorpay.errors.SignatureVerificationError as e:
             logger.error(f"[RAZORPAY ERROR] Signature verification failed: {str(e)}")
+            # Fallback: Verify payment status via API
+            try:
+                payment = razorpay_client.payment.fetch(payment_id)
+                if payment.get('status') == 'captured' and payment.get('order_id') == order_id:
+                    logger.info(f"[RAZORPAY] Fallback verification passed - payment captured: {payment_id}")
+                    return True
+                logger.error(f"[RAZORPAY] Fallback verification failed - status: {payment.get('status')}")
+            except Exception as fetch_error:
+                logger.error(f"[RAZORPAY] Fallback fetch failed: {str(fetch_error)}")
             return False
         except Exception as e:
             logger.error(f"[RAZORPAY ERROR] Verification error: {str(e)}")
@@ -1140,7 +1191,7 @@ async def register_user(user_data: UserCreate, background_tasks: BackgroundTasks
         raise HTTPException(status_code=400, detail="Mobile number already registered")
     
     user_id = str(uuid.uuid4())
-    member_id = generate_member_id()
+    member_id = await generate_member_id()
     hashed_password = pwd_context.hash(user_data.password)
     
     user = {
@@ -1509,7 +1560,7 @@ async def complete_registration(
         raise HTTPException(status_code=400, detail="Payment verification failed")
     
     # Generate member ID
-    member_id = generate_member_id()
+    member_id = await generate_member_id()
     user_id = str(uuid.uuid4())
     
     # Create user account
@@ -1690,7 +1741,7 @@ async def create_member(member: MemberCreate, background_tasks: BackgroundTasks,
     if not plan:
         raise HTTPException(status_code=404, detail="Plan not found")
     
-    member_id = generate_member_id()
+    member_id = await generate_member_id()
     user_id = str(uuid.uuid4())
     
     # Create user account
@@ -1753,6 +1804,116 @@ async def create_member(member: MemberCreate, background_tasks: BackgroundTasks,
     background_tasks.add_task(EmailService.send_membership_notification, member_doc, plan)
     
     return {**member_doc, "temporary_password": password, "_id": None}
+
+class OfflineMemberCreate(BaseModel):
+    """Model for admin-created offline members with extended fields"""
+    name: str
+    mobile: str
+    country_code: str = "+91"
+    email: str
+    password: Optional[str] = None
+    date_of_birth: Optional[str] = None
+    address: Optional[str] = None
+    area: Optional[str] = None
+    city: Optional[str] = None
+    state: Optional[str] = None
+    country: str = "India"
+    pincode: Optional[str] = None
+    plan_id: str
+    referral_id: Optional[str] = None
+    source: str = "offline_admin"
+    gender: Optional[str] = None
+    phone_residence: Optional[str] = None
+
+@api_router.post("/admin/members/offline")
+async def create_offline_member(
+    member: OfflineMemberCreate, 
+    background_tasks: BackgroundTasks, 
+    admin: dict = Depends(require_admin)
+):
+    """Admin endpoint to create members via offline registration with full details"""
+    logger.info(f"[OFFLINE MEMBER] Creating offline member: {member.mobile}")
+    
+    # Check if mobile already exists
+    existing = await db.members.find_one({"mobile": member.mobile})
+    if existing:
+        raise HTTPException(status_code=400, detail="Mobile number already registered")
+    
+    # Check email uniqueness
+    existing_email = await db.members.find_one({"email": member.email})
+    if existing_email:
+        raise HTTPException(status_code=400, detail="Email already registered")
+    
+    # Get plan details
+    plan = await db.plans.find_one({"id": member.plan_id}, {"_id": 0})
+    if not plan:
+        raise HTTPException(status_code=404, detail="Plan not found")
+    
+    # Generate Julian member ID
+    member_id = await generate_member_id()
+    user_id = str(uuid.uuid4())
+    
+    # Create user account
+    password = member.password or ''.join(random.choices(string.ascii_letters + string.digits, k=8))
+    hashed_password = pwd_context.hash(password)
+    
+    user_doc = {
+        "id": user_id,
+        "member_id": member_id,
+        "mobile": member.mobile,
+        "password": hashed_password,
+        "name": member.name,
+        "email": member.email,
+        "role": UserRole.MEMBER,
+        "is_active": True,
+        "created_at": datetime.now(timezone.utc).isoformat()
+    }
+    await db.users.insert_one(user_doc)
+    
+    # Calculate membership dates
+    start_date = datetime.now(timezone.utc)
+    end_date = start_date + timedelta(days=plan["duration_months"] * 30)
+    
+    member_doc = {
+        "id": str(uuid.uuid4()),
+        "user_id": user_id,
+        "member_id": member_id,
+        "name": member.name,
+        "mobile": member.mobile,
+        "country_code": member.country_code,
+        "email": member.email,
+        "address": member.address,
+        "area": member.area,
+        "city": member.city,
+        "state": member.state,
+        "country": member.country,
+        "pincode": member.pincode,
+        "date_of_birth": member.date_of_birth,
+        "gender": member.gender,
+        "phone_residence": member.phone_residence,
+        "plan_id": member.plan_id,
+        "plan_name": plan["name"],
+        "membership_start": start_date.isoformat(),
+        "membership_end": end_date.isoformat(),
+        "status": MembershipStatus.PENDING,  # Will be activated after payment confirmation
+        "qr_code": generate_qr_code(member_id),
+        "referral_id": member.referral_id,
+        "source": member.source,
+        "created_at": datetime.now(timezone.utc).isoformat(),
+        "created_by": admin.get("id"),
+        "created_by_role": "admin"
+    }
+    
+    await db.members.insert_one(member_doc)
+    logger.info(f"[OFFLINE MEMBER] Created member {member_id} by admin {admin.get('email')}")
+    
+    return {
+        "success": True,
+        "member_id": member_id,
+        "user_id": user_id,
+        "temporary_password": password,
+        "message": f"Member {member_id} created successfully"
+    }
 
 @api_router.get("/members")
 async def get_members(
@@ -4025,7 +4186,7 @@ async def complete_marketing_registration(
         raise HTTPException(status_code=400, detail="Payment verification failed")
     
     # Generate member ID
-    member_id = generate_member_id()
+    member_id = await generate_member_id()
     user_id = str(uuid.uuid4())
     
     # Create user account

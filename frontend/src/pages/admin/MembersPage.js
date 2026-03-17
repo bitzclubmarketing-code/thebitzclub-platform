@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
+import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import {
   Search, Plus, Edit, Trash2, Eye, Loader2, ChevronLeft, ChevronRight,
@@ -24,6 +25,7 @@ import {
 
 const MembersPage = () => {
   const { token } = useAuth();
+  const navigate = useNavigate();
   const [members, setMembers] = useState([]);
   const [plans, setPlans] = useState([]);
   const [telecallers, setTelecallers] = useState([]);
@@ -320,9 +322,13 @@ const MembersPage = () => {
             <Download className="w-4 h-4" />
             Export CSV
           </button>
-          <button onClick={() => { resetForm(); setModalOpen(true); }} className="btn-primary flex items-center gap-2" data-testid="add-member-btn">
+          <button onClick={() => navigate('/admin/members/add')} className="btn-primary flex items-center gap-2" data-testid="add-offline-member-btn">
             <UserPlus className="w-4 h-4" />
-            Add Member
+            Add Offline Member
+          </button>
+          <button onClick={() => { resetForm(); setModalOpen(true); }} className="btn-secondary flex items-center gap-2" data-testid="add-member-btn">
+            <UserPlus className="w-4 h-4" />
+            Quick Add
           </button>
         </div>
       </div>

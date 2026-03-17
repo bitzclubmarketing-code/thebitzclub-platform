@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test';
 
-const BASE_URL = process.env.REACT_APP_BACKEND_URL || 'https://join-razorpay-debug.preview.emergentagent.com';
+const BASE_URL = process.env.REACT_APP_BACKEND_URL || 'https://member-flow-rebuild.preview.emergentagent.com';
 
 test.describe('Admin Plans Page - Plan CRUD', () => {
   

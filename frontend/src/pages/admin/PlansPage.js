@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import axios from 'axios';
-import { Plus, Edit, Trash2, Loader2, Check, Star } from 'lucide-react';
+import { Plus, Edit, Trash2, Loader2, Check, Star, Settings } from 'lucide-react';
 import { useAuth, API } from '@/context/AuthContext';
 import { toast } from 'sonner';
 import {
@@ -10,6 +10,13 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 
 const PlansPage = () => {
   const { token } = useAuth();
@@ -26,7 +33,13 @@ const PlansPage = () => {
     price_usd: '',
     price_aed: '',
     features: [''],
-    is_active: true
+    is_active: true,
+    // Maintenance Configuration
+    maintenance_type: 'none', // 'none', 'inclusive', 'enter_value'
+    maintenance_amount: 0,
+    maintenance_gst: 0,
+    maintenance_billing_cycle: 'monthly', // 'monthly', 'quarterly', 'yearly'
+    renewal_amount: 0
   });
 
   useEffect(() => {
@@ -92,7 +105,13 @@ const PlansPage = () => {
       duration_months: plan.duration_months,
       price: plan.price,
       features: plan.features?.length > 0 ? plan.features : [''],
-      is_active: plan.is_active
+      is_active: plan.is_active,
+      // Maintenance fields
+      maintenance_type: plan.maintenance_type || 'none',
+      maintenance_amount: plan.maintenance_amount || 0,
+      maintenance_gst: plan.maintenance_gst || 0,
+      maintenance_billing_cycle: plan.maintenance_billing_cycle || 'monthly',
+      renewal_amount: plan.renewal_amount || 0
     });
     setModalOpen(true);
   };
@@ -105,7 +124,12 @@ const PlansPage = () => {
       duration_months: 12,
       price: 0,
       features: [''],
-      is_active: true
+      is_active: true,
+      maintenance_type: 'none',
+      maintenance_amount: 0,
+      maintenance_gst: 0,
+      maintenance_billing_cycle: 'monthly',
+      renewal_amount: 0
     });
   };
 
@@ -188,6 +212,24 @@ const PlansPage = () => {
                   </li>
                 ))}
               </ul>
+              
+              {/* Maintenance Info */}
+              {plan.maintenance_type && plan.maintenance_type !== 'none' && (
+                <div className="mb-4 p-3 bg-[#0F0F10] rounded-lg">
+                  <p className="text-xs text-[#D4AF37] font-semibold mb-1">Maintenance Fee</p>
+                  <p className="text-sm text-gray-300">
+                    {plan.maintenance_type === 'inclusive' ? 'Included in membership' : (
+                      <>
+                        ₹{(plan.maintenance_amount || 0).toLocaleString()}
+                        {plan.maintenance_gst > 0 && ` + ${plan.maintenance_gst}% GST`}
+                        <span className="text-gray-500 text-xs ml-1">
+                          ({plan.maintenance_billing_cycle || 'monthly'})
+                        </span>
+                      </>
+                    )}
+                  </p>
+                </div>
+              )}
 
               <div className="flex items-center gap-2 pt-4 border-t border-white/5">
                 <button
@@ -309,6 +351,92 @@ const PlansPage = () => {
               <label htmlFor="is_active" className="text-sm text-gray-400">
                 Plan is active and visible to users
               </label>
+            </div>
+
+            {/* Maintenance Configuration Section */}
+            <div className="border-t border-white/10 pt-4 mt-4">
+              <h4 className="text-md font-semibold text-white flex items-center gap-2 mb-4">
+                <Settings className="w-4 h-4 text-[#D4AF37]" />
+                Maintenance Configuration
+              </h4>
+              
+              <div className="space-y-4">
+                <div>
+                  <label className="input-label">Maintenance Type</label>
+                  <Select 
+                    value={formData.maintenance_type} 
+                    onValueChange={(v) => setFormData({ ...formData, maintenance_type: v })}
+                  >
+                    <SelectTrigger className="w-full bg-[#0F0F10] border-white/10">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">No Maintenance Fee</SelectItem>
+                      <SelectItem value="inclusive">Inclusive (in membership price)</SelectItem>
+                      <SelectItem value="enter_value">Enter Value (separate fee)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                
+                {formData.maintenance_type === 'enter_value' && (
+                  <>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="input-label">Maintenance Amount (₹)</label>
+                        <input
+                          type="number"
+                          value={formData.maintenance_amount}
+                          onChange={(e) => setFormData({ ...formData, maintenance_amount: parseFloat(e.target.value) || 0 })}
+                          className="input-gold"
+                          min="0"
+                        />
+                      </div>
+                      <div>
+                        <label className="input-label">GST (%)</label>
+                        <input
+                          type="number"
+                          value={formData.maintenance_gst}
+                          onChange={(e) => setFormData({ ...formData, maintenance_gst: parseFloat(e.target.value) || 0 })}
+                          className="input-gold"
+                          min="0"
+                          max="100"
+                        />
+                      </div>
+                    </div>
+                    
+                    <div>
+                      <label className="input-label">Billing Cycle</label>
+                      <Select 
+                        value={formData.maintenance_billing_cycle} 
+                        onValueChange={(v) => setFormData({ ...formData, maintenance_billing_cycle: v })}
+                      >
+                        <SelectTrigger className="w-full bg-[#0F0F10] border-white/10">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="monthly">Monthly</SelectItem>
+                          <SelectItem value="quarterly">Quarterly</SelectItem>
+                          <SelectItem value="half_yearly">Half Yearly</SelectItem>
+                          <SelectItem value="yearly">Yearly</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </>
+                )}
+                
+                <div>
+                  <label className="input-label">Renewal Amount (₹)</label>
+                  <input
+                    type="number"
+                    value={formData.renewal_amount}
+                    onChange={(e) => setFormData({ ...formData, renewal_amount: parseFloat(e.target.value) || 0 })}
+                    className="input-gold"
+                    min="0"
+                    placeholder="Leave 0 for same as original price"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">Amount to charge when membership is renewed</p>
+                </div>
+              </div>
             </div>
 
             <div className="flex gap-3 pt-4">
