@@ -693,6 +693,11 @@ EMAIL_CONFIG = {
 
 # ==================== RAZORPAY PAYMENT SERVICE ====================
 
+# Log Razorpay mode at startup
+_razorpay_key = os.environ.get("RAZORPAY_KEY_ID", "")
+_razorpay_mode = "LIVE" if _razorpay_key.startswith("rzp_live_") else "TEST"
+logger.info(f"[RAZORPAY] Initialized in {_razorpay_mode} mode (Key: {_razorpay_key[:15]}...)")
+
 class RazorpayService:
     """Real Razorpay Payment Integration"""
     
@@ -725,28 +730,49 @@ class RazorpayService:
     
     @staticmethod
     def verify_payment_signature(payment_id: str, order_id: str, signature: str) -> bool:
-        """Verify Razorpay payment signature"""
+        """Verify Razorpay payment signature - STRICT verification only"""
         try:
-            logger.info(f"[RAZORPAY] Verifying signature for payment: {payment_id}, order: {order_id}")
+            razorpay_key = os.environ.get("RAZORPAY_KEY_ID", "")
+            is_live = razorpay_key.startswith("rzp_live_")
+            logger.info(f"[RAZORPAY] Verifying payment: {payment_id}, order: {order_id}, mode: {'LIVE' if is_live else 'TEST'}")
+            
             params_dict = {
                 'razorpay_order_id': order_id,
                 'razorpay_payment_id': payment_id,
                 'razorpay_signature': signature
             }
+            
+            # Primary verification - Razorpay signature check
             razorpay_client.utility.verify_payment_signature(params_dict)
             logger.info(f"[RAZORPAY] Payment signature verified successfully for: {payment_id}")
-            return True
-        except razorpay.errors.SignatureVerificationError as e:
-            logger.error(f"[RAZORPAY ERROR] Signature verification failed: {str(e)}")
-            # Fallback: Verify payment status via API
+            
+            # Additional verification - Fetch payment and check status
             try:
                 payment = razorpay_client.payment.fetch(payment_id)
-                if payment.get('status') == 'captured' and payment.get('order_id') == order_id:
-                    logger.info(f"[RAZORPAY] Fallback verification passed - payment captured: {payment_id}")
-                    return True
-                logger.error(f"[RAZORPAY] Fallback verification failed - status: {payment.get('status')}")
+                payment_status = payment.get('status')
+                payment_order_id = payment.get('order_id')
+                payment_amount = payment.get('amount', 0) / 100  # Convert paise to rupees
+                
+                logger.info(f"[RAZORPAY] Payment details - Status: {payment_status}, Amount: {payment_amount}, Order: {payment_order_id}")
+                
+                # Verify order ID matches
+                if payment_order_id != order_id:
+                    logger.error(f"[RAZORPAY ERROR] Order ID mismatch: expected {order_id}, got {payment_order_id}")
+                    return False
+                
+                # For LIVE mode, payment must be captured
+                if is_live and payment_status != 'captured':
+                    logger.error(f"[RAZORPAY ERROR] Payment not captured in LIVE mode - status: {payment_status}")
+                    return False
+                    
             except Exception as fetch_error:
-                logger.error(f"[RAZORPAY] Fallback fetch failed: {str(fetch_error)}")
+                logger.warning(f"[RAZORPAY] Could not fetch payment details: {str(fetch_error)}")
+                # Continue if signature was verified - this is acceptable
+            
+            return True
+            
+        except razorpay.errors.SignatureVerificationError as e:
+            logger.error(f"[RAZORPAY ERROR] Signature verification failed: {str(e)}")
             return False
         except Exception as e:
             logger.error(f"[RAZORPAY ERROR] Verification error: {str(e)}")
