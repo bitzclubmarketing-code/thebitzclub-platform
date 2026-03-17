@@ -16,7 +16,7 @@ def member_token(api_client):
     """Get member authentication token"""
     response = api_client.post(f"{BASE_URL}/api/auth/login", json={
         "identifier": "7777777777",
-        "password": "PWAtest123!"
+        "password": "member123"
     })
     if response.status_code == 200:
         return response.json().get("access_token")
