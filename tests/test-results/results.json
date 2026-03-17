@@ -105,7 +105,7 @@
               ],
               "id": "c4c025178a6624fc130f-ecd31f93b39e6243c0b8",
               "file": "admin-plans.spec.ts",
-              "line": 44,
+              "line": 53,
               "column": 7
             },
             {
@@ -125,7 +125,7 @@
               ],
               "id": "c4c025178a6624fc130f-a923c193c537de968760",
               "file": "admin-plans.spec.ts",
-              "line": 58,
+              "line": 67,
               "column": 7
             },
             {
@@ -145,7 +145,7 @@
               ],
               "id": "c4c025178a6624fc130f-99f80a6958e4e8c55eb8",
               "file": "admin-plans.spec.ts",
-              "line": 96,
+              "line": 105,
               "column": 7
             },
             {
@@ -165,7 +165,7 @@
               ],
               "id": "c4c025178a6624fc130f-f8459736cb165703c769",
               "file": "admin-plans.spec.ts",
-              "line": 114,
+              "line": 123,
               "column": 7
             }
           ]
@@ -2209,6 +2209,555 @@
       ]
     },
     {
+      "title": "registration-flow-critical.spec.ts",
+      "file": "registration-flow-critical.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [],
+      "suites": [
+        {
+          "title": "BITZ Club Registration - Step 1 (Lead Capture)",
+          "file": "registration-flow-critical.spec.ts",
+          "line": 9,
+          "column": 6,
+          "specs": [
+            {
+              "title": "Step 1 form loads with all required fields",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "dfb56b009616e85d4907-e291b60c7fe141e0249e",
+              "file": "registration-flow-critical.spec.ts",
+              "line": 19,
+              "column": 7
+            },
+            {
+              "title": "Indian member type is selected by default",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "dfb56b009616e85d4907-27b29be9d4a7d55bb933",
+              "file": "registration-flow-critical.spec.ts",
+              "line": 41,
+              "column": 7
+            },
+            {
+              "title": "Can select different member types",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "dfb56b009616e85d4907-7d1c48fa3ce3543f1959",
+              "file": "registration-flow-critical.spec.ts",
+              "line": 50,
+              "column": 7
+            },
+            {
+              "title": "Country selector dropdown works",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "dfb56b009616e85d4907-94ffc81d985d91e2e79b",
+              "file": "registration-flow-critical.spec.ts",
+              "line": 64,
+              "column": 7
+            },
+            {
+              "title": "Mobile number validation - requires correct digits for country",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "dfb56b009616e85d4907-e151baafe32938954056",
+              "file": "registration-flow-critical.spec.ts",
+              "line": 80,
+              "column": 7
+            },
+            {
+              "title": "Step 1 submit creates lead and moves to Step 2",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "dfb56b009616e85d4907-ccc6c240e50a981f6aa0",
+              "file": "registration-flow-critical.spec.ts",
+              "line": 91,
+              "column": 7
+            },
+            {
+              "title": "Duplicate mobile number shows clear error message",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "dfb56b009616e85d4907-09f31ff9da204866cdfd",
+              "file": "registration-flow-critical.spec.ts",
+              "line": 120,
+              "column": 7
+            },
+            {
+              "title": "Referral code can be entered",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "dfb56b009616e85d4907-5cca7262da9c7a91a825",
+              "file": "registration-flow-critical.spec.ts",
+              "line": 132,
+              "column": 7
+            }
+          ]
+        },
+        {
+          "title": "BITZ Club Registration - Step 2 (Plan Selection & Payment)",
+          "file": "registration-flow-critical.spec.ts",
+          "line": 143,
+          "column": 6,
+          "specs": [
+            {
+              "title": "Step 2 displays membership plans from API",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "dfb56b009616e85d4907-239b361411770955a0d0",
+              "file": "registration-flow-critical.spec.ts",
+              "line": 164,
+              "column": 7
+            },
+            {
+              "title": "PIN code auto-fills city and state for Indian members",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "dfb56b009616e85d4907-e53c9498e5542fd13526",
+              "file": "registration-flow-critical.spec.ts",
+              "line": 173,
+              "column": 7
+            },
+            {
+              "title": "Password validation works",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "dfb56b009616e85d4907-b2c357f10d3b9f37f1c4",
+              "file": "registration-flow-critical.spec.ts",
+              "line": 190,
+              "column": 7
+            },
+            {
+              "title": "Password confirmation mismatch shows error",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "dfb56b009616e85d4907-3e6a042ad26454255f95",
+              "file": "registration-flow-critical.spec.ts",
+              "line": 202,
+              "column": 7
+            },
+            {
+              "title": "Proceed to Pay initiates Razorpay checkout",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "dfb56b009616e85d4907-a8c6da47b87d02001c6e",
+              "file": "registration-flow-critical.spec.ts",
+              "line": 210,
+              "column": 7
+            }
+          ]
+        },
+        {
+          "title": "BITZ Club Login Flow",
+          "file": "registration-flow-critical.spec.ts",
+          "line": 253,
+          "column": 6,
+          "specs": [
+            {
+              "title": "Login page loads correctly",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "dfb56b009616e85d4907-4aaf7637fae342aad710",
+              "file": "registration-flow-critical.spec.ts",
+              "line": 262,
+              "column": 7
+            },
+            {
+              "title": "Member login with mobile number works",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "dfb56b009616e85d4907-ecb7ec0b532f91f6ea83",
+              "file": "registration-flow-critical.spec.ts",
+              "line": 269,
+              "column": 7
+            },
+            {
+              "title": "Member login with Member ID works",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "dfb56b009616e85d4907-76d291e9d89f67f31707",
+              "file": "registration-flow-critical.spec.ts",
+              "line": 280,
+              "column": 7
+            },
+            {
+              "title": "Invalid credentials show error",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "dfb56b009616e85d4907-85d0036239d6298e081c",
+              "file": "registration-flow-critical.spec.ts",
+              "line": 290,
+              "column": 7
+            },
+            {
+              "title": "Admin login works",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "dfb56b009616e85d4907-463f60feb761f8148433",
+              "file": "registration-flow-critical.spec.ts",
+              "line": 301,
+              "column": 7
+            }
+          ]
+        },
+        {
+          "title": "BITZ Club Member Dashboard",
+          "file": "registration-flow-critical.spec.ts",
+          "line": 311,
+          "column": 6,
+          "specs": [
+            {
+              "title": "Member dashboard displays membership card",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "dfb56b009616e85d4907-f3d73a85a6dd7e29d21c",
+              "file": "registration-flow-critical.spec.ts",
+              "line": 327,
+              "column": 7
+            },
+            {
+              "title": "Member dashboard has all required tabs",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "dfb56b009616e85d4907-e60639e194ec41007590",
+              "file": "registration-flow-critical.spec.ts",
+              "line": 335,
+              "column": 7
+            },
+            {
+              "title": "Logout button works",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "dfb56b009616e85d4907-287f728f0afba3d72885",
+              "file": "registration-flow-critical.spec.ts",
+              "line": 345,
+              "column": 7
+            },
+            {
+              "title": "Member card has QR code",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "dfb56b009616e85d4907-b643f64202beee5cc4a6",
+              "file": "registration-flow-critical.spec.ts",
+              "line": 352,
+              "column": 7
+            },
+            {
+              "title": "Download card as image button works",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "dfb56b009616e85d4907-021e739b2c4e611d34ab",
+              "file": "registration-flow-critical.spec.ts",
+              "line": 361,
+              "column": 7
+            },
+            {
+              "title": "Can navigate between tabs",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "dfb56b009616e85d4907-72e5d9545bc789e80959",
+              "file": "registration-flow-critical.spec.ts",
+              "line": 375,
+              "column": 7
+            }
+          ]
+        },
+        {
+          "title": "Registration Flow - Already Registered Mobile Handling",
+          "file": "registration-flow-critical.spec.ts",
+          "line": 386,
+          "column": 6,
+          "specs": [
+            {
+              "title": "Shows clear error for already registered mobile",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [],
+                  "status": "skipped"
+                }
+              ],
+              "id": "dfb56b009616e85d4907-4cc29f2241d7629403bc",
+              "file": "registration-flow-critical.spec.ts",
+              "line": 388,
+              "column": 7
+            }
+          ]
+        }
+      ]
+    },
+    {
       "title": "registration-page.spec.ts",
       "file": "registration-page.spec.ts",
       "column": 0,
@@ -2850,10 +3399,10 @@
   ],
   "errors": [],
   "stats": {
-    "startTime": "2026-03-14T16:18:18.131Z",
-    "duration": 270.6089999999999,
+    "startTime": "2026-03-17T13:56:57.257Z",
+    "duration": 76.74199999999996,
     "expected": 0,
-    "skipped": 127,
+    "skipped": 152,
     "unexpected": 0,
     "flaky": 0
   }

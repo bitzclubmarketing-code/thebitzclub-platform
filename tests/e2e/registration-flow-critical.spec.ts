@@ -174,8 +174,16 @@ test.describe('BITZ Club Registration - Step 2 (Plan Selection & Payment)', () =
     // Enter valid Indian PIN code
     await page.getByTestId('step2-pincode').fill('110001');
     
-    // Wait for auto-fill
-    await expect(page.getByTestId('step2-city')).toHaveValue(/Delhi|Central/i, { timeout: 10000 });
+    // Wait for external India Post API response - can be slow
+    const pincodeResponsePromise = page.waitForResponse(
+      response => response.url().includes('api.postalpincode.in'),
+      { timeout: 30000 }
+    ).catch(() => null);  // Don't fail if API is blocked/slow
+    
+    await pincodeResponsePromise;
+    
+    // Wait for auto-fill with extended timeout for external API
+    await expect(page.getByTestId('step2-city')).toHaveValue(/Delhi|Central/i, { timeout: 15000 });
     await expect(page.getByTestId('step2-state')).toHaveValue(/Delhi/i);
   });
 

@@ -29,8 +29,8 @@ test.describe('Modal and Dialog Tests', () => {
     const overlays = await page.locator('[data-state="open"].bg-black\\/80, [data-radix-portal] .fixed.inset-0.bg-black').count();
     expect(overlays).toBe(0);
     
-    // Click through navigation to ensure no stuck overlays - use data-testid
-    await expect(page.getByTestId('nav-dashboard')).toBeVisible({ timeout: 5000 });
+    // Verify admin dashboard is visible - check for Dashboard heading
+    await expect(page.getByRole('heading', { name: /dashboard/i }).first()).toBeVisible();
     
     // Take screenshot to verify clean UI
     await page.screenshot({ path: '/app/tests/test-results/admin-no-overlay.png' });
@@ -40,7 +40,7 @@ test.describe('Modal and Dialog Tests', () => {
     // Login as member
     await page.goto('/login', { waitUntil: 'domcontentloaded' });
     await page.getByTestId('login-identifier').fill('7777777777');
-    await page.getByTestId('login-password').fill('PWAtest123!');
+    await page.getByTestId('login-password').fill('member123');
     await page.getByTestId('login-submit').click();
     
     await expect(page).toHaveURL(/\/member/, { timeout: 15000 });
@@ -54,16 +54,16 @@ test.describe('Modal and Dialog Tests', () => {
     // There should be no open dialog overlays when just viewing the dashboard
     expect(portalOverlays).toBe(0);
     
-    // Verify main content is interactive
-    await expect(page.getByTestId('membership-card')).toBeVisible();
-    await expect(page.getByTestId('download-card-btn')).toBeEnabled();
+    // Verify main content is interactive - check for Front Side text
+    await expect(page.getByText('Front Side')).toBeVisible();
+    await expect(page.getByTestId('download-pdf-btn')).toBeEnabled();
   });
 
   test('Toast notifications appear and can be dismissed', async ({ page }) => {
     // Login as member (triggers a toast)
     await page.goto('/login', { waitUntil: 'domcontentloaded' });
     await page.getByTestId('login-identifier').fill('7777777777');
-    await page.getByTestId('login-password').fill('PWAtest123!');
+    await page.getByTestId('login-password').fill('member123');
     await page.getByTestId('login-submit').click();
     
     await expect(page).toHaveURL(/\/member/, { timeout: 15000 });

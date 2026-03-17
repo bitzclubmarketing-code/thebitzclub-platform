@@ -35,6 +35,15 @@ test.describe('Admin Plans Page - Plan CRUD', () => {
     // Verify add plan button exists
     await expect(page.getByTestId('add-plan-btn')).toBeVisible();
     
+    // Wait for plans to load from API
+    await page.waitForResponse(
+      response => response.url().includes('/api/plans') && response.status() === 200,
+      { timeout: 15000 }
+    ).catch(() => {});
+    
+    // Wait a bit for React to render
+    await page.waitForTimeout(1000);
+    
     // Verify at least one plan card exists (Silver, Gold, or Platinum)
     const planCards = page.locator('[data-testid^="plan-card-"]');
     const planCount = await planCards.count();
