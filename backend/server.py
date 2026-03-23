@@ -5957,6 +5957,173 @@ async def export_transaction_report(
     )
 
 
+# ==================== MEDIA LIBRARY & HOMEPAGE CMS ====================
+
+# Media Library - Upload images
+@api_router.post("/media/upload")
+async def upload_media(file: UploadFile = File(...), category: str = "general"):
+    """Upload media file to server"""
+    try:
+        # Create uploads directory if not exists
+        upload_dir = ROOT_DIR / "uploads" / "media"
+        upload_dir.mkdir(parents=True, exist_ok=True)
+        
+        # Generate unique filename
+        ext = Path(file.filename).suffix.lower()
+        if ext not in ['.jpg', '.jpeg', '.png', '.gif', '.webp']:
+            raise HTTPException(status_code=400, detail="Only image files allowed (jpg, png, gif, webp)")
+        
+        filename = f"{uuid.uuid4()}{ext}"
+        file_path = upload_dir / filename
+        
+        # Save file
+        content = await file.read()
+        with open(file_path, "wb") as f:
+            f.write(content)
+        
+        # Save to database
+        media_doc = {
+            "id": str(uuid.uuid4()),
+            "filename": filename,
+            "original_name": file.filename,
+            "url": f"/api/media/{filename}",
+            "category": category,
+            "size": len(content),
+            "mime_type": file.content_type,
+            "created_at": datetime.now(timezone.utc).isoformat()
+        }
+        await db.media_library.insert_one(media_doc)
+        
+        return {"message": "File uploaded successfully", "media": {k: v for k, v in media_doc.items() if k != '_id'}}
+    except Exception as e:
+        logger.error(f"Media upload error: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@api_router.get("/media/{filename}")
+async def get_media_file(filename: str):
+    """Serve media file"""
+    file_path = ROOT_DIR / "uploads" / "media" / filename
+    if not file_path.exists():
+        raise HTTPException(status_code=404, detail="File not found")
+    
+    # Determine content type
+    ext = Path(filename).suffix.lower()
+    content_types = {
+        '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg',
+        '.png': 'image/png', '.gif': 'image/gif', '.webp': 'image/webp'
+    }
+    content_type = content_types.get(ext, 'application/octet-stream')
+    
+    return StreamingResponse(open(file_path, "rb"), media_type=content_type)
+
+@api_router.get("/media")
+async def list_media(category: Optional[str] = None):
+    """List all media files"""
+    query = {}
+    if category:
+        query["category"] = category
+    
+    media_list = await db.media_library.find(query, {"_id": 0}).sort("created_at", -1).to_list(1000)
+    return media_list
+
+@api_router.delete("/media/{media_id}")
+async def delete_media(media_id: str):
+    """Delete media file"""
+    media = await db.media_library.find_one({"id": media_id})
+    if not media:
+        raise HTTPException(status_code=404, detail="Media not found")
+    
+    # Delete file
+    file_path = ROOT_DIR / "uploads" / "media" / media["filename"]
+    if file_path.exists():
+        file_path.unlink()
+    
+    # Delete from database
+    await db.media_library.delete_one({"id": media_id})
+    return {"message": "Media deleted successfully"}
+
+# Homepage Settings
+@api_router.get("/homepage-settings")
+async def get_homepage_settings():
+    """Get homepage settings"""
+    settings = await db.homepage_settings.find_one({"id": "main"}, {"_id": 0})
+    if not settings:
+        # Return defaults
+        settings = {
+            "id": "main",
+            "hero_type": "image",  # image or video
+            "hero_image": None,
+            "hero_video_url": None,  # YouTube URL
+            "hero_title": "Welcome to BITZ Club",
+            "hero_subtitle": "Premium Lifestyle Membership",
+            "hero_autoplay": True,
+            "hero_muted": True,
+            "offers_title": "Exclusive Offers",
+            "offers_subtitle": "Member-only benefits",
+            "gallery_title": "Experience Luxury",
+            "gallery_subtitle": "Our premium facilities",
+            "show_offers": True,
+            "show_gallery": True
+        }
+    return settings
+
+@api_router.put("/homepage-settings")
+async def update_homepage_settings(settings: dict):
+    """Update homepage settings"""
+    settings["id"] = "main"
+    settings["updated_at"] = datetime.now(timezone.utc).isoformat()
+    
+    await db.homepage_settings.update_one(
+        {"id": "main"},
+        {"$set": settings},
+        upsert=True
+    )
+    return {"message": "Homepage settings updated successfully"}
+
+# Homepage Offers (for display on homepage)
+@api_router.get("/homepage-offers")
+async def get_homepage_offers():
+    """Get active offers for homepage"""
+    offers = await db.offers.find(
+        {"is_active": True},
+        {"_id": 0}
+    ).sort("created_at", -1).to_list(10)
+    return offers
+
+# Homepage Gallery (for display on homepage)
+@api_router.get("/homepage-gallery")
+async def get_homepage_gallery():
+    """Get active gallery items for homepage"""
+    gallery = await db.gallery_images.find(
+        {"is_active": True},
+        {"_id": 0}
+    ).sort("order", 1).to_list(20)
+    return gallery
+
+@api_router.post("/homepage-gallery")
+async def add_gallery_item(item: dict):
+    """Add gallery item"""
+    item["id"] = str(uuid.uuid4())
+    item["created_at"] = datetime.now(timezone.utc).isoformat()
+    item["is_active"] = item.get("is_active", True)
+    item["order"] = item.get("order", 0)
+    
+    await db.gallery_images.insert_one(item)
+    return {"message": "Gallery item added", "item": {k: v for k, v in item.items() if k != '_id'}}
+
+@api_router.put("/homepage-gallery/{item_id}")
+async def update_gallery_item(item_id: str, item: dict):
+    """Update gallery item"""
+    item["updated_at"] = datetime.now(timezone.utc).isoformat()
+    await db.gallery_images.update_one({"id": item_id}, {"$set": item})
+    return {"message": "Gallery item updated"}
+
+@api_router.delete("/homepage-gallery/{item_id}")
+async def delete_gallery_item(item_id: str):
+    """Delete gallery item"""
+    await db.gallery_images.delete_one({"id": item_id})
+    return {"message": "Gallery item deleted"}
+
 # Include router
 app.include_router(api_router)
 

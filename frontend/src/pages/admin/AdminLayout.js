@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   Crown, LayoutDashboard, Users, CreditCard, Building2, Phone,
   BarChart3, Settings, LogOut, Menu, X, ChevronLeft, UserPlus, Image,
-  Wallet, Tag, Wrench, ShieldCheck, Calendar, Gift
+  Wallet, Tag, Wrench, ShieldCheck, Calendar, Gift, ImagePlus
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 
@@ -29,6 +29,7 @@ const AdminLayout = () => {
     { icon: BarChart3, label: 'Reports', path: '/admin/reports' },
     { icon: Calendar, label: 'Events', path: '/admin/events' },
     { icon: Image, label: 'Content', path: '/admin/content' },
+    { icon: ImagePlus, label: 'Media CMS', path: '/admin/media' },
   ];
 
   // Add Admin Users link only for Super Admin
