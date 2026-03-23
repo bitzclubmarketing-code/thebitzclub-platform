@@ -4488,7 +4488,8 @@ async def complete_marketing_registration(
         "membership_end": end_date.isoformat(),
         "status": MembershipStatus.ACTIVE,
         "qr_code": generate_qr_code(member_id),
-        "referral_id": lead.get("referral_code"),
+        "referral_code": member_id,  # Member's own referral code is their member_id
+        "referral_id": lead.get("referral_code"),  # Who referred this member
         "source": lead.get("source", "marketing_landing"),
         "created_at": datetime.now(timezone.utc).isoformat()
     }
