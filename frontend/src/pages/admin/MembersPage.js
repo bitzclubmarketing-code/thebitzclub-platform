@@ -5,7 +5,7 @@ import axios from 'axios';
 import {
   Search, Plus, Edit, Trash2, Eye, Loader2, ChevronLeft, ChevronRight,
   Filter, Download, UserPlus, RefreshCw, CreditCard, X, Calendar, Phone,
-  Mail, MapPin, User, Clock, CheckCircle, AlertCircle, History, PlayCircle, FileText, QrCode
+  Mail, MapPin, User, Clock, CheckCircle, AlertCircle, History, PlayCircle, FileText, QrCode, Camera
 } from 'lucide-react';
 import { useAuth, API } from '@/context/AuthContext';
 import { toast } from 'sonner';
@@ -33,6 +33,10 @@ const MembersPage = () => {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
   const [referralFilter, setReferralFilter] = useState('');
+  const [planFilter, setPlanFilter] = useState('');
+  const [dateFrom, setDateFrom] = useState('');
+  const [dateTo, setDateTo] = useState('');
+  const [paymentTypeFilter, setPaymentTypeFilter] = useState('');
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   
@@ -84,7 +88,7 @@ const MembersPage = () => {
     fetchMembers();
     fetchPlans();
     fetchTelecallers();
-  }, [page, search, statusFilter, referralFilter]);
+  }, [page, search, statusFilter, referralFilter, planFilter, dateFrom, dateTo]);
 
   const fetchMembers = async () => {
     try {
@@ -92,6 +96,9 @@ const MembersPage = () => {
       if (search) params.append('search', search);
       if (statusFilter) params.append('status', statusFilter);
       if (referralFilter) params.append('referral_id', referralFilter);
+      if (planFilter) params.append('plan_id', planFilter);
+      if (dateFrom) params.append('date_from', dateFrom);
+      if (dateTo) params.append('date_to', dateTo);
       
       const response = await axios.get(`${API}/members?${params}`, {
         headers: { Authorization: `Bearer ${token}` }
@@ -351,37 +358,82 @@ const MembersPage = () => {
 
       {/* Filters */}
       <div className="card-dark mb-6">
-        <div className="flex flex-col sm:flex-row gap-4">
-          <div className="flex-1 relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-            <input
-              type="text"
-              placeholder="Search by name, mobile, member ID..."
-              value={search}
-              onChange={(e) => { setSearch(e.target.value); setPage(1); }}
-              className="input-gold pl-10 bg-[#0F0F10]"
-              data-testid="search-members"
-            />
+        <div className="flex flex-col gap-4">
+          {/* Row 1: Search and basic filters */}
+          <div className="flex flex-col sm:flex-row gap-4">
+            <div className="flex-1 relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+              <input
+                type="text"
+                placeholder="Search by name, mobile, member ID..."
+                value={search}
+                onChange={(e) => { setSearch(e.target.value); setPage(1); }}
+                className="input-gold pl-10 bg-[#0F0F10] w-full"
+                data-testid="search-members"
+              />
+            </div>
+            <Select value={planFilter || "all"} onValueChange={(v) => { setPlanFilter(v === "all" ? "" : v); setPage(1); }}>
+              <SelectTrigger className="w-48 bg-[#0F0F10] border-white/10">
+                <SelectValue placeholder="All Plans" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Plans</SelectItem>
+                {plans.map(plan => (
+                  <SelectItem key={plan.id} value={plan.id}>{plan.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Select value={statusFilter || "all"} onValueChange={(v) => { setStatusFilter(v === "all" ? "" : v); setPage(1); }}>
+              <SelectTrigger className="w-40 bg-[#0F0F10] border-white/10">
+                <SelectValue placeholder="All Status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Status</SelectItem>
+                <SelectItem value="active">Active</SelectItem>
+                <SelectItem value="pending">Pending</SelectItem>
+                <SelectItem value="expired">Expired</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
-          <input
-            type="text"
-            placeholder="Filter by Referral ID"
-            value={referralFilter}
-            onChange={(e) => { setReferralFilter(e.target.value); setPage(1); }}
-            className="input-gold w-48 bg-[#0F0F10]"
-            data-testid="filter-referral"
-          />
-          <Select value={statusFilter || "all"} onValueChange={(v) => { setStatusFilter(v === "all" ? "" : v); setPage(1); }}>
-            <SelectTrigger className="w-40 bg-[#0F0F10] border-white/10">
-              <SelectValue placeholder="All Status" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Status</SelectItem>
-              <SelectItem value="active">Active</SelectItem>
-              <SelectItem value="pending">Pending</SelectItem>
-              <SelectItem value="expired">Expired</SelectItem>
-            </SelectContent>
-          </Select>
+          {/* Row 2: Date filters and referral */}
+          <div className="flex flex-col sm:flex-row gap-4 items-end">
+            <div>
+              <label className="text-xs text-gray-400 mb-1 block">From Date</label>
+              <input
+                type="date"
+                value={dateFrom}
+                onChange={(e) => { setDateFrom(e.target.value); setPage(1); }}
+                className="input-gold bg-[#0F0F10] w-44"
+              />
+            </div>
+            <div>
+              <label className="text-xs text-gray-400 mb-1 block">To Date</label>
+              <input
+                type="date"
+                value={dateTo}
+                onChange={(e) => { setDateTo(e.target.value); setPage(1); }}
+                className="input-gold bg-[#0F0F10] w-44"
+              />
+            </div>
+            <div>
+              <label className="text-xs text-gray-400 mb-1 block">Referral ID</label>
+              <input
+                type="text"
+                placeholder="Filter by Referral ID"
+                value={referralFilter}
+                onChange={(e) => { setReferralFilter(e.target.value); setPage(1); }}
+                className="input-gold w-48 bg-[#0F0F10]"
+                data-testid="filter-referral"
+              />
+            </div>
+            <button
+              onClick={() => { setSearch(''); setStatusFilter(''); setPlanFilter(''); setDateFrom(''); setDateTo(''); setReferralFilter(''); setPage(1); }}
+              className="btn-secondary flex items-center gap-2"
+            >
+              <RefreshCw className="w-4 h-4" />
+              Clear Filters
+            </button>
+          </div>
         </div>
       </div>
 
@@ -696,6 +748,35 @@ const MembersPage = () => {
             </DialogTitle>
           </DialogHeader>
           <form onSubmit={handleSubmit} className="space-y-4 mt-4">
+            {/* Photo Upload */}
+            <div className="flex items-center gap-4">
+              <div className="relative">
+                <div className="w-20 h-20 rounded-full bg-[#0F0F10] border-2 border-[#D4AF37]/30 flex items-center justify-center overflow-hidden">
+                  {formData.photo_url ? (
+                    <img src={formData.photo_url.startsWith('http') ? formData.photo_url : `${API.replace('/api', '')}${formData.photo_url}`} alt="Member" className="w-full h-full object-cover" />
+                  ) : (
+                    <span className="text-2xl text-[#D4AF37]">{formData.name?.charAt(0) || '?'}</span>
+                  )}
+                </div>
+                <label className="absolute bottom-0 right-0 w-6 h-6 bg-[#D4AF37] rounded-full flex items-center justify-center cursor-pointer hover:bg-[#C49F2F] transition-colors">
+                  <Camera className="w-3 h-3 text-black" />
+                  <input type="file" accept="image/*" className="hidden" onChange={async (e) => {
+                    const file = e.target.files[0]; if (!file) return;
+                    const formDataUpload = new FormData(); formDataUpload.append('file', file);
+                    try {
+                      const res = await axios.post(`${API}/members/photo/upload`, formDataUpload, { headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'multipart/form-data' } });
+                      setFormData(prev => ({ ...prev, photo_url: res.data.photo_url }));
+                      toast.success('Photo uploaded!');
+                    } catch (err) { toast.error('Failed to upload photo'); }
+                  }} />
+                </label>
+              </div>
+              <div className="text-sm text-gray-400">
+                <p className="font-medium text-white mb-1">Member Photo</p>
+                <p>Click camera icon to upload</p>
+                <p className="text-xs text-amber-500">*Photo is mandatory</p>
+              </div>
+            </div>
             <div>
               <label className="input-label">Full Name *</label>
               <input type="text" value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} className="input-gold" required data-testid="member-name-input" />

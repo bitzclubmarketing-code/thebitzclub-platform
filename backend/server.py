@@ -1974,6 +1974,8 @@ async def get_members(
     search: Optional[str] = None,
     telecaller_id: Optional[str] = None,
     referral_id: Optional[str] = None,
+    date_from: Optional[str] = None,
+    date_to: Optional[str] = None,
     page: int = Query(1, ge=1),
     limit: int = Query(20, ge=1, le=100),
     user: dict = Depends(require_admin_or_telecaller)
@@ -1992,6 +1994,16 @@ async def get_members(
         query["plan_id"] = plan_id
     if referral_id:
         query["referral_id"] = {"$regex": referral_id, "$options": "i"}
+    
+    # Date filters
+    if date_from or date_to:
+        date_query = {}
+        if date_from:
+            date_query["$gte"] = date_from
+        if date_to:
+            date_query["$lte"] = date_to + "T23:59:59"
+        query["created_at"] = date_query
+    
     if search:
         query["$or"] = [
             {"name": {"$regex": search, "$options": "i"}},
@@ -2003,7 +2015,7 @@ async def get_members(
     
     skip = (page - 1) * limit
     total = await db.members.count_documents(query)
-    members = await db.members.find(query, {"_id": 0}).skip(skip).limit(limit).to_list(limit)
+    members = await db.members.find(query, {"_id": 0}).skip(skip).limit(limit).sort("created_at", -1).to_list(limit)
     
     return {
         "members": members,
@@ -6311,6 +6323,43 @@ async def bulk_unassign_members(
         {"$set": {"assigned_telecaller": None, "updated_at": datetime.now(timezone.utc).isoformat()}}
     )
     return {"message": f"Unassigned {result.modified_count} members"}
+
+# ==================== ADDITIONAL PHOTO UPLOAD ====================
+
+@api_router.post("/members/photo/upload")
+async def upload_photo_for_member(file: UploadFile = File(...)):
+    """Upload member photo (admin use)"""
+    try:
+        upload_dir = ROOT_DIR / "uploads" / "photos"
+        upload_dir.mkdir(parents=True, exist_ok=True)
+        
+        ext = Path(file.filename).suffix.lower()
+        if ext not in ['.jpg', '.jpeg', '.png', '.webp']:
+            raise HTTPException(status_code=400, detail="Only image files allowed (jpg, png, webp)")
+        
+        filename = f"{uuid.uuid4()}{ext}"
+        file_path = upload_dir / filename
+        
+        content = await file.read()
+        with open(file_path, "wb") as f:
+            f.write(content)
+        
+        photo_url = f"/api/uploads/photos/{filename}"
+        return {"photo_url": photo_url, "message": "Photo uploaded successfully"}
+    except Exception as e:
+        logger.error(f"Photo upload error: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@api_router.put("/members/{member_id}/update-photo")
+async def update_member_photo_url(member_id: str, photo_url: str, admin: dict = Depends(require_admin)):
+    """Update member's photo URL"""
+    result = await db.members.update_one(
+        {"member_id": member_id},
+        {"$set": {"photo_url": photo_url, "updated_at": datetime.now(timezone.utc).isoformat()}}
+    )
+    if result.modified_count == 0:
+        raise HTTPException(status_code=404, detail="Member not found")
+    return {"message": "Photo updated successfully"}
 
 # Include router
 app.include_router(api_router)

@@ -18,8 +18,11 @@ export const MembershipCardFront = forwardRef(({ member, user, qrSize = 80 }, re
   const memberName = member?.name || user?.name || 'Member';
   const memberId = member?.member_id || user?.member_id || 'BITZ-XXXX';
   const planName = member?.plan_name || 'Premium';
+  const validityStart = member?.membership_start 
+    ? new Date(member.membership_start).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })
+    : 'N/A';
   const validityEnd = member?.membership_end 
-    ? new Date(member.membership_end).toLocaleDateString('en-IN', { month: 'short', year: 'numeric' })
+    ? new Date(member.membership_end).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })
     : 'N/A';
   const photoUrl = getPhotoUrl(member?.photo_url);
   const status = member?.status || 'pending';
@@ -150,14 +153,18 @@ export const MembershipCardFront = forwardRef(({ member, user, qrSize = 80 }, re
               fontWeight: '600',
               marginBottom: '8px'
             }}>{memberId}</p>
-            <div style={{ display: 'flex', gap: '12px' }}>
+            <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
               <div>
                 <p style={{ fontSize: '9px', color: '#6B7280', textTransform: 'uppercase' }}>Plan</p>
                 <p style={{ fontSize: '11px', color: '#E5E7EB', fontWeight: '500' }}>{planName}</p>
               </div>
               <div>
+                <p style={{ fontSize: '9px', color: '#6B7280', textTransform: 'uppercase' }}>Registered</p>
+                <p style={{ fontSize: '10px', color: '#E5E7EB', fontWeight: '500' }}>{validityStart}</p>
+              </div>
+              <div>
                 <p style={{ fontSize: '9px', color: '#6B7280', textTransform: 'uppercase' }}>Valid Till</p>
-                <p style={{ fontSize: '11px', color: '#E5E7EB', fontWeight: '500' }}>{validityEnd}</p>
+                <p style={{ fontSize: '10px', color: '#10B981', fontWeight: '500' }}>{validityEnd}</p>
               </div>
             </div>
           </div>
