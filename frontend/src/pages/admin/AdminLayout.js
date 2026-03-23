@@ -30,6 +30,7 @@ const AdminLayout = () => {
     { icon: Calendar, label: 'Events', path: '/admin/events' },
     { icon: Image, label: 'Content', path: '/admin/content' },
     { icon: ImagePlus, label: 'Media CMS', path: '/admin/media' },
+    { icon: Settings, label: 'Settings', path: '/admin/settings' },
   ];
 
   // Add Admin Users link only for Super Admin

@@ -34,6 +34,7 @@ import EventsPage from '@/pages/admin/EventsPage';
 import OfflineMemberPage from '@/pages/admin/OfflineMemberPage';
 import ReferralsPage from '@/pages/admin/ReferralsPage';
 import MediaManagementPage from '@/pages/admin/MediaManagementPage';
+import SettingsPage from '@/pages/admin/SettingsPage';
 
 // Telecaller Pages
 import { 
@@ -103,6 +104,7 @@ function App() {
               <Route path="members/add" element={<OfflineMemberPage />} />
               <Route path="referrals" element={<ReferralsPage />} />
               <Route path="media" element={<MediaManagementPage />} />
+              <Route path="settings" element={<SettingsPage />} />
             </Route>
 
             {/* Telecaller Routes */}

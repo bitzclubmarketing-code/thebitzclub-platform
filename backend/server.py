@@ -6361,6 +6361,75 @@ async def update_member_photo_url(member_id: str, photo_url: str, admin: dict = 
         raise HTTPException(status_code=404, detail="Member not found")
     return {"message": "Photo updated successfully"}
 
+# ==================== PASSWORD CHANGE ====================
+
+class PasswordChangeRequest(BaseModel):
+    current_password: str
+    new_password: str
+
+class AdminPasswordResetRequest(BaseModel):
+    user_id: str
+    new_password: str
+
+@api_router.post("/auth/change-password")
+async def change_password(request: PasswordChangeRequest, user: dict = Depends(get_current_user)):
+    """Change password for current logged-in user"""
+    # Find user
+    db_user = await db.users.find_one({"id": user["id"]})
+    if not db_user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    # Verify current password
+    if not pwd_context.verify(request.current_password, db_user["password"]):
+        raise HTTPException(status_code=400, detail="Current password is incorrect")
+    
+    # Update password
+    hashed_password = pwd_context.hash(request.new_password)
+    await db.users.update_one(
+        {"id": user["id"]},
+        {"$set": {"password": hashed_password, "updated_at": datetime.now(timezone.utc).isoformat()}}
+    )
+    
+    return {"message": "Password changed successfully"}
+
+@api_router.post("/admin/reset-user-password")
+async def admin_reset_user_password(request: AdminPasswordResetRequest, admin: dict = Depends(require_admin)):
+    """Admin can reset any user's password"""
+    # Find user
+    db_user = await db.users.find_one({"id": request.user_id})
+    if not db_user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    # Update password
+    hashed_password = pwd_context.hash(request.new_password)
+    await db.users.update_one(
+        {"id": request.user_id},
+        {"$set": {"password": hashed_password, "updated_at": datetime.now(timezone.utc).isoformat()}}
+    )
+    
+    return {"message": "Password reset successfully"}
+
+@api_router.post("/admin/change-password")
+async def admin_change_own_password(request: PasswordChangeRequest, admin: dict = Depends(require_admin)):
+    """Admin changes their own password"""
+    # Find admin user
+    db_user = await db.users.find_one({"id": admin["id"]})
+    if not db_user:
+        raise HTTPException(status_code=404, detail="Admin not found")
+    
+    # Verify current password
+    if not pwd_context.verify(request.current_password, db_user["password"]):
+        raise HTTPException(status_code=400, detail="Current password is incorrect")
+    
+    # Update password
+    hashed_password = pwd_context.hash(request.new_password)
+    await db.users.update_one(
+        {"id": admin["id"]},
+        {"$set": {"password": hashed_password, "updated_at": datetime.now(timezone.utc).isoformat()}}
+    )
+    
+    return {"message": "Password changed successfully"}
+
 # Include router
 app.include_router(api_router)
 

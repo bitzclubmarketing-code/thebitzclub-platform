@@ -8,7 +8,7 @@ import {
   CheckCircle, Clock, XCircle, Loader2, ChevronRight,
   Hotel, UtensilsCrossed, Sparkles, Dumbbell, Waves, Music, PartyPopper, Building2,
   Share2, Star, Camera, RotateCw, FileImage, FileText, CreditCard, History, MessageSquare,
-  MapPin, Phone, Globe, CalendarDays, Users, Copy, MessageCircle, Send
+  MapPin, Phone, Globe, CalendarDays, Users, Copy, MessageCircle, Send, Lock, Eye, EyeOff, Key
 } from 'lucide-react';
 import { useAuth, API } from '@/context/AuthContext';
 import { toast } from 'sonner';
@@ -34,6 +34,13 @@ const MemberDashboard = () => {
   const [bookingAffiliate, setBookingAffiliate] = useState(null);
   const [bookingDate, setBookingDate] = useState('');
   const [creatingBooking, setCreatingBooking] = useState(false);
+  
+  // Password change state
+  const [showPasswordModal, setShowPasswordModal] = useState(false);
+  const [passwordForm, setPasswordForm] = useState({ currentPassword: '', newPassword: '', confirmPassword: '' });
+  const [changingPassword, setChangingPassword] = useState(false);
+  const [showCurrentPwd, setShowCurrentPwd] = useState(false);
+  const [showNewPwd, setShowNewPwd] = useState(false);
   
   const cardFrontRef = useRef(null);
   const cardBackRef = useRef(null);
@@ -188,6 +195,38 @@ const MemberDashboard = () => {
       toast.error('Failed to submit feedback');
     } finally {
       setSubmittingFeedback(false);
+    }
+  };
+
+  const handlePasswordChange = async (e) => {
+    e.preventDefault();
+    
+    if (passwordForm.newPassword !== passwordForm.confirmPassword) {
+      toast.error('New passwords do not match');
+      return;
+    }
+    
+    if (passwordForm.newPassword.length < 6) {
+      toast.error('Password must be at least 6 characters');
+      return;
+    }
+    
+    setChangingPassword(true);
+    try {
+      await axios.post(`${API}/auth/change-password`, {
+        current_password: passwordForm.currentPassword,
+        new_password: passwordForm.newPassword
+      }, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      
+      toast.success('Password changed successfully!');
+      setPasswordForm({ currentPassword: '', newPassword: '', confirmPassword: '' });
+      setShowPasswordModal(false);
+    } catch (error) {
+      toast.error(error.response?.data?.detail || 'Failed to change password');
+    } finally {
+      setChangingPassword(false);
     }
   };
 
@@ -388,6 +427,14 @@ const MemberDashboard = () => {
           </div>
           <div className="flex items-center gap-3 sm:gap-4">
             <span className="text-gray-400 hidden sm:block text-sm">Welcome, {user?.name?.split(' ')[0]}</span>
+            <button
+              onClick={() => setShowPasswordModal(true)}
+              className="flex items-center gap-2 text-gray-400 hover:text-amber-400 transition-colors text-sm"
+              data-testid="change-password-btn"
+            >
+              <Key className="w-4 h-4" />
+              <span className="hidden sm:block">Password</span>
+            </button>
             <button
               onClick={logout}
               className="flex items-center gap-2 text-gray-400 hover:text-white transition-colors text-sm"
@@ -1241,6 +1288,92 @@ const MemberDashboard = () => {
           )}
         </motion.div>
       </main>
+
+      {/* Password Change Modal */}
+      {showPasswordModal && (
+        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="bg-[#1a1a1b] rounded-xl border border-white/10 p-6 w-full max-w-md"
+          >
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-xl font-semibold text-white flex items-center gap-2">
+                <Lock className="w-5 h-5 text-amber-500" />
+                Change Password
+              </h2>
+              <button onClick={() => setShowPasswordModal(false)} className="text-gray-400 hover:text-white">
+                ×
+              </button>
+            </div>
+            
+            <form onSubmit={handlePasswordChange} className="space-y-4">
+              <div>
+                <label className="block text-sm text-gray-400 mb-1">Current Password</label>
+                <div className="relative">
+                  <input
+                    type={showCurrentPwd ? 'text' : 'password'}
+                    value={passwordForm.currentPassword}
+                    onChange={(e) => setPasswordForm(prev => ({ ...prev, currentPassword: e.target.value }))}
+                    className="w-full bg-[#0F0F10] border border-white/10 rounded-lg px-4 py-2 pr-10 text-white"
+                    required
+                  />
+                  <button type="button" onClick={() => setShowCurrentPwd(!showCurrentPwd)} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400">
+                    {showCurrentPwd ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
+              </div>
+              
+              <div>
+                <label className="block text-sm text-gray-400 mb-1">New Password</label>
+                <div className="relative">
+                  <input
+                    type={showNewPwd ? 'text' : 'password'}
+                    value={passwordForm.newPassword}
+                    onChange={(e) => setPasswordForm(prev => ({ ...prev, newPassword: e.target.value }))}
+                    className="w-full bg-[#0F0F10] border border-white/10 rounded-lg px-4 py-2 pr-10 text-white"
+                    required
+                    minLength={6}
+                  />
+                  <button type="button" onClick={() => setShowNewPwd(!showNewPwd)} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400">
+                    {showNewPwd ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
+              </div>
+              
+              <div>
+                <label className="block text-sm text-gray-400 mb-1">Confirm New Password</label>
+                <input
+                  type="password"
+                  value={passwordForm.confirmPassword}
+                  onChange={(e) => setPasswordForm(prev => ({ ...prev, confirmPassword: e.target.value }))}
+                  className="w-full bg-[#0F0F10] border border-white/10 rounded-lg px-4 py-2 text-white"
+                  required
+                  minLength={6}
+                />
+              </div>
+              
+              <div className="flex gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setShowPasswordModal(false)}
+                  className="flex-1 px-4 py-2 bg-gray-700 text-white rounded-lg hover:bg-gray-600"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={changingPassword}
+                  className="flex-1 px-4 py-2 bg-amber-500 text-black font-medium rounded-lg hover:bg-amber-400 disabled:opacity-50 flex items-center justify-center gap-2"
+                >
+                  {changingPassword ? <Loader2 className="w-4 h-4 animate-spin" /> : <Key className="w-4 h-4" />}
+                  Change
+                </button>
+              </div>
+            </form>
+          </motion.div>
+        </div>
+      )}
     </div>
   );
 };
