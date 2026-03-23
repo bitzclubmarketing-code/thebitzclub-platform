@@ -347,7 +347,6 @@ const MarketingLanding = () => {
 
       const razorpay = new window.Razorpay(options);
       razorpay.open();
-      razorpay.open();
     } catch (error) {
       const message = error.response?.data?.detail || 'Failed to process. Please try again.';
       toast.error(message);

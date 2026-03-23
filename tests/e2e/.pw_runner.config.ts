@@ -11,7 +11,7 @@ export default defineConfig({
     ['json', { outputFile: '/root/.emergent/automation_output/20260317_194929/results.json' }],
   ],
   use: {
-    baseURL: 'https://member-flow-rebuild.preview.emergentagent.com',
+    baseURL: 'https://bitz-payment-fix.preview.emergentagent.com',
     screenshot: 'only-on-failure',
     trace: 'off',
     headless: true,

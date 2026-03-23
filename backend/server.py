@@ -730,7 +730,7 @@ class RazorpayService:
     
     @staticmethod
     def verify_payment_signature(payment_id: str, order_id: str, signature: str) -> bool:
-        """Verify Razorpay payment signature - STRICT verification only"""
+        """Verify Razorpay payment signature - supports both TEST and LIVE modes"""
         try:
             razorpay_key = os.environ.get("RAZORPAY_KEY_ID", "")
             is_live = razorpay_key.startswith("rzp_live_")
@@ -743,10 +743,11 @@ class RazorpayService:
             }
             
             # Primary verification - Razorpay signature check
+            # This is the CRITICAL check - if signature is valid, payment is authentic
             razorpay_client.utility.verify_payment_signature(params_dict)
             logger.info(f"[RAZORPAY] Payment signature verified successfully for: {payment_id}")
             
-            # Additional verification - Fetch payment and check status
+            # Additional verification - Fetch payment and check status (informational)
             try:
                 payment = razorpay_client.payment.fetch(payment_id)
                 payment_status = payment.get('status')
@@ -760,14 +761,20 @@ class RazorpayService:
                     logger.error(f"[RAZORPAY ERROR] Order ID mismatch: expected {order_id}, got {payment_order_id}")
                     return False
                 
-                # For LIVE mode, payment must be captured
-                if is_live and payment_status != 'captured':
-                    logger.error(f"[RAZORPAY ERROR] Payment not captured in LIVE mode - status: {payment_status}")
+                # Accept both 'captured' and 'authorized' status
+                # 'authorized' means payment is successful but auto-capture may not be enabled
+                # 'captured' means payment is fully captured
+                valid_statuses = ['captured', 'authorized']
+                if payment_status not in valid_statuses:
+                    logger.error(f"[RAZORPAY ERROR] Invalid payment status: {payment_status}. Expected one of: {valid_statuses}")
                     return False
+                
+                logger.info(f"[RAZORPAY] Payment status '{payment_status}' is valid - proceeding with registration")
                     
             except Exception as fetch_error:
-                logger.warning(f"[RAZORPAY] Could not fetch payment details: {str(fetch_error)}")
-                # Continue if signature was verified - this is acceptable
+                # If we can't fetch payment details but signature was verified, proceed anyway
+                # Signature verification is the authoritative check
+                logger.warning(f"[RAZORPAY] Could not fetch payment details: {str(fetch_error)} - proceeding with verified signature")
             
             return True
             
