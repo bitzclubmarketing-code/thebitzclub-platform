@@ -36,7 +36,13 @@ import ReferralsPage from '@/pages/admin/ReferralsPage';
 import MediaManagementPage from '@/pages/admin/MediaManagementPage';
 
 // Telecaller Pages
-import TelecallerDashboard from '@/pages/telecaller/TelecallerDashboard';
+import { 
+  TelecallerLayout, 
+  TelecallerDashboard, 
+  TelecallerTasks, 
+  TelecallerCallLogs,
+  TelecallerNewSale 
+} from '@/pages/telecaller/TelecallerPortal';
 
 import '@/App.css';
 
@@ -101,10 +107,16 @@ function App() {
 
             {/* Telecaller Routes */}
             <Route path="/telecaller" element={
-              <ProtectedRoute allowedRoles={['telecaller']}>
-                <TelecallerDashboard />
+              <ProtectedRoute allowedRoles={['telecaller', 'admin', 'super_admin']}>
+                <TelecallerLayout />
               </ProtectedRoute>
-            } />
+            }>
+              <Route index element={<TelecallerDashboard />} />
+              <Route path="tasks" element={<TelecallerTasks />} />
+              <Route path="members" element={<TelecallerTasks />} />
+              <Route path="call-logs" element={<TelecallerCallLogs />} />
+              <Route path="new-sale" element={<TelecallerNewSale />} />
+            </Route>
 
             {/* Fallback */}
             <Route path="*" element={<Navigate to="/" replace />} />

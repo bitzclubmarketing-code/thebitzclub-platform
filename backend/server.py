@@ -6124,6 +6124,194 @@ async def delete_gallery_item(item_id: str):
     await db.gallery_images.delete_one({"id": item_id})
     return {"message": "Gallery item deleted"}
 
+# ==================== CALL LOGS (TELECALLER) ====================
+
+@api_router.post("/call-logs")
+async def create_call_log(log: dict, user: dict = Depends(require_admin_or_telecaller)):
+    """Create a call log entry"""
+    log["id"] = str(uuid.uuid4())
+    log["telecaller_id"] = user["id"]
+    log["telecaller_name"] = user.get("name", "")
+    log["created_at"] = datetime.now(timezone.utc).isoformat()
+    
+    await db.call_logs.insert_one(log)
+    
+    # Update member's call status
+    if log.get("member_id"):
+        await db.members.update_one(
+            {"member_id": log["member_id"]},
+            {"$set": {"call_status": log.get("status"), "last_call_date": log["created_at"]}}
+        )
+    
+    return {"message": "Call log created", "log": {k: v for k, v in log.items() if k != '_id'}}
+
+@api_router.get("/call-logs")
+async def get_call_logs(
+    telecaller_id: Optional[str] = None,
+    status: Optional[str] = None,
+    from_date: Optional[str] = None,
+    to_date: Optional[str] = None,
+    user: dict = Depends(require_admin_or_telecaller)
+):
+    """Get call logs with filters"""
+    query = {}
+    
+    # Telecallers can only see their own logs
+    if user["role"] == UserRole.TELECALLER:
+        query["telecaller_id"] = user["id"]
+    elif telecaller_id:
+        query["telecaller_id"] = telecaller_id
+    
+    if status and status != 'all':
+        query["status"] = status
+    
+    if from_date:
+        query["created_at"] = {"$gte": from_date}
+    if to_date:
+        if "created_at" in query:
+            query["created_at"]["$lte"] = to_date
+        else:
+            query["created_at"] = {"$lte": to_date}
+    
+    logs = await db.call_logs.find(query, {"_id": 0}).sort("created_at", -1).to_list(500)
+    return logs
+
+# ==================== ENHANCED COUPON SYSTEM ====================
+
+@api_router.post("/coupons/generate")
+async def generate_coupon_code(admin: dict = Depends(require_admin)):
+    """Generate a random coupon code"""
+    import random
+    import string
+    code = ''.join(random.choices(string.ascii_uppercase + string.digits, k=8))
+    return {"code": code}
+
+@api_router.post("/coupons/validate")
+async def validate_coupon_for_payment(code: str, amount: float, plan_id: Optional[str] = None):
+    """Validate coupon and return discount amount"""
+    coupon = await db.coupons.find_one({"code": code.upper(), "is_active": True})
+    
+    if not coupon:
+        raise HTTPException(status_code=400, detail="Invalid or expired coupon")
+    
+    # Check validity dates
+    now = datetime.now(timezone.utc).isoformat()
+    if coupon.get("valid_from") and now < coupon["valid_from"]:
+        raise HTTPException(status_code=400, detail="Coupon not yet valid")
+    if coupon.get("valid_until") and now > coupon["valid_until"]:
+        raise HTTPException(status_code=400, detail="Coupon has expired")
+    
+    # Check usage limit
+    if coupon.get("max_uses") and coupon.get("used_count", 0) >= coupon["max_uses"]:
+        raise HTTPException(status_code=400, detail="Coupon usage limit reached")
+    
+    # Check plan restriction
+    if coupon.get("applicable_plan_id") and plan_id and coupon["applicable_plan_id"] != plan_id:
+        raise HTTPException(status_code=400, detail="Coupon not valid for this plan")
+    
+    # Calculate discount
+    discount = 0
+    if coupon.get("discount_type") == "percentage":
+        discount = amount * (coupon.get("discount_value", 0) / 100)
+        if coupon.get("max_discount"):
+            discount = min(discount, coupon["max_discount"])
+    else:  # fixed amount
+        discount = min(coupon.get("discount_value", 0), amount)
+    
+    return {
+        "valid": True,
+        "coupon": coupon.get("code"),
+        "discount_type": coupon.get("discount_type"),
+        "discount_value": coupon.get("discount_value"),
+        "discount_amount": discount,
+        "final_amount": amount - discount,
+        "message": f"Coupon applied! You save ₹{discount:.0f}"
+    }
+
+@api_router.post("/coupons/{coupon_id}/use")
+async def use_coupon(coupon_id: str):
+    """Increment coupon usage count"""
+    await db.coupons.update_one(
+        {"id": coupon_id},
+        {"$inc": {"used_count": 1}}
+    )
+    return {"message": "Coupon usage recorded"}
+
+# ==================== MEMBER ASSIGNMENT (ADMIN) ====================
+
+@api_router.get("/members/filter")
+async def filter_members_for_assignment(
+    card_type: Optional[str] = None,
+    amount_from: Optional[float] = None,
+    amount_to: Optional[float] = None,
+    pincode: Optional[str] = None,
+    status: Optional[str] = None,  # active, expired, all
+    unassigned_only: bool = False,
+    admin: dict = Depends(require_admin)
+):
+    """Filter members for telecaller assignment"""
+    query = {}
+    
+    if card_type and card_type != "all":
+        query["plan_name"] = card_type
+    
+    if pincode:
+        query["pincode"] = pincode
+    
+    if unassigned_only:
+        query["$or"] = [
+            {"assigned_telecaller": {"$exists": False}},
+            {"assigned_telecaller": None},
+            {"assigned_telecaller": ""}
+        ]
+    
+    now = datetime.now(timezone.utc).isoformat()
+    if status == "active":
+        query["membership_end"] = {"$gt": now}
+    elif status == "expired":
+        query["membership_end"] = {"$lt": now}
+    
+    members = await db.members.find(query, {"_id": 0}).to_list(1000)
+    
+    # Filter by amount range (maintenance due)
+    if amount_from is not None or amount_to is not None:
+        filtered = []
+        for m in members:
+            due = m.get("maintenance_due", 0)
+            if amount_from is not None and due < amount_from:
+                continue
+            if amount_to is not None and due > amount_to:
+                continue
+            filtered.append(m)
+        members = filtered
+    
+    return {"members": members, "count": len(members)}
+
+@api_router.post("/members/bulk-assign")
+async def bulk_assign_members(
+    member_ids: list,
+    telecaller_id: str,
+    admin: dict = Depends(require_admin)
+):
+    """Assign multiple members to a telecaller"""
+    result = await db.members.update_many(
+        {"member_id": {"$in": member_ids}},
+        {"$set": {"assigned_telecaller": telecaller_id, "updated_at": datetime.now(timezone.utc).isoformat()}}
+    )
+    return {"message": f"Assigned {result.modified_count} members to telecaller"}
+
+@api_router.post("/members/bulk-unassign")
+async def bulk_unassign_members(
+    member_ids: list,
+    admin: dict = Depends(require_admin)
+):
+    """Unassign multiple members from telecallers"""
+    result = await db.members.update_many(
+        {"member_id": {"$in": member_ids}},
+        {"$set": {"assigned_telecaller": None, "updated_at": datetime.now(timezone.utc).isoformat()}}
+    )
+    return {"message": f"Unassigned {result.modified_count} members"}
+
 # Include router
 app.include_router(api_router)
 
