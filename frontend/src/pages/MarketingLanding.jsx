@@ -1447,6 +1447,253 @@ const MarketingLanding = () => {
       </section>
 
       {/* CTA Section */}
+      {/* Testimonials Section */}
+      <section className="py-16 bg-[#0F0F10]">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6">
+          <div className="text-center mb-12">
+            <h2 
+              className="text-3xl sm:text-4xl font-bold text-white mb-4"
+              style={{ fontFamily: 'Playfair Display, serif' }}
+            >
+              What Our <span className="text-[#D4AF37]">Members</span> Say
+            </h2>
+            <p className="text-gray-400">Real experiences from our valued members</p>
+          </div>
+          
+          <div className="grid md:grid-cols-3 gap-6">
+            {[
+              {
+                name: "Rajesh Kumar",
+                role: "Business Owner",
+                location: "Bangalore",
+                text: "BITZ Club membership has been a game-changer for my business trips. The hotel discounts alone saved me over ₹50,000 last year!",
+                rating: 5
+              },
+              {
+                name: "Priya Sharma",
+                role: "Corporate Professional",
+                location: "Mumbai",
+                text: "The referral program is amazing. I've referred 5 friends and earned great rewards. The spa and dining benefits are a bonus!",
+                rating: 5
+              },
+              {
+                name: "Dr. Anil Verma",
+                role: "Healthcare Professional",
+                location: "Delhi",
+                text: "Premium service at affordable prices. The family membership covers all our needs - hotels, restaurants, and entertainment.",
+                rating: 5
+              }
+            ].map((testimonial, index) => (
+              <motion.div
+                key={index}
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                transition={{ delay: index * 0.1 }}
+                className="bg-[#1A1A1C] p-6 rounded-xl border border-white/5"
+              >
+                <div className="flex gap-1 mb-4">
+                  {[...Array(testimonial.rating)].map((_, i) => (
+                    <Star key={i} className="w-5 h-5 fill-[#D4AF37] text-[#D4AF37]" />
+                  ))}
+                </div>
+                <p className="text-gray-300 mb-4 italic">"{testimonial.text}"</p>
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 rounded-full bg-[#D4AF37]/20 flex items-center justify-center">
+                    <span className="text-[#D4AF37] font-bold">{testimonial.name.charAt(0)}</span>
+                  </div>
+                  <div>
+                    <p className="text-white font-semibold">{testimonial.name}</p>
+                    <p className="text-gray-500 text-sm">{testimonial.role} • {testimonial.location}</p>
+                  </div>
+                </div>
+              </motion.div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* How It Works Section */}
+      <section className="py-16 bg-gradient-to-b from-[#0F0F10] to-[#1A1A1C]">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6">
+          <div className="text-center mb-12">
+            <h2 
+              className="text-3xl sm:text-4xl font-bold text-white mb-4"
+              style={{ fontFamily: 'Playfair Display, serif' }}
+            >
+              How It <span className="text-[#D4AF37]">Works</span>
+            </h2>
+            <p className="text-gray-400">Join in 3 simple steps</p>
+          </div>
+          
+          <div className="grid md:grid-cols-3 gap-8">
+            {[
+              { step: "01", title: "Register", desc: "Fill your details and choose a membership plan that suits you" },
+              { step: "02", title: "Pay Online", desc: "Secure payment via UPI, Card, or Net Banking through Razorpay" },
+              { step: "03", title: "Enjoy Benefits", desc: "Get instant access to 300+ partner benefits and start saving" }
+            ].map((item, index) => (
+              <div key={index} className="relative text-center">
+                {index < 2 && (
+                  <div className="hidden md:block absolute top-8 left-[60%] w-[80%] h-0.5 bg-gradient-to-r from-[#D4AF37] to-transparent" />
+                )}
+                <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-[#D4AF37] text-black font-bold text-2xl flex items-center justify-center">
+                  {item.step}
+                </div>
+                <h3 className="text-xl font-semibold text-white mb-2">{item.title}</h3>
+                <p className="text-gray-400">{item.desc}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Refer & Earn Section */}
+      <section className="py-16 bg-[#1A1A1C]">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6">
+          <div className="grid md:grid-cols-2 gap-12 items-center">
+            <div>
+              <span className="text-[#D4AF37] text-sm font-medium uppercase tracking-wider">Referral Program</span>
+              <h2 
+                className="text-3xl sm:text-4xl font-bold text-white mt-2 mb-4"
+                style={{ fontFamily: 'Playfair Display, serif' }}
+              >
+                Refer & <span className="text-[#D4AF37]">Earn Rewards</span>
+              </h2>
+              <p className="text-gray-400 mb-6">
+                Share the exclusive BITZ Club experience with your friends and family. 
+                For every successful referral, earn exciting rewards and discounts on your membership renewal!
+              </p>
+              <ul className="space-y-4">
+                {[
+                  "Get ₹500 reward for each successful referral",
+                  "Your friend also gets ₹500 discount on joining",
+                  "No limit on number of referrals",
+                  "Rewards credited instantly to your account"
+                ].map((benefit, index) => (
+                  <li key={index} className="flex items-center gap-3 text-gray-300">
+                    <CheckCircle className="w-5 h-5 text-green-500 flex-shrink-0" />
+                    {benefit}
+                  </li>
+                ))}
+              </ul>
+            </div>
+            <div className="bg-[#0F0F10] p-8 rounded-2xl border border-[#D4AF37]/20">
+              <div className="text-center">
+                <Gift className="w-16 h-16 text-[#D4AF37] mx-auto mb-4" />
+                <h3 className="text-2xl font-bold text-white mb-2">Earn Up To</h3>
+                <div className="text-5xl font-bold text-[#D4AF37] mb-2">₹10,000+</div>
+                <p className="text-gray-400">in referral rewards</p>
+                <button
+                  onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+                  className="btn-primary mt-6 w-full"
+                >
+                  Join & Start Referring
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Trust Indicators */}
+      <section className="py-12 bg-[#0F0F10] border-y border-white/5">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
+            {[
+              { value: "5000+", label: "Happy Members" },
+              { value: "300+", label: "Partner Properties" },
+              { value: "₹1Cr+", label: "Member Savings" },
+              { value: "4.8★", label: "Member Rating" }
+            ].map((stat, index) => (
+              <div key={index}>
+                <div className="text-3xl sm:text-4xl font-bold text-[#D4AF37]">{stat.value}</div>
+                <div className="text-gray-400 text-sm mt-1">{stat.label}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* FAQ Section */}
+      <section className="py-16 bg-[#1A1A1C]">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6">
+          <div className="text-center mb-12">
+            <h2 
+              className="text-3xl sm:text-4xl font-bold text-white mb-4"
+              style={{ fontFamily: 'Playfair Display, serif' }}
+            >
+              Frequently Asked <span className="text-[#D4AF37]">Questions</span>
+            </h2>
+          </div>
+          
+          <div className="space-y-4">
+            {[
+              {
+                q: "What is BITZ Club membership?",
+                a: "BITZ Club is a premium lifestyle membership that gives you access to exclusive discounts at 300+ hotels, restaurants, spas, and entertainment venues across India."
+              },
+              {
+                q: "How do I use my membership benefits?",
+                a: "Simply show your digital membership card (available in our app) at any partner location. Your discounts will be applied automatically."
+              },
+              {
+                q: "Can I add family members to my membership?",
+                a: "Yes! You can add family members to your membership. They will get their own digital cards and can enjoy all the benefits."
+              },
+              {
+                q: "What payment methods are accepted?",
+                a: "We accept UPI, Credit/Debit Cards, Net Banking, and Wallets through our secure Razorpay payment gateway."
+              },
+              {
+                q: "Is there a refund policy?",
+                a: "Yes, we offer a 7-day money-back guarantee if you're not satisfied with the membership. No questions asked."
+              },
+              {
+                q: "How does the referral program work?",
+                a: "Share your unique referral code with friends. When they join using your code, both of you earn ₹500 in rewards."
+              }
+            ].map((faq, index) => (
+              <details 
+                key={index}
+                className="group bg-[#0F0F10] rounded-xl border border-white/5 overflow-hidden"
+              >
+                <summary className="flex items-center justify-between p-5 cursor-pointer text-white font-medium list-none">
+                  {faq.q}
+                  <ChevronDown className="w-5 h-5 text-[#D4AF37] transform group-open:rotate-180 transition-transform" />
+                </summary>
+                <div className="px-5 pb-5 text-gray-400">
+                  {faq.a}
+                </div>
+              </details>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Trust & Security Section */}
+      <section className="py-12 bg-[#0F0F10]">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6">
+          <div className="flex flex-wrap items-center justify-center gap-8 text-center">
+            <div className="flex items-center gap-2 text-gray-400">
+              <Shield className="w-5 h-5 text-green-500" />
+              <span>100% Secure Payments</span>
+            </div>
+            <div className="flex items-center gap-2 text-gray-400">
+              <CreditCard className="w-5 h-5 text-blue-500" />
+              <span>Powered by Razorpay</span>
+            </div>
+            <div className="flex items-center gap-2 text-gray-400">
+              <CheckCircle className="w-5 h-5 text-[#D4AF37]" />
+              <span>7-Day Money Back</span>
+            </div>
+            <div className="flex items-center gap-2 text-gray-400">
+              <Phone className="w-5 h-5 text-green-500" />
+              <span>24/7 WhatsApp Support</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Final CTA Section */}
       <section className="py-16 bg-gradient-to-r from-[#D4AF37]/20 to-transparent">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 text-center">
           <h2 
