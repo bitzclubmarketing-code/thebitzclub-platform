@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test';
 
-const BASE_URL = process.env.REACT_APP_BACKEND_URL || 'https://bitz-payment-fix.preview.emergentagent.com';
+const BASE_URL = process.env.REACT_APP_BACKEND_URL || 'https://razorpay-vpa-test.preview.emergentagent.com';
 
 test.describe('Referral System - Join Page', () => {
   test('should auto-populate referral code from URL query parameter', async ({ page }) => {

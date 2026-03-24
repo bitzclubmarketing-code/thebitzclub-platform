@@ -1,154 +1,158 @@
 <analysis>**original_problem_statement:**
-The user wants to build and deploy a comprehensive membership management web application for BITZ Club. The application is currently live, but the user is facing critical issues with the end-to-end user flow and has recently requested a significant UI/UX overhaul for the admin panel to match an existing system they have. The user is extremely frustrated with the project's long duration (25+ days) and cost (over ₹80,000) and is demanding that the final requirements be implemented precisely and quickly.
+The user initially wanted to fix a critical Payment verification failed bug on their live membership management application for BITZ Club. After a lengthy and successful debugging session that resolved the core payment flow, the user's confidence was restored. They have now provided a comprehensive list of new features and enhancements required for a Minimum Viable Product (MVP) launch, including a full media CMS for the homepage, an enhanced coupon system, and a complete Telecaller management portal based on screenshots of an existing system. The immediate priority has now shifted to a new blocker: UPI payments are failing with an Invalid UPI ID error.
 
 **PRODUCT REQUIREMENTS:**
--   **Core User Flow:** A seamless, bug-free journey for a new user: Landing Page () -> Multi-step Registration -> Plan Selection -> Live Razorpay Payment -> Automatic Member Account & ID Creation -> Auto-Login -> Member Dashboard with a Digital Membership Card.
--   **Admin Panel Overhaul:** Replicate the UI and functionality of an existing system for managing members and telecallers.
--   **Membership ID Format:** Must be a 10-digit numeric Julian ID () with a sequential counter.
--   **Referral System:** A complete marketing referral system with unique codes, tracking links, and an admin dashboard.
--   **Live Deployment:** The application must be fully functional on the user's DigitalOcean server at .
+-   **Phase 1 (Immediate Fix & Launch Prep):**
+    1.  **Fix UPI Payment Issue:** Resolve the Invalid UPI ID error reported for Razorpay.
+    2.  **Reports Enhancement:** Implement robust search (name, mobile, ID) and filters (date, plan) in the admin members report. Allow viewing a member's full payment history.
+    3.  **Membership Card Redesign:** Update the card to a final, professional quality, including the member's photo, correct registration/expiry dates, proper alignment, and a validated Julian ID.
+    4.  **Mandatory Photo Upload:** Add functionality for admins to upload member photos, which must display on the profile and membership card.
+    5.  **Internationalization:** Add a country code dropdown for mobile numbers and ensure the system can handle multiple currencies (INR, USD), displaying the correct symbol.
+    6.  **Password Management:** Implement password change options for both members (in their dashboard) and admins (in a new settings page).
+-   **Phase 2 (Post-Launch):**
+    -   A full-featured Telecaller portal with separate login, lead management, and call logging.
+    -   An enhanced coupon system with auto-generation and referral-based rewards.
+    -   A dynamic CMS for all homepage content (Benefits, Dining, Spa sections).
+    -   E-Mandate (auto-pay) integration.
+    -   OTP-based Forgot Password functionality.
 
 **User's preferred language**: English
 
 **what currently exists?**
-A full-stack React + FastAPI + MongoDB application has been deployed to the user's live DigitalOcean server (). The agent successfully guided the user through a manual deployment process, which included building the frontend, configuring Nginx for a Single Page Application (SPA), and restarting backend services. The application features a marketing landing page (), multi-role authentication, and an admin panel with an offline member creation form, plan management with maintenance configuration, and a new referral management dashboard. However, the core payment-to-membership creation flow is critically broken on the live server, leading to extreme user frustration and a halt to all development.
+The application is a full-stack React/FastAPI/MongoDB system live on the user's DigitalOcean server. The previously critical end-to-end payment flow has been fixed through extensive live debugging. A new Media CMS, enhanced reports, photo upload, and password change functionalities have been built in the preview environment but are **not yet deployed** to the live server. The referral code generation for new members has been fixed and deployed. The user has provided detailed requirements and reference screenshots for a major Telecaller management portal.
 
 **Last working item**:
--   **Last item agent was working**: Diagnosing and attempting to fix a critical and recurring Payment verification failed bug on the user's live server. After a successful Razorpay payment where money is debited, the backend fails to create the member record, throwing an error. The user has tested this multiple times, and each fix attempt has failed to resolve the root cause.
--   **Status**: BLOCKED
--   **Agent Testing Done**: Y (Agent tested individual fixes in the preview environment, but the issue persists on the user's live server, indicating an environment or configuration discrepancy.)
--   **Which testing method agent to use?**: Manual testing by user on the live server, followed by immediate log analysis on the server (). However, the user has refused to continue troubleshooting.
--   **User Testing Done**: Y (User has repeatedly confirmed the failure on the live site.)
+-   **Last item agent was working**: Investigating a new, critical issue where UPI payments through Razorpay are failing with an Invalid UPI ID error on the live server. The agent correctly deduced this is likely a Razorpay configuration or user-input issue and was gathering more information from the user.
+-   **Status**: IN PROGRESS
+-   **Agent Testing Done**: N
+-   **Which testing method agent to use?**: Manual testing by the user on the live site is required. The agent needs to guide the user to test with a correctly formatted VPA (e.g., ) and check other payment methods (Card, Netbanking) to isolate the issue.
+-   **User Testing Done**: Y (User reported the failure.)
 
 **All Pending/In progress Issue list**:
--   **Issue 1: CRITICAL - Live Payment Verification Failure (P0)**
+-   **Issue 1: CRITICAL - UPI Payment Failing with Invalid UPI ID (P0)**
+-   **Issue 2: test / Individual Plan Fails Payment Order Creation (P1)**
 
 **Issues Detail:**
--   **Issue 1: CRITICAL - Live Payment Verification Failure (P0)**
-    -   **Description**: On the live website (), when a user completes a Razorpay payment, the money is successfully deducted, but the website shows a Payment verification failed error. The membership account is not created. This makes the application unusable for its primary business purpose.
-    -   **Attempted fixes**:
-        1.  Fixed  to be  and use a  collection for sequential Julian IDs.
-        2.  Fixed a  where  (uppercase) was used instead of  (lowercase) inside the  function. This fix was applied live.
-        3.  Fixed a  where  (uppercase) was used instead of  (lowercase) inside the  function. This fix was also applied live.
-        *Despite these fixes, the error persists, although it appears to have moved or changed.*
+-   **Issue 1: CRITICAL - UPI Payment Failing with Invalid UPI ID (P0)**
+    -   **Description**: On the live site, when a user attempts to pay via UPI, Razorpay displays an Invalid UPI ID error, blocking the payment.
+    -   **Attempted fixes**: None yet. The agent was in the process of diagnosing the issue.
     -   **Next debug checklist**:
-        1.  The immediate next step was to get the *latest* error log from the live server *after* the last failed payment. The agent requested the user to run: .
-        2.  The user has refused to run this command, halting all diagnostic efforts.
-        3.  The bug is located in the  endpoint in , specifically within or just after the  function call.
-    -   **Why fix this issue and what will be achieved with the fix?**: This is the core business flow. Fixing it is essential for the application to be viable.
-    -   **Status**: BLOCKED
-    -   **Is recurring issue?**: Y (This is the primary recurring blocker for the entire project).
-    -   **Should Test frontend/backend/both after fix?**: Both (end-to-end flow).
-    -   **Blocked on other issue**: Blocked by the user's refusal to continue troubleshooting and their demand for a refund.
+        1.  Ask the user to confirm their Razorpay dashboard has UPI enabled ( -> ).
+        2.  Ask the user for the exact UPI ID format they are entering (it should be ).
+        3.  Ask the user to test other payment methods (Card, Netbanking) to confirm they are still working.
+        4.  Review the Razorpay options in  to ensure no incorrect pre-fill or method restrictions are being applied.
+    -   **Why fix this issue and what will be achieved with the fix?**: UPI is a critical payment method in the target market. Fixing it is essential for user conversions.
+    -   **Status**: IN PROGRESS
+    -   **Is recurring issue?**: N
+    -   **Should Test frontend/backend/both after fix?**: Both (frontend Razorpay config and end-to-end payment flow).
+    -   **Blocked on other issue**: None. This is the primary blocker.
+
+-   **Issue 2: test / Individual Plan Fails Payment Order Creation (P1)**
+    -   **Description**: During testing, the user noted that selecting the Individual plan (for ₹1500) resulted in a Failed to create payment order error, while the corporate plan worked. This suggests a configuration issue with that specific plan.
+    -   **Attempted fixes**: None.
+    -   **Next debug checklist**:
+        1.  Log in to the admin panel and navigate to the Plans section.
+        2.  Inspect the Individual plan to ensure it has a valid  and is marked as active.
+        3.  If not resolvable via the UI, inspect the  collection in the live MongoDB database.
+    -   **Why fix this issue and what will be achieved with the fix?**: Ensures all available membership plans are purchasable.
+    -   **Status**: NOT STARTED
+    -   **Is recurring issue?**: N
+    -   **Should Test frontend/backend/both after fix?**: Backend (by attempting to create a payment order with the plan) and Frontend (end-to-end test).
+    -   **Blocked on other issue**: Blocked by the P0 UPI issue.
 
 **In progress Task List**:
--   None. All development has been halted.
+-   **Task 1: Demo of All Completed Features (Phase 1)**
+    -   **Where to resume**: After the UPI issue is resolved, the agent must provide a comprehensive demo (screenshots or video) of all the completed Phase 1 features, as requested by the user. This includes the enhanced reports, new membership card design, photo upload, and password change functionality.
+    -   **What will be achieved with this?**: Gain user approval to deploy all the new features to the live server.
+    -   **Status**: BLOCKED (on UPI issue resolution).
+    -   **Should Test frontend/backend/both after fix?**: Both.
+    -   **Blocked on something**: Issue 1: UPI Payment Failure.
 
 **Upcoming and Future Tasks**
--   **Upcoming Tasks**:
-    -   (P1) Implement Telecaller Management Module (on hold)
--   **Future Tasks**:
-    -   (P2) Implement E-Mandate (Auto-Pay) Flow (on hold)
-    -   (P2) Refactor monolithic  (on hold)
+-   **Upcoming Tasks (To be started after current issues are resolved and demo is approved):**
+    -   **(P0) Deploy All Completed Features:** Deploy the new Media CMS, enhanced reports, member photo upload, password change, and internationalization features from the preview environment to the live server.
+    -   **(P0) Update Default Credentials:** Change the default admin password on the live server for security.
+    -   **(P1) Build Telecaller Portal:** Implement the complete Telecaller system (separate login, dashboard, lead/task management, call logs, admin assignment panel) based on the user's screenshots.
+    -   **(P2) Enhance Coupon System:** Add features for auto-generating coupon codes, assigning them to users, and applying them on the payment page.
+-   **Future Tasks (Post-MVP Launch):**
+    -   E-Mandate (Auto-Pay) integration via Razorpay.
+    -   OTP-based Forgot Password flow.
+    -   Integrate Email/SMS/WhatsApp for notifications and alerts.
+    -   Build a dynamic CMS for Benefits, Dining, and Spa sections.
+    -   Restore the mobile app download button functionality.
 
 **Completed work in this session**
--   **Live Server Deployment & Configuration:**
-    -   Guided the user through a complete manual deployment to their DigitalOcean server.
-    -   Fixed the Nginx configuration to correctly serve a React Single Page Application (SPA), resolving an issue where the  route was showing an old page. The  directive was added.
-    -   Fixed backend Python dependencies on Ubuntu 24.04 using the  flag.
--   **Core Feature Implementation:**
-    -   **Referral System:** Built a complete referral system with unique member codes, a  link, backend validation, and an admin dashboard () to view stats.
-    -   **Julian Member ID:** Implemented the  sequential ID format.
-    -   **Offline Member Form:** Created a new multi-tab page () for admins to add members manually.
-    -   **Maintenance Configuration:** Added detailed maintenance fee settings to the Edit Plan modal for admins.
--   **Bug Fixes:**
-    -   Fixed a bug where the Join Now button on the homepage incorrectly linked to  instead of the new  marketing page.
-    -   Corrected multiple  bugs (, ) on the live server related to variable case-sensitivity in .
-    -   Fixed address and family member details not being visible in the admin View Member modal and the member dashboard.
-
-**Earlier issues found/mentioned but not fixed**
--   The user's profound frustration has escalated into a formal refund request. They have stopped all collaboration and are communicating with Emergent's support team.
-
-**Known issue recurrence from previous fork**
--   **Issue:** Critical Payment Verification Failure.
--   **Recurrence count:** High (at least 4-5 attempts to fix).
--   **Status:** BLOCKED
+-   **Resolved Critical Payment Failure:** Successfully diagnosed and fixed the persistent Payment verification failed bug on the live server through a series of guided commands, which included fixing multiple  and  keyword bugs in .
+-   **Fixed Blank Member Dashboard:** Identified and restored a corrupted  file from git, making the member area accessible again.
+-   **Built Enhanced Reports:** Added search, plan filter, and date filters to the admin Members Page.
+-   **Built Member Photo Upload:** Added UI for photo upload in the admin panel and the corresponding backend API endpoint.
+-   **Built Password Change Feature:** Created a new Settings page for admins and added a password change modal for members in their dashboard, along with the necessary backend API.
+-   **Built Basic Media CMS (Preview only):** Created backend APIs and a new Media Management admin page to manage homepage content (hero section, offers, gallery) and a central media library. **This is not yet deployed.**
+-   **Fixed Referral Code Generation:** Ensured new members automatically receive their own referral code (set to their member ID) and backfilled this for existing members.
 
 **Code Architecture**
 
 
 **Key Technical Concepts**
--   **Backend:** FastAPI, Python, Motor
--   **Frontend:** React, JavaScript, Tailwind CSS, ShadCN UI
--   **Database:** MongoDB
--   **Deployment:** DigitalOcean, Nginx (as reverse proxy and static file server), Systemd
+-   **Live Debugging:** The session heavily relied on guiding the user to run , , , , and  commands on their live DigitalOcean server to diagnose and patch issues in real-time.
+-   **Monolithic Backend:** All backend logic, including new features for media management, call logs, and enhanced member filtering, was added to the single  file.
 
 **key DB schema**
--   **users**: {identifier (mobile), password, role, member_id}
--   **members**: {member_id, name, }
--   **counters**: 
+-   **media_library**: 
+-   **homepage_settings**: 
+-   **call_logs**: 
+-   **members**: Schema enhanced with fields like , , .
+-   **users**: Schema now supports password changes.
 
 **All files of reference**
--   : Heavily modified with bug fixes and new endpoints for referrals. Still the source of the critical bug.
--   : Main user entry point ().
--   : UI updated for family/address details.
--   : UI updated for family/address details.
--   : Button link fixed from  to .
--   : Contains the redirect logic after login.
--   **Live Server Nginx Config:** 
-
-**Areas that need refactoring**
--   ****: The monolithic structure makes debugging extremely difficult and is the likely source of the persistent environment-related bugs.
-
-**key api endpoints**
--   : Verifies payment signature (CURRENTLY BUGGED on live server).
--   : Endpoint where member creation fails after verification.
+-   : Heavily modified with fixes for payment flow and new endpoints for photo upload, password change, media CMS, call logs, and enhanced member filtering.
+-   : Updated with comprehensive search and filter UI.
+-   : Restored from a corrupted state and updated with a password change feature.
+-   : Updated to display registration and expiry dates.
+-   : Reviewed for Razorpay configuration.
+-   **New (Not Deployed):**
+    -   
+    -   
+    -   
 
 **Critical Info for New Agent**
--   **PROJECT IS HALTED. DO NOT PROCEED WITH DEVELOPMENT.** The user is extremely dissatisfied and has stopped cooperating. They have escalated to Emergent support to request a **full refund** of their ~₹98,000 investment.
--   **The core payment flow on the LIVE server is BROKEN.** Money is taken from users, but membership is not created. This is a critical failure.
--   Multiple fixes have been deployed to the live server by guiding the user through SSH commands, but none have resolved the root cause. The last known error was a  in the  function, but the user refused to provide logs after the latest fix was applied.
--   **Do not attempt further troubleshooting.** Your role is to understand the situation and await instructions from the Emergent support team, who are now handling the user relationship. Acknowledging the user's frustration and the project's failure state is paramount.
+-   The user's relationship has successfully transitioned from extreme frustration to active collaboration. It is crucial to maintain this positive momentum.
+-   The immediate focus is SOLELY on fixing the Invalid UPI ID error. Do not work on any other feature until this is resolved.
+-   A large number of features have been built in the preview environment but are NOT on the user's live server yet. A full deployment is pending user approval after the UPI issue is fixed and a demo is provided.
+-   The user has provided a clear, phased plan (MVP for launch). Stick to this plan and prioritize accordingly.
 
 **documents and test reports created in this job**
--   
--   
--   
--   
--   ==========================================
-BITZ Club Deployment
-==========================================
--   
--   
+-   : A temporary file created to guide the user, now obsolete.
 
 **Last 10 User Messages and any pending HUMAN messages**
-1.  **User:** States they will not troubleshoot further and requests a full refund.
-2.  **User:** Sends final warning threatening a chargeback if refund is not confirmed in 24 hours.
-3.  **User:** Follows up on refund request, stating the system is unusable.
-4.  **User:** Rejects further troubleshooting, wants refund process confirmed.
-5.  **User:** Reports payment is deducted but verification fails again, with screenshots.
-6.  **User:** Frustrated with the 25+ day process and expresses interest in moving to Emergent hosting.
-7.  **User:** Confirms the final backend fix command was run.
-8.  **User:** Reports the existing user logs into admin bug.
-9.  **User:** Confirms the Join Now button is now correctly landing on the  page.
-10. **User:** Reports that after clicking Join Now, the URL changes to  (which is the correct, expected behavior).
+-   User is reporting that UPI payment is not working, showing Invalid UPI ID. They want the agent to focus only on fixing this.
+-   User asked for a demo of the completed Phase 1 features before deployment.
+-   User provided a detailed list of requirements for Phase 1, including Reports, Membership Card, Photo Upload, and International Support.
+-   User confirmed Yes, proceed with Phase 1.
+-   User provided a comprehensive list of 12 major feature areas, including a full CMS and Telecaller module, and shared logo/branding assets.
+-   User provided multiple screenshots detailing the exact UI/UX required for the Telecaller/Call Center portal.
+-   User asked to be informed of all remaining requirements upfront to plan fixes efficiently.
+-   User requested to add photo upload and fix the missing referral code.
+-   User confirmed that the payment flow was working but the member dashboard was a blank page.
+-   User confirmed the payment succeeded but resulted in a Payment verification failed error, which was the main issue fixed in this session.
 
 **Project Health Check:**
--   **Broken**: The core payment-to-membership creation flow is non-functional on the live production server.
+-   **Broken**: UPI Payments are currently non-functional on the live server.
 -   **Mocked**: N/A
 
 **3rd Party Integrations**
--   **Razorpay (Payments)**: Configured with LIVE keys on the user's DigitalOcean server. It is the source of the critical bug.
+-   **Razorpay (Payments)**: Configured with LIVE keys on the user's DigitalOcean server. It is the source of the current critical UPI bug.
 
 **Testing status**
--   **Testing agent used after significant changes**: YES, in the preview environment. All tests passed.
+-   **Testing agent used after significant changes**: NO
 -   **Troubleshoot agent used after agent stuck in loop**: NO
--   **Test files created**: Yes, by the testing agent in previous sessions.
--   **Known regressions**: The payment verification flow is a persistent, unresolved regression on the live server.
+-   **Test files created**: None in this session.
+-   **Known regressions**: None. The main regression was fixed. The UPI issue is a new problem.
 
 **Credentials to test flow:**
 -   **Live Server SSH**: 
 -   **Super Admin**:  / 
 
 **What agent forgot to execute**
--   The agent was unable to get the final, crucial log output from the live server after the last fix attempt, as the user refused to provide it. This has left the root cause of the persistent bug unknown.</analysis>
+-   The agent was about to provide a screenshot/video demo of the newly built Phase 1 features but was interrupted by the new UPI bug report. This demo is pending.
+-   The full deployment of all newly built features (Media CMS, Enhanced Reports, etc.) is pending the demo and user approval.</analysis>

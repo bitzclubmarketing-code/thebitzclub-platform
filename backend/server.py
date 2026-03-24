@@ -546,6 +546,7 @@ class MarketingLeadStep2(BaseModel):
     date_of_birth: Optional[str] = None
     plan_id: str
     password: str
+    enable_emandate: Optional[bool] = False  # E-Mandate/Auto-pay option
 
 class EnquiryCreate(BaseModel):
     name: str
@@ -793,6 +794,148 @@ class RazorpayService:
             return payment
         except Exception as e:
             logger.error(f"[RAZORPAY ERROR] Failed to fetch payment: {str(e)}")
+            return None
+    
+    @staticmethod
+    async def create_subscription(
+        plan_id: str,
+        plan_name: str,
+        amount: float,
+        duration_months: int,
+        member_id: str,
+        customer_name: str,
+        customer_email: str = None,
+        customer_mobile: str = None,
+        notes: dict = None
+    ) -> dict:
+        """
+        Create a Razorpay Subscription for E-Mandate/Auto-pay.
+        This enables automatic recurring payments for membership renewal.
+        """
+        try:
+            # First, create or get a Razorpay Plan
+            # Check if plan exists or create it
+            try:
+                # Try to fetch existing plan (Razorpay plans are created once and reused)
+                # Note: Razorpay doesn't have a direct "get plan by name" API, 
+                # so we'll create if not exists approach
+                existing_plan = None
+                try:
+                    plans_list = razorpay_client.plan.all({"count": 100})
+                    for p in plans_list.get("items", []):
+                        if p.get("notes", {}).get("internal_plan_id") == plan_id:
+                            existing_plan = p
+                            break
+                except Exception:
+                    pass
+                
+                if existing_plan:
+                    razorpay_plan = existing_plan
+                    logger.info(f"[E-MANDATE] Using existing Razorpay plan: {razorpay_plan['id']}")
+                else:
+                    # Create new Razorpay plan
+                    # Period: daily, weekly, monthly, yearly
+                    razorpay_plan = razorpay_client.plan.create({
+                        "period": "monthly",  # Billing period
+                        "interval": duration_months,  # Charge every X months (entire duration)
+                        "item": {
+                            "name": f"BITZ Club - {plan_name}",
+                            "amount": int(amount * 100),  # Amount in paise
+                            "currency": "INR",
+                            "description": f"{plan_name} Membership ({duration_months} months)"
+                        },
+                        "notes": {
+                            "internal_plan_id": plan_id,
+                            "plan_name": plan_name,
+                            "duration_months": str(duration_months)
+                        }
+                    })
+                    logger.info(f"[E-MANDATE] Created new Razorpay plan: {razorpay_plan['id']}")
+                    
+            except Exception as plan_error:
+                logger.error(f"[E-MANDATE] Error managing Razorpay plan: {str(plan_error)}")
+                raise
+            
+            # Create subscription
+            subscription_data = {
+                "plan_id": razorpay_plan["id"],
+                "total_count": 12,  # Max billing cycles (e.g., 12 renewals max)
+                "quantity": 1,
+                "customer_notify": 1,  # Razorpay will notify customer
+                "notes": notes or {
+                    "member_id": member_id,
+                    "plan_id": plan_id,
+                    "plan_name": plan_name
+                }
+            }
+            
+            # Add customer details if available
+            if customer_email or customer_mobile:
+                subscription_data["notify_info"] = {}
+                if customer_email:
+                    subscription_data["notify_info"]["notify_email"] = customer_email
+                if customer_mobile:
+                    subscription_data["notify_info"]["notify_phone"] = customer_mobile
+            
+            subscription = razorpay_client.subscription.create(subscription_data)
+            
+            logger.info(f"[E-MANDATE] Subscription created: {subscription.get('id')} for plan: {plan_name}")
+            
+            return {
+                "id": subscription.get("id"),
+                "plan_id": razorpay_plan["id"],
+                "status": subscription.get("status"),
+                "short_url": subscription.get("short_url"),  # Payment link
+                "member_id": member_id,
+                "razorpay_key": os.environ.get("RAZORPAY_KEY_ID")
+            }
+            
+        except Exception as e:
+            logger.error(f"[E-MANDATE ERROR] Failed to create subscription: {str(e)}")
+            raise HTTPException(status_code=500, detail=f"Subscription creation failed: {str(e)}")
+    
+    @staticmethod
+    def verify_subscription_signature(payment_id: str, subscription_id: str, signature: str) -> bool:
+        """Verify Razorpay subscription payment signature"""
+        try:
+            params_dict = {
+                'razorpay_subscription_id': subscription_id,
+                'razorpay_payment_id': payment_id,
+                'razorpay_signature': signature
+            }
+            
+            razorpay_client.utility.verify_subscription_payment_signature(params_dict)
+            logger.info(f"[E-MANDATE] Subscription signature verified for: {payment_id}")
+            return True
+            
+        except razorpay.errors.SignatureVerificationError as e:
+            logger.error(f"[E-MANDATE ERROR] Signature verification failed: {str(e)}")
+            return False
+        except Exception as e:
+            logger.error(f"[E-MANDATE ERROR] Verification error: {str(e)}")
+            return False
+    
+    @staticmethod
+    async def cancel_subscription(subscription_id: str, cancel_at_cycle_end: bool = True) -> dict:
+        """Cancel a Razorpay subscription"""
+        try:
+            result = razorpay_client.subscription.cancel(subscription_id, {
+                "cancel_at_cycle_end": 1 if cancel_at_cycle_end else 0
+            })
+            logger.info(f"[E-MANDATE] Subscription cancelled: {subscription_id}")
+            return result
+        except Exception as e:
+            logger.error(f"[E-MANDATE ERROR] Failed to cancel subscription: {str(e)}")
+            raise HTTPException(status_code=500, detail=f"Failed to cancel subscription: {str(e)}")
+    
+    @staticmethod
+    async def fetch_subscription(subscription_id: str) -> dict:
+        """Fetch subscription details from Razorpay"""
+        try:
+            subscription = razorpay_client.subscription.fetch(subscription_id)
+            return subscription
+        except Exception as e:
+            logger.error(f"[E-MANDATE ERROR] Failed to fetch subscription: {str(e)}")
             return None
 
 # Keep MockedPaymentService for fallback/offline payments
@@ -4357,7 +4500,7 @@ async def create_marketing_lead(lead: MarketingLeadCreate, background_tasks: Bac
 
 @api_router.post("/marketing/lead/{lead_id}/step2")
 async def marketing_lead_step2(lead_id: str, data: MarketingLeadStep2):
-    """Step 2: Capture additional details and create payment order"""
+    """Step 2: Capture additional details and create payment order or subscription"""
     # Get lead
     lead = await db.marketing_leads.find_one({"id": lead_id})
     if not lead:
@@ -4368,7 +4511,7 @@ async def marketing_lead_step2(lead_id: str, data: MarketingLeadStep2):
     if not plan:
         raise HTTPException(status_code=404, detail="Selected plan not found")
     
-    # Update lead with step 2 data (including state and country)
+    # Update lead with step 2 data (including state, country, and emandate preference)
     await db.marketing_leads.update_one(
         {"id": lead_id},
         {"$set": {
@@ -4382,6 +4525,7 @@ async def marketing_lead_step2(lead_id: str, data: MarketingLeadStep2):
             "plan_name": plan["name"],
             "plan_price": plan["price"],
             "password": pwd_context.hash(data.password),
+            "enable_emandate": data.enable_emandate,
             "status": "step2_complete",
             "step": 2,
             "updated_at": datetime.now(timezone.utc).isoformat()
@@ -4391,7 +4535,56 @@ async def marketing_lead_step2(lead_id: str, data: MarketingLeadStep2):
     # Determine currency based on country (default INR for now, Razorpay handles conversion)
     currency = "INR"
     
-    # Create Razorpay order
+    # Check if E-Mandate/Subscription is enabled
+    if data.enable_emandate:
+        try:
+            # Create Razorpay Subscription for E-Mandate
+            subscription = await RazorpayService.create_subscription(
+                plan_id=data.plan_id,
+                plan_name=plan["name"],
+                amount=plan["price"],
+                duration_months=plan.get("duration_months", 12),
+                member_id=lead_id,
+                customer_name=lead["name"],
+                customer_email=lead.get("email"),
+                customer_mobile=lead["mobile"],
+                notes={
+                    "marketing_lead_id": lead_id,
+                    "name": lead["name"],
+                    "mobile": lead["mobile"],
+                    "country": data.country or lead.get("country", "India"),
+                    "plan_name": plan["name"],
+                    "emandate": "true"
+                }
+            )
+            
+            # Store subscription ID
+            await db.marketing_leads.update_one(
+                {"id": lead_id},
+                {"$set": {
+                    "razorpay_subscription_id": subscription["id"],
+                    "subscription_status": "created"
+                }}
+            )
+            
+            return {
+                "subscription_id": subscription["id"],
+                "amount": plan["price"],
+                "currency": currency,
+                "razorpay_key": os.environ.get("RAZORPAY_KEY_ID"),
+                "plan_name": plan["name"],
+                "lead_id": lead_id,
+                "name": lead["name"],
+                "email": lead.get("email"),
+                "mobile": lead["mobile"],
+                "country": data.country or lead.get("country", "India"),
+                "emandate": True
+            }
+        except Exception as e:
+            logger.warning(f"[E-MANDATE] Subscription creation failed, falling back to regular payment: {str(e)}")
+            # Fall back to regular payment if subscription fails
+    
+    # Regular one-time payment flow
     try:
         order = await RazorpayService.create_order(
             amount=plan["price"],
@@ -4422,7 +4615,8 @@ async def marketing_lead_step2(lead_id: str, data: MarketingLeadStep2):
             "name": lead["name"],
             "email": lead.get("email"),
             "mobile": lead["mobile"],
-            "country": data.country or lead.get("country", "India")
+            "country": data.country or lead.get("country", "India"),
+            "emandate": False
         }
     except Exception as e:
         logger.error(f"[MARKETING] Failed to create payment order: {str(e)}")
@@ -4432,11 +4626,12 @@ async def marketing_lead_step2(lead_id: str, data: MarketingLeadStep2):
 async def complete_marketing_registration(
     lead_id: str,
     razorpay_payment_id: str,
-    razorpay_order_id: str,
-    razorpay_signature: str,
-    background_tasks: BackgroundTasks
+    razorpay_order_id: Optional[str] = None,
+    razorpay_signature: str = None,
+    razorpay_subscription_id: Optional[str] = None,
+    background_tasks: BackgroundTasks = None
 ):
-    """Step 3: Complete registration after payment"""
+    """Step 3: Complete registration after payment (supports both one-time and subscription payments)"""
     # Get marketing lead
     lead = await db.marketing_leads.find_one({"id": lead_id})
     if not lead:
@@ -4445,10 +4640,20 @@ async def complete_marketing_registration(
     if lead.get("status") == "converted":
         raise HTTPException(status_code=400, detail="Registration already completed")
     
+    # Determine if this is a subscription payment or regular payment
+    is_subscription = razorpay_subscription_id is not None and razorpay_subscription_id != ""
+    
     # Verify payment signature
-    is_valid = RazorpayService.verify_payment_signature(
-        razorpay_payment_id, razorpay_order_id, razorpay_signature
-    )
+    if is_subscription:
+        # Subscription payment verification
+        is_valid = RazorpayService.verify_subscription_signature(
+            razorpay_payment_id, razorpay_subscription_id, razorpay_signature
+        )
+    else:
+        # Regular payment verification
+        is_valid = RazorpayService.verify_payment_signature(
+            razorpay_payment_id, razorpay_order_id, razorpay_signature
+        )
     
     if not is_valid:
         await db.marketing_leads.update_one(
@@ -4503,6 +4708,10 @@ async def complete_marketing_registration(
         "referral_code": member_id,  # Member's own referral code is their member_id
         "referral_id": lead.get("referral_code"),  # Who referred this member
         "source": lead.get("source", "marketing_landing"),
+        # E-Mandate/Auto-pay fields
+        "has_emandate": is_subscription,
+        "razorpay_subscription_id": razorpay_subscription_id if is_subscription else None,
+        "auto_renewal": is_subscription,
         "created_at": datetime.now(timezone.utc).isoformat()
     }
     await db.members.insert_one(member_doc)
@@ -4510,16 +4719,18 @@ async def complete_marketing_registration(
     # Create payment record
     payment_doc = {
         "id": str(uuid.uuid4()),
-        "order_id": razorpay_order_id,
+        "order_id": razorpay_order_id or razorpay_subscription_id,
         "member_id": member_id,
         "member_name": lead["name"],
         "plan_id": lead["plan_id"],
         "plan_name": lead["plan_name"],
         "amount": lead["plan_price"],
         "payment_type": "online",
-        "payment_method": "razorpay",
+        "payment_method": "razorpay_subscription" if is_subscription else "razorpay",
         "razorpay_payment_id": razorpay_payment_id,
         "razorpay_order_id": razorpay_order_id,
+        "razorpay_subscription_id": razorpay_subscription_id if is_subscription else None,
+        "is_subscription_payment": is_subscription,
         "status": "completed",
         "source": "marketing_landing",
         "created_at": datetime.now(timezone.utc).isoformat(),
@@ -4545,14 +4756,15 @@ async def complete_marketing_registration(
     
     # Send notifications
     validity_end = end_date.strftime("%d %b %Y")
-    background_tasks.add_task(SMSService.send_registration_sms, {"mobile": lead["mobile"], "member_id": member_id})
-    background_tasks.add_task(SMSService.send_payment_success_sms, {"mobile": lead["mobile"]}, lead["plan_price"], lead["plan_name"])
-    background_tasks.add_task(SMSService.send_membership_activation_sms, {"mobile": lead["mobile"]}, lead["plan_name"], validity_end)
-    
-    if lead.get("email"):
-        background_tasks.add_task(EmailService.send_welcome_email, user)
-    
-    background_tasks.add_task(EmailService.send_membership_notification, member_doc, {"name": lead["plan_name"], "price": lead["plan_price"], "duration_months": duration_months})
+    if background_tasks:
+        background_tasks.add_task(SMSService.send_registration_sms, {"mobile": lead["mobile"], "member_id": member_id})
+        background_tasks.add_task(SMSService.send_payment_success_sms, {"mobile": lead["mobile"]}, lead["plan_price"], lead["plan_name"])
+        background_tasks.add_task(SMSService.send_membership_activation_sms, {"mobile": lead["mobile"]}, lead["plan_name"], validity_end)
+        
+        if lead.get("email"):
+            background_tasks.add_task(EmailService.send_welcome_email, user)
+        
+        background_tasks.add_task(EmailService.send_membership_notification, member_doc, {"name": lead["plan_name"], "price": lead["plan_price"], "duration_months": duration_months})
     
     # Remove password and _id before creating token
     user.pop('_id', None)
@@ -4561,7 +4773,7 @@ async def complete_marketing_registration(
     token = create_access_token({"sub": user_id, "role": UserRole.MEMBER})
     user_response = {k: v for k, v in user.items() if k != "password"}
     
-    logger.info(f"[MARKETING] Registration completed for {member_id} from marketing landing")
+    logger.info(f"[MARKETING] Registration completed for {member_id} from marketing landing (subscription: {is_subscription})")
     
     return {
         "success": True,
@@ -4574,9 +4786,79 @@ async def complete_marketing_registration(
             "plan_name": lead["plan_name"],
             "start_date": start_date.isoformat(),
             "end_date": end_date.isoformat(),
-            "status": "active"
+            "status": "active",
+            "auto_renewal": is_subscription,
+            "subscription_id": razorpay_subscription_id if is_subscription else None
         }
     }
+
+
+# ==================== E-MANDATE / SUBSCRIPTION MANAGEMENT ====================
+
+@api_router.post("/members/me/cancel-auto-renewal")
+async def cancel_member_auto_renewal(current_user: dict = Depends(get_current_user)):
+    """Cancel auto-renewal (E-Mandate) for current member"""
+    if current_user.get("role") != UserRole.MEMBER:
+        raise HTTPException(status_code=403, detail="Only members can cancel their auto-renewal")
+    
+    # Get member record
+    member = await db.members.find_one({"user_id": current_user["id"]}, {"_id": 0})
+    if not member:
+        raise HTTPException(status_code=404, detail="Member not found")
+    
+    subscription_id = member.get("razorpay_subscription_id")
+    if not subscription_id:
+        raise HTTPException(status_code=400, detail="No active auto-renewal subscription found")
+    
+    try:
+        # Cancel subscription (at cycle end to honor current period)
+        await RazorpayService.cancel_subscription(subscription_id, cancel_at_cycle_end=True)
+        
+        # Update member record
+        await db.members.update_one(
+            {"user_id": current_user["id"]},
+            {"$set": {
+                "auto_renewal": False,
+                "subscription_cancelled_at": datetime.now(timezone.utc).isoformat()
+            }}
+        )
+        
+        logger.info(f"[E-MANDATE] Auto-renewal cancelled for member: {member['member_id']}")
+        
+        return {
+            "success": True,
+            "message": "Auto-renewal has been cancelled. Your membership will remain active until the end of current period."
+        }
+    except Exception as e:
+        logger.error(f"[E-MANDATE ERROR] Failed to cancel subscription: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to cancel auto-renewal: {str(e)}")
+
+@api_router.get("/members/me/subscription")
+async def get_member_subscription_status(current_user: dict = Depends(get_current_user)):
+    """Get current member's subscription/auto-renewal status"""
+    if current_user.get("role") != UserRole.MEMBER:
+        raise HTTPException(status_code=403, detail="Only members can view their subscription")
+    
+    # Get member record
+    member = await db.members.find_one({"user_id": current_user["id"]}, {"_id": 0})
+    if not member:
+        raise HTTPException(status_code=404, detail="Member not found")
+    
+    subscription_id = member.get("razorpay_subscription_id")
+    subscription_details = None
+    
+    if subscription_id:
+        subscription_details = await RazorpayService.fetch_subscription(subscription_id)
+    
+    return {
+        "has_auto_renewal": member.get("auto_renewal", False),
+        "subscription_id": subscription_id,
+        "subscription_status": subscription_details.get("status") if subscription_details else None,
+        "membership_end": member.get("membership_end"),
+        "can_cancel": member.get("auto_renewal", False) and subscription_id is not None
+    }
+
+
 
 @api_router.post("/marketing/enquiry")
 async def create_enquiry(enquiry: EnquiryCreate, background_tasks: BackgroundTasks):

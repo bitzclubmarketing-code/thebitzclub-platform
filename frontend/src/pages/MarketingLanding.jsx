@@ -105,7 +105,8 @@ const MarketingLanding = () => {
     date_of_birth: '',
     plan_id: '',
     password: '',
-    confirmPassword: ''
+    confirmPassword: '',
+    enable_emandate: false  // E-Mandate/Auto-pay option
   });
   
   // Photo/ID upload
@@ -282,71 +283,112 @@ const MarketingLanding = () => {
         country: step2Data.country || selectedCountry.name,
         date_of_birth: step2Data.date_of_birth,
         plan_id: step2Data.plan_id,
-        password: step2Data.password
+        password: step2Data.password,
+        enable_emandate: step2Data.enable_emandate  // Pass E-Mandate preference
       });
 
-      // Determine if international payment (non-Indian)
-      const isInternational = selectedCountry.country !== 'IN';
-
-      // Initiate Razorpay payment with international support
-      const options = {
-        key: response.data.razorpay_key,
-        amount: response.data.amount * 100,
-        currency: response.data.currency,
-        name: 'BITZ Club',
-        description: `${response.data.plan_name} Membership`,
-        order_id: response.data.order_id,
-        prefill: {
-          name: response.data.name,
-          email: response.data.email || '',
-          contact: getFullPhoneNumber()
-        },
-        theme: {
-          color: '#D4AF37'
-        },
-        // Enable all payment methods including international cards
-        config: {
-          display: {
-            blocks: {
-              banks: {
-                name: 'Pay using UPI/Net Banking',
-                instruments: [
-                  { method: 'upi' },
-                  { method: 'netbanking' }
-                ]
-              },
-              cards: {
-                name: 'Pay using Cards',
-                instruments: [
-                  { method: 'card' }
-                ]
-              }
-            },
-            sequence: isInternational ? ['block.cards'] : ['block.banks', 'block.cards'],
-            preferences: {
-              show_default_blocks: true
-            }
-          }
-        },
-        handler: async function (paymentResponse) {
-          await completeRegistration(paymentResponse);
-        },
-        modal: {
-          ondismiss: function() {
-            setLoading(false);
-            toast.error('Payment cancelled');
+      // Check if E-Mandate subscription was created
+      if (response.data.subscription_id && step2Data.enable_emandate) {
+        // E-Mandate flow - Open Razorpay subscription checkout
+        const options = {
+          key: response.data.razorpay_key,
+          subscription_id: response.data.subscription_id,
+          name: 'BITZ Club',
+          description: `${response.data.plan_name} Membership - Auto Renewal`,
+          prefill: {
+            name: response.data.name,
+            email: response.data.email || '',
+            contact: getFullPhoneNumber()
           },
-          confirm_close: true,
-          escape: false
-        },
-        notes: {
-          country: selectedCountry.name,
-          country_code: selectedCountry.code
-        }
-      };
+          theme: {
+            color: '#D4AF37'
+          },
+          handler: async function (paymentResponse) {
+            await completeRegistration({
+              razorpay_payment_id: paymentResponse.razorpay_payment_id,
+              razorpay_subscription_id: paymentResponse.razorpay_subscription_id,
+              razorpay_signature: paymentResponse.razorpay_signature
+            });
+          },
+          modal: {
+            ondismiss: function() {
+              setLoading(false);
+              toast.error('Payment cancelled');
+            },
+            confirm_close: true,
+            escape: false
+          },
+          notes: {
+            country: selectedCountry.name,
+            country_code: selectedCountry.code,
+            emandate: 'true'
+          }
+        };
 
-      const razorpay = new window.Razorpay(options);
-      razorpay.open();
+        const razorpay = new window.Razorpay(options);
+        razorpay.open();
+      } else {
+        // Regular one-time payment flow
+        const isInternational = selectedCountry.country !== 'IN';
+
+        const options = {
+          key: response.data.razorpay_key,
+          amount: response.data.amount * 100,
+          currency: response.data.currency,
+          name: 'BITZ Club',
+          description: `${response.data.plan_name} Membership`,
+          order_id: response.data.order_id,
+          prefill: {
+            name: response.data.name,
+            email: response.data.email || '',
+            contact: getFullPhoneNumber()
+          },
+          theme: {
+            color: '#D4AF37'
+          },
+          config: {
+            display: {
+              blocks: {
+                banks: {
+                  name: 'Pay using UPI/Net Banking',
+                  instruments: [
+                    { method: 'upi' },
+                    { method: 'netbanking' }
+                  ]
+                },
+                cards: {
+                  name: 'Pay using Cards',
+                  instruments: [
+                    { method: 'card' }
+                  ]
+                }
+              },
+              sequence: isInternational ? ['block.cards'] : ['block.banks', 'block.cards'],
+              preferences: {
+                show_default_blocks: true
+              }
+            }
+          },
+          handler: async function (paymentResponse) {
+            await completeRegistration(paymentResponse);
+          },
+          modal: {
+            ondismiss: function() {
+              setLoading(false);
+              toast.error('Payment cancelled');
+            },
+            confirm_close: true,
+            escape: false
+          },
+          notes: {
+            country: selectedCountry.name,
+            country_code: selectedCountry.code
+          }
+        };
+
+        const razorpay = new window.Razorpay(options);
+        razorpay.open();
+      }
     } catch (error) {
       const message = error.response?.data?.detail || 'Failed to process. Please try again.';
       toast.error(message);
@@ -925,53 +967,98 @@ const MarketingLanding = () => {
                     <p className="text-gray-400 text-sm mt-1">Select your plan and create password</p>
                   </div>
 
-                  {/* Plan Selection */}
+                  {/* Plan Selection - Dropdown */}
                   <div>
-                    <label className="text-sm text-gray-400 flex items-center gap-2 mb-3">
+                    <label className="text-sm text-gray-400 flex items-center gap-2 mb-2">
                       <Crown className="w-4 h-4" /> Select Membership Plan *
                     </label>
-                    <div className="space-y-3">
-                      {plans.map((plan, index) => (
-                        <label
-                          key={plan.id}
-                          className={`block p-4 rounded-lg border-2 cursor-pointer transition-all ${
-                            step2Data.plan_id === plan.id
-                              ? 'border-[#D4AF37] bg-[#D4AF37]/10'
-                              : 'border-white/10 hover:border-white/30'
-                          }`}
-                        >
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-3">
-                              <input
-                                type="radio"
-                                name="plan"
-                                value={plan.id}
-                                checked={step2Data.plan_id === plan.id}
-                                onChange={(e) => setStep2Data({ ...step2Data, plan_id: e.target.value })}
-                                className="w-4 h-4 accent-[#D4AF37]"
-                              />
-                              <div>
-                                <p className="text-white font-semibold">{plan.name}</p>
-                                <p className="text-gray-400 text-xs">{plan.duration_months} months</p>
-                              </div>
-                            </div>
-                            <div className="text-right">
-                              {(() => {
-                                const pricing = getPriceForMemberType(plan);
-                                return (
-                                  <p className="text-[#D4AF37] font-bold text-lg">
-                                    {pricing.symbol}{pricing.price.toLocaleString()}
-                                  </p>
-                                );
-                              })()}
-                              {index === 1 && (
-                                <span className="text-xs bg-[#D4AF37] text-black px-2 py-0.5 rounded">Popular</span>
-                              )}
-                            </div>
-                          </div>
-                        </label>
-                      ))}
+                    <div className="relative">
+                      <select
+                        value={step2Data.plan_id}
+                        onChange={(e) => setStep2Data({ ...step2Data, plan_id: e.target.value })}
+                        className="input-gold w-full appearance-none cursor-pointer pr-10"
+                        data-testid="plan-dropdown"
+                      >
+                        <option value="" className="bg-[#1A1A1C] text-gray-400">-- Select a Plan --</option>
+                        {plans.map((plan) => {
+                          const pricing = getPriceForMemberType(plan);
+                          return (
+                            <option 
+                              key={plan.id} 
+                              value={plan.id}
+                              className="bg-[#1A1A1C] text-white"
+                            >
+                              {plan.name} - {pricing.symbol}{pricing.price.toLocaleString()} ({plan.duration_months} months)
+                            </option>
+                          );
+                        })}
+                      </select>
+                      <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-[#D4AF37] pointer-events-none" />
                     </div>
+                    
+                    {/* Selected Plan Details Card */}
+                    {step2Data.plan_id && (() => {
+                      const selectedPlan = plans.find(p => p.id === step2Data.plan_id);
+                      if (!selectedPlan) return null;
+                      const pricing = getPriceForMemberType(selectedPlan);
+                      return (
+                        <motion.div
+                          initial={{ opacity: 0, y: -10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          className="mt-3 p-4 rounded-lg border border-[#D4AF37]/30 bg-[#D4AF37]/5"
+                        >
+                          <div className="flex items-center justify-between mb-2">
+                            <h4 className="text-white font-semibold">{selectedPlan.name}</h4>
+                            <span className="text-[#D4AF37] font-bold text-xl">
+                              {pricing.symbol}{pricing.price.toLocaleString()}
+                            </span>
+                          </div>
+                          <p className="text-gray-400 text-sm">
+                            Duration: {selectedPlan.duration_months} months
+                          </p>
+                          {selectedPlan.features && selectedPlan.features.length > 0 && (
+                            <div className="mt-2 flex flex-wrap gap-2">
+                              {selectedPlan.features.slice(0, 3).map((feature, idx) => (
+                                <span key={idx} className="text-xs bg-white/10 text-gray-300 px-2 py-1 rounded">
+                                  {feature}
+                                </span>
+                              ))}
+                            </div>
+                          )}
+                        </motion.div>
+                      );
+                    })()}
+                  </div>
+
+                  {/* E-Mandate / Auto-Pay Option */}
+                  <div className="p-4 rounded-lg border border-white/10 bg-white/5">
+                    <label className="flex items-start gap-3 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={step2Data.enable_emandate || false}
+                        onChange={(e) => setStep2Data({ ...step2Data, enable_emandate: e.target.checked })}
+                        className="w-5 h-5 mt-0.5 accent-[#D4AF37] cursor-pointer"
+                        data-testid="emandate-checkbox"
+                      />
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2">
+                          <p className="text-white font-medium">Enable Auto-Pay (E-Mandate)</p>
+                          <span className="text-xs bg-green-600/20 text-green-400 px-2 py-0.5 rounded">Recommended</span>
+                        </div>
+                        <p className="text-gray-400 text-sm mt-1">
+                          Authorize automatic renewal payments. Your membership will be auto-renewed without manual payment. 
+                          You can cancel anytime from your dashboard.
+                        </p>
+                        <div className="flex items-center gap-4 mt-2 text-xs text-gray-500">
+                          <span className="flex items-center gap-1">
+                            <Shield className="w-3 h-3" /> RBI Compliant
+                          </span>
+                          <span className="flex items-center gap-1">
+                            <CheckCircle className="w-3 h-3" /> Cancel Anytime
+                          </span>
+                        </div>
+                      </div>
+                    </label>
                   </div>
 
                   {/* PIN Code with auto-fill (India only) */}
