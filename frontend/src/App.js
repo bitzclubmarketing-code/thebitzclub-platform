@@ -73,6 +73,11 @@ function App() {
                 <RegisterPage />
               </PublicRoute>
             } />
+            <Route path="/member/register" element={
+              <PublicRoute>
+                <RegisterPage />
+              </PublicRoute>
+            } />
             <Route path="/verify/:memberId" element={<VerifyMemberPage />} />
 
             {/* Member Routes */}
