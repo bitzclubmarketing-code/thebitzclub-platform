@@ -25,7 +25,8 @@ import {
   Menu,
   X,
   Download,
-  Smartphone
+  Smartphone,
+  Gift
 } from 'lucide-react';
 import { API } from '@/context/AuthContext';
 
@@ -44,6 +45,8 @@ const HomePage = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [activeGalleryIndex, setActiveGalleryIndex] = useState(0);
   const [deferredPrompt, setDeferredPrompt] = useState(null);
+  const [showOfferPopup, setShowOfferPopup] = useState(false);
+  const [currentOffer, setCurrentOffer] = useState(null);
 
   useEffect(() => {
     fetchPlans();
@@ -60,6 +63,19 @@ const HomePage = () => {
     };
     
     window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+    
+    // Show offer popup after 3 seconds if not shown before in this session
+    const popupShown = sessionStorage.getItem('offerPopupShown');
+    if (!popupShown) {
+      const timer = setTimeout(() => {
+        setShowOfferPopup(true);
+        sessionStorage.setItem('offerPopupShown', 'true');
+      }, 3000);
+      return () => {
+        clearTimeout(timer);
+        window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+      };
+    }
     
     return () => {
       window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
@@ -130,6 +146,10 @@ const HomePage = () => {
     try {
       const response = await axios.get(`${API}/offers?is_active=true`);
       setOffers(response.data);
+      // Set the first offer for popup
+      if (response.data.length > 0) {
+        setCurrentOffer(response.data[0]);
+      }
     } catch (error) {
       console.error('Failed to fetch offers:', error);
     }
@@ -970,6 +990,80 @@ const HomePage = () => {
           </div>
         </div>
       </footer>
+
+      {/* Offer Popup Modal */}
+      {showOfferPopup && currentOffer && (
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.9 }}
+            className="bg-gradient-to-br from-[#1A1A1C] to-[#0F0F10] border border-[#D4AF37]/30 rounded-2xl max-w-md w-full overflow-hidden shadow-2xl"
+          >
+            {/* Offer Header */}
+            <div className="bg-gradient-to-r from-[#D4AF37] to-[#E6D699] p-4 text-center">
+              <div className="flex items-center justify-center gap-2 mb-1">
+                <Gift className="w-6 h-6 text-black" />
+                <span className="text-black font-bold text-lg">SPECIAL OFFER!</span>
+              </div>
+              <p className="text-black/70 text-sm">Limited Time Only</p>
+            </div>
+            
+            {/* Offer Content */}
+            <div className="p-6 text-center">
+              <h3 className="text-2xl font-bold text-white mb-2" style={{ fontFamily: 'Playfair Display, serif' }}>
+                {currentOffer.title}
+              </h3>
+              <p className="text-gray-400 mb-4">{currentOffer.description}</p>
+              
+              {currentOffer.discount_value && (
+                <div className="bg-[#D4AF37]/10 border border-[#D4AF37]/30 rounded-xl p-4 mb-4">
+                  <p className="text-[#D4AF37] text-3xl font-bold">
+                    {currentOffer.discount_type === 'percentage' 
+                      ? `${currentOffer.discount_value}% OFF`
+                      : `₹${currentOffer.discount_value} OFF`}
+                  </p>
+                  {currentOffer.code && (
+                    <p className="text-gray-400 text-sm mt-2">
+                      Use Code: <span className="text-white font-mono bg-black/30 px-2 py-1 rounded">{currentOffer.code}</span>
+                    </p>
+                  )}
+                </div>
+              )}
+              
+              {currentOffer.valid_until && (
+                <p className="text-gray-500 text-xs mb-4">
+                  Valid until: {new Date(currentOffer.valid_until).toLocaleDateString()}
+                </p>
+              )}
+              
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setShowOfferPopup(false)}
+                  className="flex-1 px-4 py-3 border border-gray-600 text-gray-400 rounded-lg hover:bg-gray-800 transition-colors"
+                >
+                  Maybe Later
+                </button>
+                <Link
+                  to="/register"
+                  onClick={() => setShowOfferPopup(false)}
+                  className="flex-1 px-4 py-3 bg-[#D4AF37] text-black font-bold rounded-lg hover:bg-[#E6D699] transition-colors text-center"
+                >
+                  Join Now
+                </Link>
+              </div>
+            </div>
+            
+            {/* Close Button */}
+            <button
+              onClick={() => setShowOfferPopup(false)}
+              className="absolute top-3 right-3 text-black/50 hover:text-black transition-colors"
+            >
+              <X className="w-6 h-6" />
+            </button>
+          </motion.div>
+        </div>
+      )}
     </div>
   );
 };

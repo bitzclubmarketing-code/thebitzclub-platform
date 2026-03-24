@@ -17,13 +17,16 @@ const RegisterPage = () => {
     password: '',
     confirmPassword: '',
     referralId: searchParams.get('ref') || searchParams.get('referral') || '',
-    planId: searchParams.get('plan') || ''
+    planId: searchParams.get('plan') || '',
+    couponCode: searchParams.get('coupon') || ''
   });
   const [photoPreview, setPhotoPreview] = useState(null);
   const [photoBase64, setPhotoBase64] = useState(null);
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [paymentStep, setPaymentStep] = useState(false);
+  const [couponApplied, setCouponApplied] = useState(null);
+  const [validatingCoupon, setValidatingCoupon] = useState(false);
   const { login } = useAuth();
   const navigate = useNavigate();
   const fileInputRef = useRef(null);
@@ -374,6 +377,52 @@ const RegisterPage = () => {
                   data-testid="register-referral-id"
                 />
                 <p className="text-xs text-gray-500 mt-1">Employee ID (BITZ-E***) or Associate ID (BITZ-A***)</p>
+              </div>
+
+              <div>
+                <label className="input-label">Coupon Code (Optional)</label>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    name="couponCode"
+                    value={formData.couponCode}
+                    onChange={(e) => {
+                      handleChange(e);
+                      setCouponApplied(null);
+                    }}
+                    placeholder="Enter coupon code"
+                    className="input-gold flex-1"
+                    data-testid="register-coupon-code"
+                  />
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      if (!formData.couponCode) return;
+                      setValidatingCoupon(true);
+                      try {
+                        const selectedPlan = plans.find(p => p.id === formData.planId || p.plan_id === formData.planId);
+                        const amount = selectedPlan?.price || 0;
+                        const response = await axios.post(`${API}/coupons/validate?code=${formData.couponCode}&amount=${amount}`);
+                        setCouponApplied(response.data);
+                        toast.success(`Coupon applied! You save ₹${response.data.discount_amount}`);
+                      } catch (error) {
+                        setCouponApplied(null);
+                        toast.error(error.response?.data?.detail || 'Invalid coupon code');
+                      } finally {
+                        setValidatingCoupon(false);
+                      }
+                    }}
+                    disabled={validatingCoupon || !formData.couponCode}
+                    className="px-4 py-2 bg-[#D4AF37]/20 border border-[#D4AF37]/30 text-[#D4AF37] rounded-lg hover:bg-[#D4AF37]/30 disabled:opacity-50"
+                  >
+                    {validatingCoupon ? 'Checking...' : 'Apply'}
+                  </button>
+                </div>
+                {couponApplied && (
+                  <p className="text-xs text-green-400 mt-1">
+                    ✓ Coupon applied! Discount: ₹{couponApplied.discount_amount}
+                  </p>
+                )}
               </div>
 
               <div>
