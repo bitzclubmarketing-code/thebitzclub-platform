@@ -35,7 +35,10 @@ export const AuthProvider = ({ children }) => {
       setUser(response.data);
     } catch (error) {
       console.error('Failed to fetch user:', error);
-      logout();
+      // Clear invalid token and don't show loading forever
+      localStorage.removeItem('bitz_token');
+      setToken(null);
+      setUser(null);
     } finally {
       setLoading(false);
     }

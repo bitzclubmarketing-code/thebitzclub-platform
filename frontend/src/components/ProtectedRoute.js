@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
 import { Loader2 } from 'lucide-react';
@@ -6,13 +6,30 @@ import { Loader2 } from 'lucide-react';
 export const ProtectedRoute = ({ children, allowedRoles }) => {
   const { user, loading, isAuthenticated } = useAuth();
   const location = useLocation();
+  const [timedOut, setTimedOut] = useState(false);
 
-  if (loading) {
+  // Timeout to prevent infinite loading
+  useEffect(() => {
+    if (loading) {
+      const timer = setTimeout(() => {
+        setTimedOut(true);
+      }, 10000); // 10 second timeout
+      return () => clearTimeout(timer);
+    }
+  }, [loading]);
+
+  if (loading && !timedOut) {
     return (
-      <div className="min-h-screen bg-obsidian flex items-center justify-center">
-        <Loader2 className="w-8 h-8 text-gold animate-spin" />
+      <div className="min-h-screen bg-[#0F0F10] flex items-center justify-center">
+        <Loader2 className="w-8 h-8 text-[#D4AF37] animate-spin" />
       </div>
     );
+  }
+
+  // If timed out, clear token and redirect to login
+  if (timedOut) {
+    localStorage.removeItem('bitz_token');
+    return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
   if (!isAuthenticated) {
@@ -35,13 +52,30 @@ export const ProtectedRoute = ({ children, allowedRoles }) => {
 
 export const PublicRoute = ({ children }) => {
   const { user, loading, isAuthenticated } = useAuth();
+  const [timedOut, setTimedOut] = useState(false);
 
-  if (loading) {
+  // Timeout to prevent infinite loading
+  useEffect(() => {
+    if (loading) {
+      const timer = setTimeout(() => {
+        setTimedOut(true);
+        localStorage.removeItem('bitz_token');
+      }, 10000); // 10 second timeout
+      return () => clearTimeout(timer);
+    }
+  }, [loading]);
+
+  if (loading && !timedOut) {
     return (
-      <div className="min-h-screen bg-obsidian flex items-center justify-center">
-        <Loader2 className="w-8 h-8 text-gold animate-spin" />
+      <div className="min-h-screen bg-[#0F0F10] flex items-center justify-center">
+        <Loader2 className="w-8 h-8 text-[#D4AF37] animate-spin" />
       </div>
     );
+  }
+
+  // If timed out, just show the login page
+  if (timedOut) {
+    return children;
   }
 
   if (isAuthenticated) {
