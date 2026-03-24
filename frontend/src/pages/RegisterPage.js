@@ -445,7 +445,7 @@ const RegisterPage = () => {
             </div>
           </div>
 
-          {/* Plan Selection */}
+          {/* Plan Selection - Dropdown */}
           <div className="space-y-4">
             <h2 className="text-xl font-semibold text-white mb-4">Select Your Plan *</h2>
             
@@ -455,44 +455,55 @@ const RegisterPage = () => {
                 <p className="text-gray-400">Loading plans...</p>
               </div>
             ) : (
-              plans.map((plan) => (
-                <div
-                  key={plan.id}
-                  onClick={() => setFormData(prev => ({ ...prev, planId: plan.id }))}
-                  className={`p-6 cursor-pointer transition-all rounded-lg ${
-                    formData.planId === plan.id
-                      ? 'glass-gold gold-glow'
-                      : 'card-dark card-interactive'
-                  }`}
-                  data-testid={`select-plan-${plan.name.toLowerCase()}`}
-                >
-                  <div className="flex items-start justify-between mb-3">
-                    <div>
-                      <h3 className="text-lg font-semibold text-white">{plan.name}</h3>
-                      <p className="text-sm text-gray-400">{plan.duration_months} months</p>
-                    </div>
-                    <div className="text-right">
-                      <span className="text-2xl font-bold text-[#D4AF37]">₹{plan.price.toLocaleString()}</span>
-                    </div>
-                  </div>
-                  <p className="text-sm text-gray-400 mb-3">{plan.description}</p>
-                  <ul className="space-y-1">
-                    {plan.features?.slice(0, 3).map((feature, index) => (
-                      <li key={index} className="flex items-center gap-2 text-sm text-gray-300">
-                        <Check className="w-3 h-3 text-[#D4AF37]" />
-                        {feature}
-                      </li>
+              <>
+                {/* Dropdown Select */}
+                <div className="glass-gold p-4">
+                  <select
+                    value={formData.planId}
+                    onChange={(e) => setFormData(prev => ({ ...prev, planId: e.target.value }))}
+                    className="input-gold w-full text-lg cursor-pointer"
+                    data-testid="plan-dropdown"
+                  >
+                    <option value="" className="bg-[#1A1A1C]">-- Select a Plan --</option>
+                    {plans.map((plan) => (
+                      <option key={plan.id} value={plan.id} className="bg-[#1A1A1C]">
+                        {plan.name} - ₹{plan.price.toLocaleString()} ({plan.duration_months} months)
+                      </option>
                     ))}
-                  </ul>
-                  {formData.planId === plan.id && (
-                    <div className="mt-3 pt-3 border-t border-white/10">
-                      <p className="text-xs text-[#D4AF37] uppercase tracking-wider flex items-center gap-2">
-                        <Check className="w-4 h-4" /> Selected Plan
-                      </p>
-                    </div>
-                  )}
+                  </select>
                 </div>
-              ))
+
+                {/* Selected Plan Details */}
+                {selectedPlan && (
+                  <motion.div
+                    initial={{ opacity: 0, y: -10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="glass-gold p-6"
+                  >
+                    <div className="flex items-start justify-between mb-4">
+                      <div>
+                        <h3 className="text-xl font-semibold text-white">{selectedPlan.name}</h3>
+                        <p className="text-sm text-gray-400">{selectedPlan.duration_months} months validity</p>
+                      </div>
+                      <div className="text-right">
+                        <span className="text-3xl font-bold text-[#D4AF37]">₹{selectedPlan.price.toLocaleString()}</span>
+                      </div>
+                    </div>
+                    <p className="text-gray-400 mb-4">{selectedPlan.description}</p>
+                    <div className="border-t border-white/10 pt-4">
+                      <p className="text-sm text-[#D4AF37] mb-2">Includes:</p>
+                      <ul className="space-y-2">
+                        {selectedPlan.features?.map((feature, index) => (
+                          <li key={index} className="flex items-center gap-2 text-gray-300 text-sm">
+                            <Check className="w-4 h-4 text-green-500 flex-shrink-0" />
+                            {feature}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  </motion.div>
+                )}
+              </>
             )}
 
             {/* Payment Info */}
