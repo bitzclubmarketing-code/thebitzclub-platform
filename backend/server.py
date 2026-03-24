@@ -7036,6 +7036,18 @@ async def download_backend_server():
         )
     raise HTTPException(status_code=404, detail="Server file not found")
 
+@api_router.get("/download-backup")
+async def download_full_backup():
+    """Download the full project backup"""
+    backup_file = Path(__file__).parent / "bitzclub_full_backup.tar.gz"
+    if backup_file.exists():
+        return FileResponse(
+            str(backup_file),
+            media_type="application/gzip",
+            filename="bitzclub_full_backup.tar.gz"
+        )
+    raise HTTPException(status_code=404, detail="Backup file not found")
+
 # Include router
 app.include_router(api_router)
 
