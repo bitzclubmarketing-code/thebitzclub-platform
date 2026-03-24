@@ -1,6 +1,6 @@
 from fastapi import FastAPI, APIRouter, HTTPException, Depends, Query, BackgroundTasks, Request, File, UploadFile
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
-from fastapi.responses import StreamingResponse
+from fastapi.responses import StreamingResponse, FileResponse
 from fastapi.staticfiles import StaticFiles
 from dotenv import load_dotenv
 from starlette.middleware.cors import CORSMiddleware
@@ -6726,6 +6726,20 @@ async def admin_change_own_password(request: PasswordChangeRequest, admin: dict 
     )
     
     return {"message": "Password changed successfully"}
+
+# ==================== DEPLOYMENT BUILD DOWNLOAD ====================
+
+@api_router.get("/download-build")
+async def download_frontend_build():
+    """Download the production-ready frontend build"""
+    build_file = Path(__file__).parent / "frontend-build-live.tar.gz"
+    if build_file.exists():
+        return FileResponse(
+            str(build_file),
+            media_type="application/gzip",
+            filename="frontend-build-live.tar.gz"
+        )
+    raise HTTPException(status_code=404, detail="Build file not found")
 
 # Include router
 app.include_router(api_router)
