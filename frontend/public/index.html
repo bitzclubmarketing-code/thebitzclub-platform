@@ -4,10 +4,33 @@
         <meta charset="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
         
+        <!-- SEO Meta Tags -->
+        <title>BITZ Club - Premium Lifestyle Membership | Exclusive Hotel & Dining Discounts</title>
+        <meta name="description" content="Join BITZ Club - India's premium lifestyle membership program. Get up to 40% off at 300+ luxury hotels, fine dining restaurants, spas, and entertainment venues. Join 5000+ happy members today!" />
+        <meta name="keywords" content="BITZ Club, premium membership, hotel discounts, dining discounts, spa offers, lifestyle membership, luxury benefits, membership card, India" />
+        <meta name="author" content="BITZ Club" />
+        <meta name="robots" content="index, follow" />
+        <link rel="canonical" href="https://thebitzclub.com" />
+        
+        <!-- Open Graph / Facebook Meta Tags -->
+        <meta property="og:type" content="website" />
+        <meta property="og:url" content="https://thebitzclub.com" />
+        <meta property="og:title" content="BITZ Club - Premium Lifestyle Membership" />
+        <meta property="og:description" content="Get exclusive discounts at 300+ luxury hotels, restaurants, spas. Join 5000+ members enjoying premium lifestyle benefits." />
+        <meta property="og:image" content="https://thebitzclub.com/icons/icon-512x512.png" />
+        <meta property="og:site_name" content="BITZ Club" />
+        <meta property="og:locale" content="en_IN" />
+        
+        <!-- Twitter Card Meta Tags -->
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:url" content="https://thebitzclub.com" />
+        <meta name="twitter:title" content="BITZ Club - Premium Lifestyle Membership" />
+        <meta name="twitter:description" content="Get exclusive discounts at 300+ luxury hotels, restaurants, spas. Join 5000+ members today!" />
+        <meta name="twitter:image" content="https://thebitzclub.com/icons/icon-512x512.png" />
+        
         <!-- PWA Meta Tags -->
         <meta name="theme-color" content="#D4AF37" />
         <meta name="background-color" content="#0F0F10" />
-        <meta name="description" content="BITZ Club - Premium Lifestyle Membership. Unlock exclusive privileges at luxury hotels, fine dining, spas, and more." />
         <meta name="application-name" content="BITZ Club" />
         
         <!-- Apple PWA Meta Tags -->
@@ -37,7 +60,83 @@
         <!-- Splash Screens for iOS -->
         <link rel="apple-touch-startup-image" href="%PUBLIC_URL%/icons/icon-512x512.png" />
         
-        <title>BITZ Club - Premium Lifestyle Membership</title>
+        <!-- Google Analytics 4 -->
+        <script async src="https://www.googletagmanager.com/gtag/js?id=G-XXXXXXXXXX"></script>
+        <script>
+            window.dataLayer = window.dataLayer || [];
+            function gtag(){dataLayer.push(arguments);}
+            gtag('js', new Date());
+            gtag('config', 'G-XXXXXXXXXX', {
+                page_title: document.title,
+                page_location: window.location.href
+            });
+            
+            // Custom event tracking functions
+            window.trackEvent = function(eventName, params) {
+                gtag('event', eventName, params);
+            };
+            
+            // Track page views on route change (for SPA)
+            window.trackPageView = function(pagePath, pageTitle) {
+                gtag('config', 'G-XXXXXXXXXX', {
+                    page_path: pagePath,
+                    page_title: pageTitle
+                });
+            };
+        </script>
+        
+        <!-- Facebook Pixel -->
+        <script>
+            !function(f,b,e,v,n,t,s)
+            {if(f.fbq)return;n=f.fbq=function(){n.callMethod?
+            n.callMethod.apply(n,arguments):n.queue.push(arguments)};
+            if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
+            n.queue=[];t=b.createElement(e);t.async=!0;
+            t.src=v;s=b.getElementsByTagName(e)[0];
+            s.parentNode.insertBefore(t,s)}(window, document,'script',
+            'https://connect.facebook.net/en_US/fbevents.js');
+            fbq('init', 'FACEBOOK_PIXEL_ID');
+            fbq('track', 'PageView');
+            
+            // Custom Facebook event tracking
+            window.fbTrackLead = function(data) {
+                fbq('track', 'Lead', data);
+            };
+            window.fbTrackPurchase = function(value, currency) {
+                fbq('track', 'Purchase', {value: value, currency: currency || 'INR'});
+            };
+            window.fbTrackInitiateCheckout = function(data) {
+                fbq('track', 'InitiateCheckout', data);
+            };
+            window.fbTrackCompleteRegistration = function(data) {
+                fbq('track', 'CompleteRegistration', data);
+            };
+        </script>
+        <noscript><img height="1" width="1" style="display:none"
+            src="https://www.facebook.com/tr?id=FACEBOOK_PIXEL_ID&ev=PageView&noscript=1"
+        /></noscript>
+        
+        <!-- Structured Data / JSON-LD -->
+        <script type="application/ld+json">
+        {
+            "@context": "https://schema.org",
+            "@type": "Organization",
+            "name": "BITZ Club",
+            "url": "https://thebitzclub.com",
+            "logo": "https://thebitzclub.com/icons/icon-512x512.png",
+            "description": "Premium lifestyle membership club offering exclusive discounts at luxury hotels, restaurants, spas, and entertainment venues.",
+            "contactPoint": {
+                "@type": "ContactPoint",
+                "telephone": "+91-7812901118",
+                "contactType": "customer service",
+                "availableLanguage": ["English", "Hindi"]
+            },
+            "sameAs": [
+                "https://www.facebook.com/bitzclub",
+                "https://www.instagram.com/bitzclub"
+            ]
+        }
+        </script>
         
         <!-- Splash Screen Styles -->
         <style>

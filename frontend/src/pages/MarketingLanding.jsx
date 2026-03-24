@@ -250,6 +250,26 @@ const MarketingLanding = () => {
       });
       
       setLeadId(response.data.lead_id);
+      
+      // Track Lead event for Facebook Pixel
+      if (window.fbTrackLead) {
+        window.fbTrackLead({
+          content_name: 'BITZ Club Lead',
+          content_category: 'membership',
+          value: 0,
+          currency: 'INR'
+        });
+      }
+      
+      // Track Lead event for Google Analytics
+      if (window.trackEvent) {
+        window.trackEvent('generate_lead', {
+          event_category: 'engagement',
+          event_label: 'marketing_landing_lead',
+          value: 1
+        });
+      }
+      
       toast.success('Details captured! Please complete your registration.');
       setCurrentStep(2);
     } catch (error) {
@@ -407,7 +427,7 @@ const MarketingLanding = () => {
   const completeRegistration = async (paymentResponse) => {
     try {
       const response = await axios.post(
-        `${API}/marketing/lead/${leadId}/complete?razorpay_payment_id=${paymentResponse.razorpay_payment_id}&razorpay_order_id=${paymentResponse.razorpay_order_id}&razorpay_signature=${paymentResponse.razorpay_signature}`
+        `${API}/marketing/lead/${leadId}/complete?razorpay_payment_id=${paymentResponse.razorpay_payment_id}&razorpay_order_id=${paymentResponse.razorpay_order_id || paymentResponse.razorpay_subscription_id || ''}&razorpay_signature=${paymentResponse.razorpay_signature}${paymentResponse.razorpay_subscription_id ? '&razorpay_subscription_id=' + paymentResponse.razorpay_subscription_id : ''}`
       );
 
       setMemberId(response.data.member_id);
@@ -416,6 +436,39 @@ const MarketingLanding = () => {
       // Store token for photo upload
       localStorage.setItem('token', response.data.access_token);
       localStorage.setItem('user', JSON.stringify(response.data.user));
+      
+      // Get plan details for tracking
+      const selectedPlan = plans.find(p => p.id === step2Data.plan_id);
+      const pricing = selectedPlan ? getPriceForMemberType(selectedPlan) : { price: 0 };
+      
+      // Track Purchase event for Facebook Pixel
+      if (window.fbTrackPurchase) {
+        window.fbTrackPurchase(pricing.price, 'INR');
+      }
+      
+      // Track Complete Registration for Facebook
+      if (window.fbTrackCompleteRegistration) {
+        window.fbTrackCompleteRegistration({
+          content_name: selectedPlan?.name || 'BITZ Club Membership',
+          value: pricing.price,
+          currency: 'INR'
+        });
+      }
+      
+      // Track Purchase event for Google Analytics
+      if (window.trackEvent) {
+        window.trackEvent('purchase', {
+          transaction_id: paymentResponse.razorpay_payment_id,
+          value: pricing.price,
+          currency: 'INR',
+          items: [{
+            item_id: selectedPlan?.id,
+            item_name: selectedPlan?.name || 'BITZ Club Membership',
+            price: pricing.price,
+            quantity: 1
+          }]
+        });
+      }
       
       toast.success('Payment successful! Welcome to BITZ Club!');
       setCurrentStep(4);
