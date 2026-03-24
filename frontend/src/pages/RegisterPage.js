@@ -2,13 +2,46 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import axios from 'axios';
-import { Crown, Eye, EyeOff, Loader2, Check, Camera, X } from 'lucide-react';
+import { Crown, Eye, EyeOff, Loader2, Check, Camera, X, Globe } from 'lucide-react';
 import { useAuth, API } from '@/context/AuthContext';
 import { toast } from 'sonner';
+
+// Country codes with currency
+const COUNTRIES = [
+  { code: 'IN', name: 'India', dialCode: '+91', currency: 'INR', symbol: '₹' },
+  { code: 'AE', name: 'UAE', dialCode: '+971', currency: 'AED', symbol: 'AED ' },
+  { code: 'US', name: 'USA', dialCode: '+1', currency: 'USD', symbol: '$' },
+  { code: 'GB', name: 'UK', dialCode: '+44', currency: 'GBP', symbol: '£' },
+  { code: 'SG', name: 'Singapore', dialCode: '+65', currency: 'SGD', symbol: 'S$' },
+  { code: 'AU', name: 'Australia', dialCode: '+61', currency: 'AUD', symbol: 'A$' },
+  { code: 'CA', name: 'Canada', dialCode: '+1', currency: 'CAD', symbol: 'C$' },
+  { code: 'SA', name: 'Saudi Arabia', dialCode: '+966', currency: 'SAR', symbol: 'SAR ' },
+  { code: 'QA', name: 'Qatar', dialCode: '+974', currency: 'QAR', symbol: 'QAR ' },
+  { code: 'KW', name: 'Kuwait', dialCode: '+965', currency: 'KWD', symbol: 'KWD ' },
+  { code: 'OM', name: 'Oman', dialCode: '+968', currency: 'OMR', symbol: 'OMR ' },
+  { code: 'BH', name: 'Bahrain', dialCode: '+973', currency: 'BHD', symbol: 'BHD ' },
+];
+
+// Currency conversion rates (approximate - should be fetched from API in production)
+const CURRENCY_RATES = {
+  INR: 1,
+  USD: 0.012,
+  AED: 0.044,
+  GBP: 0.0095,
+  SGD: 0.016,
+  AUD: 0.018,
+  CAD: 0.016,
+  SAR: 0.045,
+  QAR: 0.044,
+  KWD: 0.0037,
+  OMR: 0.0046,
+  BHD: 0.0045,
+};
 
 const RegisterPage = () => {
   const [searchParams] = useSearchParams();
   const [plans, setPlans] = useState([]);
+  const [selectedCountry, setSelectedCountry] = useState(COUNTRIES[0]); // Default India
   const [formData, setFormData] = useState({
     name: '',
     mobile: '',
@@ -18,7 +51,8 @@ const RegisterPage = () => {
     confirmPassword: '',
     referralId: searchParams.get('ref') || searchParams.get('referral') || '',
     planId: searchParams.get('plan') || '',
-    couponCode: searchParams.get('coupon') || ''
+    couponCode: searchParams.get('coupon') || '',
+    country: 'IN'
   });
   const [photoPreview, setPhotoPreview] = useState(null);
   const [photoBase64, setPhotoBase64] = useState(null);
@@ -30,6 +64,13 @@ const RegisterPage = () => {
   const { login } = useAuth();
   const navigate = useNavigate();
   const fileInputRef = useRef(null);
+
+  // Convert price to selected currency
+  const convertPrice = (priceInINR) => {
+    const rate = CURRENCY_RATES[selectedCountry.currency] || 1;
+    const converted = Math.round(priceInINR * rate);
+    return `${selectedCountry.symbol}${converted.toLocaleString()}`;
+  };
 
   useEffect(() => {
     fetchPlans();
@@ -124,16 +165,21 @@ const RegisterPage = () => {
 
     setLoading(true);
     try {
+      // Format mobile with country code
+      const fullMobile = `${selectedCountry.dialCode}${formData.mobile.replace(/^0+/, '')}`;
+      
       // Step 1: Initiate registration and get Razorpay order
       const response = await axios.post(`${API}/registration/initiate`, {
         name: formData.name,
-        mobile: formData.mobile,
+        mobile: fullMobile,
         email: formData.email || null,
         date_of_birth: formData.dateOfBirth || null,
         password: formData.password,
         plan_id: formData.planId,
         referral_id: formData.referralId || null,
-        photo_base64: photoBase64
+        photo_base64: photoBase64,
+        country: selectedCountry.code,
+        currency: selectedCountry.currency
       });
 
       const { registration_id, order_id, amount, razorpay_key, plan_name } = response.data;
@@ -324,18 +370,52 @@ const RegisterPage = () => {
                 />
               </div>
 
+              {/* Country Selection */}
+              <div>
+                <label className="input-label flex items-center gap-2">
+                  <Globe className="w-4 h-4 text-[#D4AF37]" />
+                  Country / Region *
+                </label>
+                <select
+                  value={selectedCountry.code}
+                  onChange={(e) => {
+                    const country = COUNTRIES.find(c => c.code === e.target.value);
+                    setSelectedCountry(country);
+                    setFormData({ ...formData, country: e.target.value });
+                  }}
+                  className="input-gold"
+                  data-testid="register-country"
+                >
+                  {COUNTRIES.map(country => (
+                    <option key={country.code} value={country.code}>
+                      {country.name} ({country.dialCode}) - {country.currency}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
               <div>
                 <label className="input-label">Mobile Number *</label>
-                <input
-                  type="tel"
-                  name="mobile"
-                  value={formData.mobile}
-                  onChange={handleChange}
-                  placeholder="Enter 10-digit mobile number"
-                  className="input-gold"
-                  maxLength={10}
-                  data-testid="register-mobile"
-                />
+                <div className="flex gap-2">
+                  <div className="w-24 flex-shrink-0">
+                    <div className="input-gold bg-[#D4AF37]/10 text-center font-semibold text-[#D4AF37]">
+                      {selectedCountry.dialCode}
+                    </div>
+                  </div>
+                  <input
+                    type="tel"
+                    name="mobile"
+                    value={formData.mobile}
+                    onChange={handleChange}
+                    placeholder="Enter mobile number"
+                    className="input-gold flex-1"
+                    maxLength={15}
+                    data-testid="register-mobile"
+                  />
+                </div>
+                <p className="text-xs text-gray-500 mt-1">
+                  {selectedCountry.code === 'IN' ? 'Enter 10-digit number without country code' : 'Enter number without country code'}
+                </p>
               </div>
 
               <div>
@@ -473,7 +553,7 @@ const RegisterPage = () => {
                   </>
                 ) : (
                   <>
-                    Pay ₹{selectedPlan?.price?.toLocaleString() || '0'} & Register
+                    Pay {convertPrice(selectedPlan?.price || 0)} & Register
                   </>
                 )}
               </button>
@@ -516,7 +596,10 @@ const RegisterPage = () => {
                       <p className="text-sm text-gray-400">{plan.duration_months} months</p>
                     </div>
                     <div className="text-right">
-                      <span className="text-2xl font-bold text-[#D4AF37]">₹{plan.price.toLocaleString()}</span>
+                      <span className="text-2xl font-bold text-[#D4AF37]">{convertPrice(plan.price)}</span>
+                      {selectedCountry.code !== 'IN' && (
+                        <p className="text-xs text-gray-500">₹{plan.price.toLocaleString()} INR</p>
+                      )}
                     </div>
                   </div>
                   <p className="text-sm text-gray-400 mb-3">{plan.description}</p>
