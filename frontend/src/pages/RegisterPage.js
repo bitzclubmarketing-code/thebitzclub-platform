@@ -176,6 +176,31 @@ const RegisterPage = () => {
           email: formData.email,
           contact: formData.mobile
         },
+        // UPI Intent/QR flow (VPA manual entry deprecated by NPCI Feb 2026)
+        config: {
+          display: {
+            blocks: {
+              upi: {
+                name: 'Pay using UPI',
+                instruments: [
+                  { method: 'upi', flows: ['qrcode', 'intent'] }
+                ]
+              },
+              other: {
+                name: 'Other Payment Methods',
+                instruments: [
+                  { method: 'netbanking' },
+                  { method: 'card' },
+                  { method: 'wallet' }
+                ]
+              }
+            },
+            sequence: ['block.upi', 'block.other'],
+            preferences: {
+              show_default_blocks: true
+            }
+          }
+        },
         theme: {
           color: '#D4AF37'
         },

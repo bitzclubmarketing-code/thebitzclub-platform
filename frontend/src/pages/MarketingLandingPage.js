@@ -217,7 +217,7 @@ const MarketingLandingPage = () => {
 
       const { registration_id, order_id, amount, razorpay_key } = response.data;
 
-      // Open Razorpay
+      // Open Razorpay with UPI Intent/QR (VPA manual entry deprecated by NPCI Feb 2026)
       const options = {
         key: razorpay_key,
         amount: amount * 100,
@@ -249,6 +249,31 @@ const MarketingLandingPage = () => {
           name: leadData.name,
           email: leadData.email,
           contact: leadData.mobile
+        },
+        // UPI Intent/QR flow configuration
+        config: {
+          display: {
+            blocks: {
+              upi: {
+                name: 'Pay using UPI',
+                instruments: [
+                  { method: 'upi', flows: ['qrcode', 'intent'] }
+                ]
+              },
+              other: {
+                name: 'Other Payment Methods',
+                instruments: [
+                  { method: 'netbanking' },
+                  { method: 'card' },
+                  { method: 'wallet' }
+                ]
+              }
+            },
+            sequence: ['block.upi', 'block.other'],
+            preferences: {
+              show_default_blocks: true
+            }
+          }
         },
         theme: {
           color: '#D4AF37'

@@ -346,24 +346,27 @@ const MarketingLanding = () => {
           theme: {
             color: '#D4AF37'
           },
+          // UPI Intent/QR flow (VPA manual entry deprecated by NPCI Feb 2026)
+          // This enables UPI apps like GPay, PhonePe, Paytm to be launched directly
           config: {
             display: {
               blocks: {
-                banks: {
-                  name: 'Pay using UPI/Net Banking',
+                upi: {
+                  name: 'Pay using UPI',
                   instruments: [
-                    { method: 'upi' },
-                    { method: 'netbanking' }
+                    { method: 'upi', flows: ['qrcode', 'intent'] }  // QR code & Intent only (no collect/VPA)
                   ]
                 },
-                cards: {
-                  name: 'Pay using Cards',
+                other: {
+                  name: 'Other Payment Methods',
                   instruments: [
-                    { method: 'card' }
+                    { method: 'netbanking' },
+                    { method: 'card' },
+                    { method: 'wallet' }
                   ]
                 }
               },
-              sequence: isInternational ? ['block.cards'] : ['block.banks', 'block.cards'],
+              sequence: isInternational ? ['block.other'] : ['block.upi', 'block.other'],
               preferences: {
                 show_default_blocks: true
               }
