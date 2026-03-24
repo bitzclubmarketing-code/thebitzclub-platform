@@ -8,7 +8,8 @@ import {
   CheckCircle, Clock, XCircle, Loader2, ChevronRight,
   Hotel, UtensilsCrossed, Sparkles, Dumbbell, Waves, Music, PartyPopper, Building2,
   Share2, Star, Camera, RotateCw, FileImage, FileText, CreditCard, History, MessageSquare,
-  MapPin, Phone, Globe, CalendarDays, Users, Copy, MessageCircle, Send, Lock, Eye, EyeOff, Key
+  MapPin, Phone, Globe, CalendarDays, Users, Copy, MessageCircle, Send, Lock, Eye, EyeOff, Key,
+  Plus, Edit2, Trash2, Check, X
 } from 'lucide-react';
 import { useAuth, API } from '@/context/AuthContext';
 import { toast } from 'sonner';
@@ -41,6 +42,18 @@ const MemberDashboard = () => {
   const [changingPassword, setChangingPassword] = useState(false);
   const [showCurrentPwd, setShowCurrentPwd] = useState(false);
   const [showNewPwd, setShowNewPwd] = useState(false);
+  
+  // Family members state
+  const [showAddFamilyModal, setShowAddFamilyModal] = useState(false);
+  const [editingFamily, setEditingFamily] = useState(null);
+  const [savingFamily, setSavingFamily] = useState(false);
+  const [familyFormData, setFamilyFormData] = useState({
+    name: '',
+    relationship: '',
+    date_of_birth: '',
+    mobile: '',
+    email: ''
+  });
   
   const cardFrontRef = useRef(null);
   const cardBackRef = useRef(null);
@@ -125,11 +138,69 @@ const MemberDashboard = () => {
       const response = await axios.get(`${API}/members/${user.member_id}/family`, {
         headers: { Authorization: `Bearer ${token}` }
       });
-      setFamilyMembers(response.data.family_members || []);
+      setFamilyMembers(response.data || []);
     } catch (error) {
       console.error('Failed to fetch family members:', error);
+      setFamilyMembers([]);
     } finally {
       setLoadingFamily(false);
+    }
+  };
+
+  // Handle Add/Edit Family Member
+  const handleAddFamily = async (e) => {
+    e.preventDefault();
+    if (!familyFormData.name || !familyFormData.relationship) {
+      toast.error('Name and relationship are required');
+      return;
+    }
+    
+    setSavingFamily(true);
+    try {
+      if (editingFamily) {
+        // Update existing family member
+        await axios.put(`${API}/family/${editingFamily.id}`, familyFormData, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        toast.success('Family member updated successfully');
+      } else {
+        // Add new family member
+        await axios.post(`${API}/members/${user.member_id}/family`, familyFormData, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        toast.success('Family member added successfully');
+      }
+      
+      // Reset form and close modal
+      setShowAddFamilyModal(false);
+      setEditingFamily(null);
+      setFamilyFormData({ name: '', relationship: '', date_of_birth: '', mobile: '', email: '' });
+      
+      // Refresh family members list
+      fetchFamilyMembers();
+    } catch (error) {
+      console.error('Failed to save family member:', error);
+      toast.error(error.response?.data?.detail || 'Failed to save family member');
+    } finally {
+      setSavingFamily(false);
+    }
+  };
+
+  // Handle Delete Family Member
+  const handleDeleteFamily = async (familyId) => {
+    if (!window.confirm('Are you sure you want to remove this family member?')) {
+      return;
+    }
+    
+    try {
+      await axios.delete(`${API}/family/${familyId}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      toast.success('Family member removed');
+      fetchFamilyMembers();
+    } catch (error) {
+      console.error('Failed to delete family member:', error);
+      toast.error(error.response?.data?.detail || 'Failed to remove family member');
     }
   };
 
@@ -750,9 +821,17 @@ const MemberDashboard = () => {
                     Family <span className="text-[#D4AF37]">Members</span>
                   </h2>
                   <p className="text-gray-400 text-sm mt-1">
-                    Your family members added to the membership
+                    Add your family members to the membership
                   </p>
                 </div>
+                <button
+                  onClick={() => setShowAddFamilyModal(true)}
+                  className="btn-primary flex items-center gap-2"
+                  data-testid="add-family-btn"
+                >
+                  <Plus className="w-4 h-4" />
+                  Add Family Member
+                </button>
               </div>
 
               {loadingFamily ? (
@@ -763,9 +842,37 @@ const MemberDashboard = () => {
                 <div className="grid gap-4 md:grid-cols-2">
                   {familyMembers.map((family, index) => (
                     <div 
-                      key={index} 
-                      className="bg-[#1A1A1C] rounded-xl p-4 border border-white/5"
+                      key={family.id || index} 
+                      className="bg-[#1A1A1C] rounded-xl p-4 border border-white/5 relative group"
                     >
+                      {/* Edit/Delete buttons */}
+                      <div className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity flex gap-2">
+                        <button
+                          onClick={() => {
+                            setEditingFamily(family);
+                            setFamilyFormData({
+                              name: family.name || '',
+                              relationship: family.relationship || '',
+                              date_of_birth: family.date_of_birth || '',
+                              mobile: family.mobile || '',
+                              email: family.email || ''
+                            });
+                            setShowAddFamilyModal(true);
+                          }}
+                          className="p-1.5 bg-[#D4AF37]/20 hover:bg-[#D4AF37]/40 rounded-lg transition-colors"
+                          title="Edit"
+                        >
+                          <Edit2 className="w-3.5 h-3.5 text-[#D4AF37]" />
+                        </button>
+                        <button
+                          onClick={() => handleDeleteFamily(family.id)}
+                          className="p-1.5 bg-red-500/20 hover:bg-red-500/40 rounded-lg transition-colors"
+                          title="Delete"
+                        >
+                          <Trash2 className="w-3.5 h-3.5 text-red-500" />
+                        </button>
+                      </div>
+                      
                       <div className="flex items-center gap-4">
                         <div className="w-12 h-12 rounded-full bg-[#D4AF37]/20 flex items-center justify-center">
                           <span className="text-[#D4AF37] font-bold text-lg">
@@ -774,7 +881,7 @@ const MemberDashboard = () => {
                         </div>
                         <div className="flex-1">
                           <h3 className="text-white font-semibold">{family.name}</h3>
-                          <p className="text-[#D4AF37] text-sm">{family.relationship}</p>
+                          <p className="text-[#D4AF37] text-sm capitalize">{family.relationship}</p>
                         </div>
                       </div>
                       <div className="mt-4 grid grid-cols-2 gap-4 text-sm">
@@ -806,9 +913,134 @@ const MemberDashboard = () => {
                 <div className="text-center py-12 bg-[#1A1A1C] rounded-xl">
                   <Users className="w-12 h-12 text-gray-600 mx-auto mb-4" />
                   <p className="text-gray-400">No family members added yet</p>
-                  <p className="text-gray-500 text-sm mt-2">
-                    Contact admin to add family members to your membership
+                  <p className="text-gray-500 text-sm mt-2 mb-4">
+                    Add your family members to share the membership benefits
                   </p>
+                  <button
+                    onClick={() => setShowAddFamilyModal(true)}
+                    className="btn-primary"
+                  >
+                    <Plus className="w-4 h-4 mr-2" />
+                    Add Family Member
+                  </button>
+                </div>
+              )}
+
+              {/* Add/Edit Family Member Modal */}
+              {showAddFamilyModal && (
+                <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    className="bg-[#1A1A1C] rounded-2xl p-6 w-full max-w-md border border-white/10"
+                  >
+                    <div className="flex items-center justify-between mb-6">
+                      <h3 className="text-xl font-bold text-white">
+                        {editingFamily ? 'Edit' : 'Add'} Family Member
+                      </h3>
+                      <button
+                        onClick={() => {
+                          setShowAddFamilyModal(false);
+                          setEditingFamily(null);
+                          setFamilyFormData({ name: '', relationship: '', date_of_birth: '', mobile: '', email: '' });
+                        }}
+                        className="text-gray-400 hover:text-white"
+                      >
+                        <X className="w-5 h-5" />
+                      </button>
+                    </div>
+                    
+                    <form onSubmit={handleAddFamily} className="space-y-4">
+                      <div>
+                        <label className="input-label">Full Name *</label>
+                        <input
+                          type="text"
+                          value={familyFormData.name}
+                          onChange={(e) => setFamilyFormData({ ...familyFormData, name: e.target.value })}
+                          placeholder="Enter full name"
+                          className="input-gold"
+                          required
+                        />
+                      </div>
+                      
+                      <div>
+                        <label className="input-label">Relationship *</label>
+                        <select
+                          value={familyFormData.relationship}
+                          onChange={(e) => setFamilyFormData({ ...familyFormData, relationship: e.target.value })}
+                          className="input-gold"
+                          required
+                        >
+                          <option value="">Select Relationship</option>
+                          <option value="spouse">Spouse</option>
+                          <option value="child">Child</option>
+                          <option value="parent">Parent</option>
+                          <option value="sibling">Sibling</option>
+                          <option value="other">Other</option>
+                        </select>
+                      </div>
+                      
+                      <div>
+                        <label className="input-label">Date of Birth</label>
+                        <input
+                          type="date"
+                          value={familyFormData.date_of_birth}
+                          onChange={(e) => setFamilyFormData({ ...familyFormData, date_of_birth: e.target.value })}
+                          className="input-gold"
+                        />
+                      </div>
+                      
+                      <div>
+                        <label className="input-label">Mobile Number</label>
+                        <input
+                          type="tel"
+                          value={familyFormData.mobile}
+                          onChange={(e) => setFamilyFormData({ ...familyFormData, mobile: e.target.value })}
+                          placeholder="Enter mobile number"
+                          className="input-gold"
+                        />
+                      </div>
+                      
+                      <div>
+                        <label className="input-label">Email Address</label>
+                        <input
+                          type="email"
+                          value={familyFormData.email}
+                          onChange={(e) => setFamilyFormData({ ...familyFormData, email: e.target.value })}
+                          placeholder="Enter email address"
+                          className="input-gold"
+                        />
+                      </div>
+                      
+                      <div className="flex gap-3 pt-4">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setShowAddFamilyModal(false);
+                            setEditingFamily(null);
+                            setFamilyFormData({ name: '', relationship: '', date_of_birth: '', mobile: '', email: '' });
+                          }}
+                          className="flex-1 px-4 py-3 bg-white/10 hover:bg-white/20 text-white rounded-xl transition-colors"
+                        >
+                          Cancel
+                        </button>
+                        <button
+                          type="submit"
+                          disabled={savingFamily}
+                          className="flex-1 btn-primary flex items-center justify-center gap-2"
+                        >
+                          {savingFamily ? (
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                          ) : (
+                            <>
+                              <Check className="w-4 h-4" />
+                              {editingFamily ? 'Update' : 'Add'} Member
+                            </>
+                          )}
+                        </button>
+                      </div>
+                    </form>
+                  </motion.div>
                 </div>
               )}
             </div>
@@ -881,16 +1113,22 @@ const MemberDashboard = () => {
                     {/* WhatsApp Share */}
                     <button
                       onClick={() => {
+                        const refCode = member?.referral_code || member?.member_id || user?.member_id || '';
+                        const baseUrl = window.location.origin.includes('localhost') 
+                          ? window.location.origin 
+                          : 'https://thebitzclub.com';
+                        const joinUrl = `${baseUrl}/register?ref=${refCode}`;
                         const text = encodeURIComponent(
                           `🌟 Join BITZ Club - Premium Lifestyle Membership!\n\n` +
                           `I'm a member of BITZ Club and I love the exclusive benefits! Use my referral code to join and get special discounts.\n\n` +
-                          `🎁 Referral Code: ${member?.member_id || user?.member_id}\n\n` +
+                          `🎁 Referral Code: ${refCode}\n\n` +
                           `✨ Benefits:\n` +
                           `• Up to 40% off at luxury hotels\n` +
                           `• Exclusive dining discounts\n` +
                           `• Premium spa & wellness offers\n` +
                           `• And much more!\n\n` +
-                          `👉 Join now: ${window.location.origin}/join?ref=${member?.member_id || user?.member_id}`
+                          `📱 Download our app for easy access!\n\n` +
+                          `👉 Join now: ${joinUrl}`
                         );
                         window.open(`https://wa.me/?text=${text}`, '_blank');
                         toast.success('Opening WhatsApp...');
@@ -905,10 +1143,15 @@ const MemberDashboard = () => {
                     {/* SMS Share */}
                     <button
                       onClick={() => {
+                        const refCode = member?.referral_code || member?.member_id || user?.member_id || '';
+                        const baseUrl = window.location.origin.includes('localhost') 
+                          ? window.location.origin 
+                          : 'https://thebitzclub.com';
+                        const joinUrl = `${baseUrl}/register?ref=${refCode}`;
                         const text = encodeURIComponent(
-                          `Join BITZ Club with my referral code: ${member?.member_id || user?.member_id}. ` +
+                          `Join BITZ Club with my referral code: ${refCode}. ` +
                           `Get exclusive discounts at luxury hotels, restaurants & more! ` +
-                          `Join: ${window.location.origin}/join?ref=${member?.member_id || user?.member_id}`
+                          `Join: ${joinUrl}`
                         );
                         window.open(`sms:?body=${text}`, '_blank');
                         toast.success('Opening Messages...');
@@ -923,9 +1166,23 @@ const MemberDashboard = () => {
                     {/* Copy Link */}
                     <button
                       onClick={() => {
-                        const link = `${window.location.origin}/join?ref=${member?.member_id || user?.member_id}`;
-                        navigator.clipboard.writeText(link);
-                        toast.success('Referral link copied to clipboard!');
+                        const refCode = member?.referral_code || member?.member_id || user?.member_id || '';
+                        const baseUrl = window.location.origin.includes('localhost') 
+                          ? window.location.origin 
+                          : 'https://thebitzclub.com';
+                        const link = `${baseUrl}/register?ref=${refCode}`;
+                        navigator.clipboard.writeText(link).then(() => {
+                          toast.success('Referral link copied to clipboard!');
+                        }).catch(() => {
+                          // Fallback for older browsers
+                          const textArea = document.createElement('textarea');
+                          textArea.value = link;
+                          document.body.appendChild(textArea);
+                          textArea.select();
+                          document.execCommand('copy');
+                          document.body.removeChild(textArea);
+                          toast.success('Referral link copied to clipboard!');
+                        });
                       }}
                       className="flex items-center justify-center gap-2 px-4 py-3 bg-[#1A1A1C] hover:bg-[#2A2A2C] text-white rounded-xl font-medium transition-colors border border-white/10"
                       data-testid="copy-link-btn"
