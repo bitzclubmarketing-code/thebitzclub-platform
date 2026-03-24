@@ -60,7 +60,11 @@ function App() {
             <Route path="/" element={<HomePage />} />
             <Route path="/landing" element={<LandingPage />} />
             <Route path="/social" element={<LandingPage />} />
-            <Route path="/join" element={<MarketingLanding />} />
+            <Route path="/join" element={
+              <PublicRoute>
+                <RegisterPage />
+              </PublicRoute>
+            } />
             <Route path="/marketing" element={<MarketingLanding />} />
             <Route path="/promo" element={<MarketingLanding />} />
             <Route path="/login" element={
