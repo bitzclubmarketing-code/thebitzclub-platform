@@ -2313,8 +2313,14 @@ async def add_family_member(member_id: str, family: FamilyMemberCreate, admin: d
     return {"message": "Family member added successfully", "id": family_id, "family_count": family_count}
 
 @api_router.get("/members/{member_id}/family")
-async def get_family_members(member_id: str, user: dict = Depends(require_admin_or_telecaller)):
-    """Get all family members for a primary member"""
+async def get_family_members(member_id: str, user: dict = Depends(get_current_user)):
+    """Get all family members for a primary member - accessible by member themselves or admin"""
+    # Check if user is admin/telecaller or the member themselves
+    if user["role"] not in ["admin", "super_admin", "telecaller"]:
+        # If member, verify they're accessing their own family
+        if user.get("member_id") != member_id:
+            raise HTTPException(status_code=403, detail="You can only view your own family members")
+    
     members = await db.family_members.find(
         {"member_id": member_id},
         {"_id": 0}
