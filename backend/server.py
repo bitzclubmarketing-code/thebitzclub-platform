@@ -450,6 +450,7 @@ class CouponCreate(BaseModel):
     valid_from: str
     valid_until: str
     usage_limit: int = 0  # 0 means unlimited
+    max_uses: Optional[int] = None  # Alias for usage_limit
     applicable_plans: List[str] = []  # Empty means all plans
     is_active: bool = True
 
@@ -5731,13 +5732,18 @@ async def create_coupon(coupon: CouponCreate, admin: dict = Depends(require_admi
     if existing:
         raise HTTPException(status_code=400, detail="Coupon code already exists")
     
+    # Use usage_limit or max_uses (whichever is provided)
+    max_uses_value = coupon.max_uses if coupon.max_uses is not None else coupon.usage_limit
+    
     coupon_doc = {
         "id": str(uuid.uuid4()),
         "code": coupon.code.upper(),
         "discount_type": coupon.discount_type,
         "discount_value": coupon.discount_value,
         "min_amount": coupon.min_amount,
-        "max_uses": coupon.max_uses,
+        "max_discount": coupon.max_discount,
+        "max_uses": max_uses_value,
+        "usage_limit": max_uses_value,
         "valid_from": coupon.valid_from,
         "valid_until": coupon.valid_until,
         "applicable_plans": coupon.applicable_plans,
@@ -5751,6 +5757,9 @@ async def create_coupon(coupon: CouponCreate, admin: dict = Depends(require_admi
 
 @api_router.put("/coupons/{coupon_id}")
 async def update_coupon(coupon_id: str, coupon: CouponCreate, admin: dict = Depends(require_admin)):
+    # Use usage_limit or max_uses (whichever is provided)
+    max_uses_value = coupon.max_uses if coupon.max_uses is not None else coupon.usage_limit
+    
     result = await db.coupons.update_one(
         {"id": coupon_id},
         {"$set": {
@@ -5758,7 +5767,9 @@ async def update_coupon(coupon_id: str, coupon: CouponCreate, admin: dict = Depe
             "discount_type": coupon.discount_type,
             "discount_value": coupon.discount_value,
             "min_amount": coupon.min_amount,
-            "max_uses": coupon.max_uses,
+            "max_discount": coupon.max_discount,
+            "max_uses": max_uses_value,
+            "usage_limit": max_uses_value,
             "valid_from": coupon.valid_from,
             "valid_until": coupon.valid_until,
             "applicable_plans": coupon.applicable_plans,
