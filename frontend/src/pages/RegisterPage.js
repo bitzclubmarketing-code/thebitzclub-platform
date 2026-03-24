@@ -210,10 +210,41 @@ const RegisterPage = () => {
             localStorage.setItem('token', access_token);
             localStorage.setItem('user', JSON.stringify(user));
             
-            toast.success(`Welcome to BITZ Club! Your Member ID: ${completeResponse.data.member_id}`);
+            // Show success popup with app download option
+            toast.success(
+              <div className="text-center">
+                <p className="font-bold text-lg mb-2">🎉 Welcome to BITZ Club!</p>
+                <p className="mb-2">Member ID: <span className="font-mono">{completeResponse.data.member_id}</span></p>
+                <p className="text-sm text-gray-300 mb-3">Install our app for the best experience</p>
+                <div className="flex flex-col gap-2">
+                  <button 
+                    onClick={() => {
+                      // Trigger PWA install or show instructions
+                      if (window.deferredPrompt) {
+                        window.deferredPrompt.prompt();
+                      } else {
+                        window.open('/member', '_self');
+                      }
+                    }}
+                    className="px-4 py-2 bg-[#D4AF37] text-black rounded font-semibold"
+                  >
+                    📱 Download App
+                  </button>
+                  <button 
+                    onClick={() => window.location.href = '/member?tab=family'}
+                    className="px-4 py-2 bg-white/10 text-white rounded"
+                  >
+                    👨‍👩‍👧 Add Family Members
+                  </button>
+                </div>
+              </div>,
+              { duration: 15000 }
+            );
             
-            // Reload auth context and navigate
-            window.location.href = '/member';
+            // Navigate to member dashboard after delay
+            setTimeout(() => {
+              window.location.href = '/member';
+            }, 3000);
           } catch (error) {
             console.error('Registration completion failed:', error);
             toast.error(error.response?.data?.detail || 'Failed to complete registration');
@@ -241,10 +272,22 @@ const RegisterPage = () => {
       
     } catch (error) {
       console.error('Registration initiation failed:', error);
-      const errorMessage = error.response?.data?.detail || 'Registration failed. Please try again.';
+      const errorMessage = error.response?.data?.detail || error.response?.data?.error?.description || 'Registration failed. Please try again.';
       
+      // Handle Razorpay rate limiting
+      if (errorMessage.toLowerCase().includes('too many requests') || 
+          error.response?.data?.error?.code === 'BAD_REQUEST_ERROR') {
+        toast.error(
+          <div>
+            <p className="font-bold">⚠️ Too Many Attempts</p>
+            <p className="text-sm mt-1">Please wait 2-3 minutes before trying again.</p>
+            <p className="text-xs text-gray-400 mt-2">This is a payment gateway security measure.</p>
+          </div>,
+          { duration: 10000 }
+        );
+      }
       // Check if user is already registered
-      if (errorMessage.toLowerCase().includes('already registered') || 
+      else if (errorMessage.toLowerCase().includes('already registered') || 
           errorMessage.toLowerCase().includes('already exists') ||
           errorMessage.toLowerCase().includes('mobile number already')) {
         toast.error(
