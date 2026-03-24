@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test';
 
-const BASE_URL = process.env.REACT_APP_BACKEND_URL || 'https://bitz-payment-fix.preview.emergentagent.com';
+const BASE_URL = process.env.REACT_APP_BACKEND_URL || 'https://bitz-phase1-demo.preview.emergentagent.com';
 
 test.describe('Admin Plans Page - Plan CRUD', () => {
   
