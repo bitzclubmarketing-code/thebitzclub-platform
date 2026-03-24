@@ -2260,6 +2260,161 @@ async def get_member_payments(member_id: str, user: dict = Depends(get_current_u
     ).sort("created_at", -1).to_list(100)
     return payments
 
+# ==================== INDIVIDUAL MEMBER EXPORT ====================
+
+@api_router.get("/members/{member_id}/export")
+async def export_individual_member(member_id: str, admin: dict = Depends(require_admin)):
+    """Export individual member details as Excel file"""
+    # Find member
+    member = await db.members.find_one(
+        {"$or": [{"member_id": member_id}, {"id": member_id}]},
+        {"_id": 0, "qr_code": 0}
+    )
+    if not member:
+        raise HTTPException(status_code=404, detail="Member not found")
+    
+    # Get member's payments
+    payments = await db.payments.find(
+        {"member_id": member.get("member_id", member_id)},
+        {"_id": 0}
+    ).sort("created_at", -1).to_list(100)
+    
+    # Get member's family members
+    family = await db.family_members.find(
+        {"member_id": member.get("member_id", member_id)},
+        {"_id": 0}
+    ).to_list(50)
+    
+    # Create Excel workbook
+    wb = Workbook()
+    
+    # Member Details Sheet
+    ws_member = wb.active
+    ws_member.title = "Member Details"
+    
+    ws_member.append(["Field", "Value"])
+    ws_member.append(["Member ID", member.get("member_id", "")])
+    ws_member.append(["Name", member.get("name", "")])
+    ws_member.append(["Mobile", member.get("mobile", "")])
+    ws_member.append(["Email", member.get("email", "")])
+    ws_member.append(["Date of Birth", member.get("date_of_birth", "")])
+    ws_member.append(["Address", member.get("address", "")])
+    ws_member.append(["City", member.get("city", "")])
+    ws_member.append(["State", member.get("state", "")])
+    ws_member.append(["Pincode", member.get("pincode", "")])
+    ws_member.append(["Country", member.get("country", "India")])
+    ws_member.append(["Plan", member.get("plan_name", "")])
+    ws_member.append(["Status", member.get("status", "")])
+    ws_member.append(["Membership Start", member.get("membership_start", "")])
+    ws_member.append(["Membership End", member.get("membership_end", "")])
+    ws_member.append(["Referral Code", member.get("referral_code", "")])
+    ws_member.append(["Referred By", member.get("referral_id", "")])
+    ws_member.append(["Member Type", member.get("member_type", "indian")])
+    ws_member.append(["Created At", member.get("created_at", "")])
+    
+    # Payments Sheet
+    ws_payments = wb.create_sheet("Payment History")
+    ws_payments.append(["Payment ID", "Order ID", "Amount", "Method", "Status", "Date"])
+    for p in payments:
+        ws_payments.append([
+            p.get("razorpay_payment_id", p.get("id", "")),
+            p.get("razorpay_order_id", p.get("order_id", "")),
+            p.get("amount", 0),
+            p.get("payment_method", ""),
+            p.get("status", ""),
+            p.get("created_at", "")
+        ])
+    
+    # Family Members Sheet
+    ws_family = wb.create_sheet("Family Members")
+    ws_family.append(["Name", "Relationship", "Date of Birth", "Mobile", "Added On"])
+    for f in family:
+        ws_family.append([
+            f.get("name", ""),
+            f.get("relationship", ""),
+            f.get("date_of_birth", ""),
+            f.get("mobile", ""),
+            f.get("created_at", "")
+        ])
+    
+    # Save to BytesIO
+    output = BytesIO()
+    wb.save(output)
+    output.seek(0)
+    
+    filename = f"member_{member.get('member_id', member_id)}_{datetime.now().strftime('%Y%m%d')}.xlsx"
+    
+    return StreamingResponse(
+        output,
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={"Content-Disposition": f"attachment; filename={filename}"}
+    )
+
+@api_router.get("/members/{member_id}/payments/download")
+async def download_member_payments(member_id: str, user: dict = Depends(get_current_user)):
+    """Download payment receipts for a member as Excel"""
+    # Check access
+    if user.get("role") == UserRole.MEMBER:
+        if user.get("member_id") != member_id:
+            raise HTTPException(status_code=403, detail="You can only download your own payments")
+    elif user.get("role") not in [UserRole.ADMIN, UserRole.SUPER_ADMIN, UserRole.TELECALLER]:
+        raise HTTPException(status_code=403, detail="Access denied")
+    
+    # Get member info
+    member = await db.members.find_one(
+        {"$or": [{"member_id": member_id}, {"id": member_id}]},
+        {"_id": 0}
+    )
+    if not member:
+        raise HTTPException(status_code=404, detail="Member not found")
+    
+    # Get payments
+    payments = await db.payments.find(
+        {"member_id": member.get("member_id", member_id)},
+        {"_id": 0}
+    ).sort("created_at", -1).to_list(100)
+    
+    # Create Excel
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Payment History"
+    
+    # Header info
+    ws.append([f"Payment History for: {member.get('name', '')}"])
+    ws.append([f"Member ID: {member.get('member_id', '')}"])
+    ws.append([])
+    
+    # Payment table
+    ws.append(["#", "Payment ID", "Order ID", "Plan", "Amount", "Method", "Status", "Date"])
+    for i, p in enumerate(payments, 1):
+        ws.append([
+            i,
+            p.get("razorpay_payment_id", p.get("id", "")),
+            p.get("razorpay_order_id", p.get("order_id", "")),
+            p.get("plan_name", ""),
+            f"₹{p.get('amount', 0):,.2f}",
+            p.get("payment_method", "razorpay"),
+            p.get("status", ""),
+            p.get("created_at", "")[:10] if p.get("created_at") else ""
+        ])
+    
+    # Total
+    total = sum(p.get("amount", 0) for p in payments if p.get("status") == "completed")
+    ws.append([])
+    ws.append(["", "", "", "Total Paid:", f"₹{total:,.2f}", "", "", ""])
+    
+    output = BytesIO()
+    wb.save(output)
+    output.seek(0)
+    
+    filename = f"payments_{member.get('member_id', member_id)}_{datetime.now().strftime('%Y%m%d')}.xlsx"
+    
+    return StreamingResponse(
+        output,
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={"Content-Disposition": f"attachment; filename={filename}"}
+    )
+
 class AssignTelecallerRequest(BaseModel):
     telecaller_id: Optional[str] = None
 
@@ -2278,6 +2433,112 @@ async def assign_member_telecaller(member_id: str, request: AssignTelecallerRequ
     if result.matched_count == 0:
         raise HTTPException(status_code=404, detail="Member not found")
     return {"message": "Telecaller assigned successfully"}
+
+
+# ==================== FAMILY MEMBERS MANAGEMENT ====================
+
+class FamilyMemberCreate(BaseModel):
+    name: str
+    relationship: str  # spouse, child, parent, sibling, other
+    date_of_birth: Optional[str] = None
+    mobile: Optional[str] = None
+    email: Optional[str] = None
+    photo_url: Optional[str] = None
+
+@api_router.get("/members/{member_id}/family")
+async def get_family_members(member_id: str, user: dict = Depends(get_current_user)):
+    """Get family members for a member"""
+    # Check access
+    if user.get("role") == UserRole.MEMBER:
+        if user.get("member_id") != member_id:
+            raise HTTPException(status_code=403, detail="Access denied")
+    elif user.get("role") not in [UserRole.ADMIN, UserRole.SUPER_ADMIN, UserRole.TELECALLER]:
+        raise HTTPException(status_code=403, detail="Access denied")
+    
+    family = await db.family_members.find(
+        {"member_id": member_id},
+        {"_id": 0}
+    ).to_list(50)
+    return family
+
+@api_router.post("/members/{member_id}/family")
+async def add_family_member(member_id: str, data: FamilyMemberCreate, user: dict = Depends(get_current_user)):
+    """Add a family member (admin or member can add)"""
+    # Check access
+    if user.get("role") == UserRole.MEMBER:
+        if user.get("member_id") != member_id:
+            raise HTTPException(status_code=403, detail="Access denied")
+    elif user.get("role") not in [UserRole.ADMIN, UserRole.SUPER_ADMIN, UserRole.TELECALLER]:
+        raise HTTPException(status_code=403, detail="Access denied")
+    
+    # Verify member exists
+    member = await db.members.find_one({"$or": [{"member_id": member_id}, {"id": member_id}]})
+    if not member:
+        raise HTTPException(status_code=404, detail="Member not found")
+    
+    family_member = {
+        "id": str(uuid.uuid4()),
+        "member_id": member.get("member_id", member_id),
+        "name": data.name,
+        "relationship": data.relationship,
+        "date_of_birth": data.date_of_birth,
+        "mobile": data.mobile,
+        "email": data.email,
+        "photo_url": data.photo_url,
+        "added_by": user.get("id"),
+        "created_at": datetime.now(timezone.utc).isoformat()
+    }
+    
+    await db.family_members.insert_one(family_member)
+    family_member.pop("_id", None)
+    
+    return {"message": "Family member added successfully", "family_member": family_member}
+
+@api_router.put("/family/{family_id}")
+async def update_family_member(family_id: str, data: FamilyMemberCreate, user: dict = Depends(get_current_user)):
+    """Update a family member"""
+    family_member = await db.family_members.find_one({"id": family_id})
+    if not family_member:
+        raise HTTPException(status_code=404, detail="Family member not found")
+    
+    # Check access
+    if user.get("role") == UserRole.MEMBER:
+        if user.get("member_id") != family_member.get("member_id"):
+            raise HTTPException(status_code=403, detail="Access denied")
+    elif user.get("role") not in [UserRole.ADMIN, UserRole.SUPER_ADMIN, UserRole.TELECALLER]:
+        raise HTTPException(status_code=403, detail="Access denied")
+    
+    await db.family_members.update_one(
+        {"id": family_id},
+        {"$set": {
+            "name": data.name,
+            "relationship": data.relationship,
+            "date_of_birth": data.date_of_birth,
+            "mobile": data.mobile,
+            "email": data.email,
+            "photo_url": data.photo_url,
+            "updated_at": datetime.now(timezone.utc).isoformat()
+        }}
+    )
+    
+    return {"message": "Family member updated successfully"}
+
+@api_router.delete("/family/{family_id}")
+async def delete_family_member(family_id: str, user: dict = Depends(get_current_user)):
+    """Delete a family member"""
+    family_member = await db.family_members.find_one({"id": family_id})
+    if not family_member:
+        raise HTTPException(status_code=404, detail="Family member not found")
+    
+    # Check access
+    if user.get("role") == UserRole.MEMBER:
+        if user.get("member_id") != family_member.get("member_id"):
+            raise HTTPException(status_code=403, detail="Access denied")
+    elif user.get("role") not in [UserRole.ADMIN, UserRole.SUPER_ADMIN]:
+        raise HTTPException(status_code=403, detail="Only admins can delete family members")
+    
+    await db.family_members.delete_one({"id": family_id})
+    return {"message": "Family member deleted successfully"}
 
 
 # ==================== MEMBER PHOTO UPLOAD ====================
