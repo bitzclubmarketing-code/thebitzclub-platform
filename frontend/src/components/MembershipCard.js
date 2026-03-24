@@ -78,19 +78,7 @@ export const MembershipCardFront = forwardRef(({ member, user, qrSize = 80 }, re
             BITZ Club
           </span>
         </div>
-        <div style={{
-          padding: '4px 10px',
-          borderRadius: '12px',
-          fontSize: '10px',
-          fontWeight: '600',
-          textTransform: 'uppercase',
-          letterSpacing: '0.5px',
-          background: status === 'active' ? 'rgba(34,197,94,0.2)' : status === 'pending' ? 'rgba(234,179,8,0.2)' : 'rgba(239,68,68,0.2)',
-          color: status === 'active' ? '#22C55E' : status === 'pending' ? '#EAB308' : '#EF4444',
-          border: `1px solid ${status === 'active' ? 'rgba(34,197,94,0.3)' : status === 'pending' ? 'rgba(234,179,8,0.3)' : 'rgba(239,68,68,0.3)'}`
-        }}>
-          {status}
-        </div>
+        {/* Status badge removed as per user request */}
       </div>
 
       {/* Main content */}

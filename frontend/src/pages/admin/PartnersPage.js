@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
 import axios from 'axios';
-import { Plus, Edit, Trash2, Loader2, Building2, Percent } from 'lucide-react';
+import { Plus, Edit, Trash2, Loader2, Building2, Percent, Upload, Image, X } from 'lucide-react';
 import { useAuth, API } from '@/context/AuthContext';
 import { toast } from 'sonner';
 import {
@@ -17,6 +17,8 @@ const PartnersPage = () => {
   const [loading, setLoading] = useState(true);
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedPartner, setSelectedPartner] = useState(null);
+  const [uploadingLogo, setUploadingLogo] = useState(false);
+  const logoInputRef = useRef(null);
   const [formData, setFormData] = useState({
     name: '',
     description: '',
@@ -125,6 +127,47 @@ const PartnersPage = () => {
     const newFacilities = [...formData.facilities];
     newFacilities[index] = { ...newFacilities[index], [field]: value };
     setFormData({ ...formData, facilities: newFacilities });
+  };
+
+  const handleLogoUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      toast.error('Please select an image file');
+      return;
+    }
+
+    // Validate file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error('Image must be less than 5MB');
+      return;
+    }
+
+    setUploadingLogo(true);
+    const uploadData = new FormData();
+    uploadData.append('file', file);
+
+    try {
+      const response = await axios.post(`${API}/media/upload?category=partners`, uploadData, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'multipart/form-data'
+        }
+      });
+      
+      setFormData({ ...formData, logo_url: response.data.media.url });
+      toast.success('Logo uploaded successfully!');
+    } catch (error) {
+      console.error('Upload failed:', error);
+      toast.error('Failed to upload logo');
+    } finally {
+      setUploadingLogo(false);
+      if (logoInputRef.current) {
+        logoInputRef.current.value = '';
+      }
+    }
   };
 
   const removeFacility = (index) => {
@@ -258,14 +301,62 @@ const PartnersPage = () => {
               />
             </div>
             <div>
-              <label className="input-label">Logo URL</label>
-              <input
-                type="url"
-                value={formData.logo_url}
-                onChange={(e) => setFormData({ ...formData, logo_url: e.target.value })}
-                className="input-gold"
-                placeholder="https://example.com/logo.jpg"
-              />
+              <label className="input-label">Partner Logo / Image</label>
+              <div className="space-y-3">
+                {/* Logo Preview */}
+                {formData.logo_url && (
+                  <div className="relative inline-block">
+                    <img 
+                      src={formData.logo_url.startsWith('/') ? `${API.replace('/api', '')}${formData.logo_url}` : formData.logo_url}
+                      alt="Partner Logo"
+                      className="w-32 h-32 object-cover rounded-lg border border-[#D4AF37]/30"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setFormData({ ...formData, logo_url: '' })}
+                      className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+                )}
+                
+                {/* Upload Button */}
+                <div className="flex gap-2">
+                  <input
+                    ref={logoInputRef}
+                    type="file"
+                    accept="image/*"
+                    onChange={handleLogoUpload}
+                    className="hidden"
+                    data-testid="partner-logo-input"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => logoInputRef.current?.click()}
+                    disabled={uploadingLogo}
+                    className="flex items-center gap-2 px-4 py-2 bg-[#D4AF37]/20 border border-[#D4AF37]/30 rounded-lg text-[#D4AF37] hover:bg-[#D4AF37]/30 transition-colors disabled:opacity-50"
+                    data-testid="upload-logo-btn"
+                  >
+                    {uploadingLogo ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <Upload className="w-4 h-4" />
+                    )}
+                    {uploadingLogo ? 'Uploading...' : 'Upload Logo'}
+                  </button>
+                </div>
+                
+                {/* Or URL Input */}
+                <div className="text-xs text-gray-500 my-1">Or enter URL directly:</div>
+                <input
+                  type="url"
+                  value={formData.logo_url}
+                  onChange={(e) => setFormData({ ...formData, logo_url: e.target.value })}
+                  className="input-gold"
+                  placeholder="https://example.com/logo.jpg"
+                />
+              </div>
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div>

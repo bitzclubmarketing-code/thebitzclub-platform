@@ -5980,7 +5980,7 @@ async def export_transaction_report(
 # Media Library - Upload images
 @api_router.post("/media/upload")
 async def upload_media(file: UploadFile = File(...), category: str = "general"):
-    """Upload media file to server"""
+    """Upload media file to server (images and videos)"""
     try:
         # Create uploads directory if not exists
         upload_dir = ROOT_DIR / "uploads" / "media"
@@ -5988,8 +5988,13 @@ async def upload_media(file: UploadFile = File(...), category: str = "general"):
         
         # Generate unique filename
         ext = Path(file.filename).suffix.lower()
-        if ext not in ['.jpg', '.jpeg', '.png', '.gif', '.webp']:
-            raise HTTPException(status_code=400, detail="Only image files allowed (jpg, png, gif, webp)")
+        allowed_extensions = ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.mp4', '.webm', '.mov', '.avi']
+        if ext not in allowed_extensions:
+            raise HTTPException(status_code=400, detail=f"Allowed file types: {', '.join(allowed_extensions)}")
+        
+        # Determine media type
+        video_extensions = ['.mp4', '.webm', '.mov', '.avi']
+        media_type = "video" if ext in video_extensions else "image"
         
         filename = f"{uuid.uuid4()}{ext}"
         file_path = upload_dir / filename
@@ -6006,6 +6011,7 @@ async def upload_media(file: UploadFile = File(...), category: str = "general"):
             "original_name": file.filename,
             "url": f"/api/media/{filename}",
             "category": category,
+            "media_type": media_type,
             "size": len(content),
             "mime_type": file.content_type,
             "created_at": datetime.now(timezone.utc).isoformat()
@@ -6019,7 +6025,7 @@ async def upload_media(file: UploadFile = File(...), category: str = "general"):
 
 @api_router.get("/media/{filename}")
 async def get_media_file(filename: str):
-    """Serve media file"""
+    """Serve media file (images and videos)"""
     file_path = ROOT_DIR / "uploads" / "media" / filename
     if not file_path.exists():
         raise HTTPException(status_code=404, detail="File not found")
@@ -6028,7 +6034,8 @@ async def get_media_file(filename: str):
     ext = Path(filename).suffix.lower()
     content_types = {
         '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg',
-        '.png': 'image/png', '.gif': 'image/gif', '.webp': 'image/webp'
+        '.png': 'image/png', '.gif': 'image/gif', '.webp': 'image/webp',
+        '.mp4': 'video/mp4', '.webm': 'video/webm', '.mov': 'video/quicktime', '.avi': 'video/x-msvideo'
     }
     content_type = content_types.get(ext, 'application/octet-stream')
     

@@ -154,11 +154,12 @@ const MediaManagementPage = () => {
           'Content-Type': 'multipart/form-data'
         }
       });
-      toast.success('Image uploaded successfully!');
+      const isVideo = file.type.startsWith('video/');
+      toast.success(`${isVideo ? 'Video' : 'Image'} uploaded successfully!`);
       fetchMediaLibrary();
       return response.data.media;
     } catch (error) {
-      toast.error('Failed to upload image');
+      toast.error(error.response?.data?.detail || 'Failed to upload file');
       console.error('Upload error:', error);
       return null;
     } finally {
@@ -366,6 +367,22 @@ const MediaManagementPage = () => {
                     placeholder="Image URL or upload new"
                     className="flex-1 bg-gray-700 border border-gray-600 rounded-lg px-4 py-2 text-white"
                   />
+                  <label className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-500 flex items-center gap-2 cursor-pointer">
+                    <Upload className="w-4 h-4" />
+                    Upload
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={async (e) => {
+                        const media = await handleFileUpload(e, 'homepage');
+                        if (media) {
+                          setHomepageSettings(prev => ({ ...prev, hero_image: media.url }));
+                        }
+                      }}
+                      data-testid="upload-hero-image"
+                    />
+                  </label>
                   <button
                     onClick={() => selectMediaForField('hero_image')}
                     className="px-4 py-2 bg-amber-500 text-black rounded-lg hover:bg-amber-400 flex items-center gap-2"
@@ -387,14 +404,33 @@ const MediaManagementPage = () => {
             {/* Hero Video URL */}
             {homepageSettings.hero_type === 'video' && (
               <div className="space-y-2">
-                <label className="text-sm text-gray-400">YouTube Video URL</label>
-                <input
-                  type="text"
-                  value={homepageSettings.hero_video_url || ''}
-                  onChange={(e) => setHomepageSettings(prev => ({ ...prev, hero_video_url: e.target.value }))}
-                  placeholder="https://www.youtube.com/watch?v=..."
-                  className="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-2 text-white"
-                />
+                <label className="text-sm text-gray-400">Video for Homepage Banner</label>
+                <div className="text-xs text-gray-500 mb-2">Upload a video file or enter a YouTube URL</div>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={homepageSettings.hero_video_url || ''}
+                    onChange={(e) => setHomepageSettings(prev => ({ ...prev, hero_video_url: e.target.value }))}
+                    placeholder="Video URL or YouTube link"
+                    className="flex-1 bg-gray-700 border border-gray-600 rounded-lg px-4 py-2 text-white"
+                  />
+                  <label className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-500 flex items-center gap-2 cursor-pointer">
+                    <Video className="w-4 h-4" />
+                    Upload Video
+                    <input
+                      type="file"
+                      accept="video/mp4,video/webm"
+                      className="hidden"
+                      onChange={async (e) => {
+                        const media = await handleFileUpload(e, 'homepage');
+                        if (media) {
+                          setHomepageSettings(prev => ({ ...prev, hero_video_url: media.url }));
+                        }
+                      }}
+                      data-testid="upload-hero-video"
+                    />
+                  </label>
+                </div>
                 <div className="flex gap-4 mt-2">
                   <label className="flex items-center gap-2 cursor-pointer">
                     <input
@@ -599,16 +635,30 @@ const MediaManagementPage = () => {
         <TabsContent value="library" className="mt-6">
           <div className="flex justify-between items-center mb-4">
             <h2 className="text-lg font-semibold text-white">Media Library</h2>
-            <label className="px-4 py-2 bg-amber-500 text-black rounded-lg hover:bg-amber-400 flex items-center gap-2 cursor-pointer">
-              <Upload className="w-4 h-4" />
-              Upload Image
-              <input
-                type="file"
-                accept="image/*"
-                className="hidden"
-                onChange={(e) => handleFileUpload(e, 'general')}
-              />
-            </label>
+            <div className="flex gap-2">
+              <label className="px-4 py-2 bg-amber-500 text-black rounded-lg hover:bg-amber-400 flex items-center gap-2 cursor-pointer">
+                <Image className="w-4 h-4" />
+                Upload Image
+                <input
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={(e) => handleFileUpload(e, 'general')}
+                  data-testid="upload-image-input"
+                />
+              </label>
+              <label className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-400 flex items-center gap-2 cursor-pointer">
+                <Video className="w-4 h-4" />
+                Upload Video
+                <input
+                  type="file"
+                  accept="video/mp4,video/webm,video/quicktime"
+                  className="hidden"
+                  onChange={(e) => handleFileUpload(e, 'video')}
+                  data-testid="upload-video-input"
+                />
+              </label>
+            </div>
           </div>
 
           {uploading && (

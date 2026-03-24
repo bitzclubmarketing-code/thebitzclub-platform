@@ -192,7 +192,27 @@ const RegisterPage = () => {
       
     } catch (error) {
       console.error('Registration initiation failed:', error);
-      toast.error(error.response?.data?.detail || 'Registration failed. Please try again.');
+      const errorMessage = error.response?.data?.detail || 'Registration failed. Please try again.';
+      
+      // Check if user is already registered
+      if (errorMessage.toLowerCase().includes('already registered') || 
+          errorMessage.toLowerCase().includes('already exists') ||
+          errorMessage.toLowerCase().includes('mobile number already')) {
+        toast.error(
+          <div>
+            <p>{errorMessage}</p>
+            <button 
+              onClick={() => window.location.href = '/login'}
+              className="mt-2 px-4 py-1 bg-[#D4AF37] text-black rounded text-sm font-semibold"
+            >
+              Go to Login
+            </button>
+          </div>,
+          { duration: 10000 }
+        );
+      } else {
+        toast.error(errorMessage);
+      }
     } finally {
       if (!paymentStep) {
         setLoading(false);
