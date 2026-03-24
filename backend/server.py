@@ -7024,6 +7024,18 @@ async def download_frontend_build():
         )
     raise HTTPException(status_code=404, detail="Build file not found")
 
+@api_router.get("/download-server")
+async def download_backend_server():
+    """Download the updated server.py file"""
+    server_file = Path(__file__)
+    if server_file.exists():
+        return FileResponse(
+            str(server_file),
+            media_type="text/plain",
+            filename="server.py"
+        )
+    raise HTTPException(status_code=404, detail="Server file not found")
+
 # Include router
 app.include_router(api_router)
 
