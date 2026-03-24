@@ -8,12 +8,16 @@ import {
   Hotel, UtensilsCrossed, Sparkles, Dumbbell, PartyPopper,
   Waves, Baby, Music, Building2, CheckCircle, Loader2, 
   User, Mail, MapPin, Calendar, Lock, Upload, Camera,
-  CreditCard, Shield, Gift, Send, ChevronDown, Globe, XCircle
+  CreditCard, Shield, Gift, Send, ChevronDown, Globe, XCircle,
+  Facebook, Instagram
 } from 'lucide-react';
 import { API, useAuth } from '@/context/AuthContext';
 
 const WHATSAPP_NUMBER = '+917812901118';
 const PHONE_NUMBER = '+917812901118';
+const FACEBOOK_URL = 'https://www.facebook.com/bitzclub';
+const INSTAGRAM_URL = 'https://www.instagram.com/bitzclub';
+const EMAIL_ADDRESS = 'info@bitzclub.com';
 
 // Country codes with flags and phone formats
 const COUNTRY_CODES = [
@@ -527,7 +531,44 @@ const MarketingLanding = () => {
 
   return (
     <div className="min-h-screen bg-[#0F0F10]">
-      {/* Floating Contact Buttons */}
+      {/* Floating Social Media Bar - Left Side */}
+      <div className="fixed left-4 top-1/2 -translate-y-1/2 z-50 hidden md:flex flex-col gap-3">
+        <motion.a
+          href={FACEBOOK_URL}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="w-10 h-10 bg-white/10 backdrop-blur-sm rounded-full flex items-center justify-center hover:bg-blue-600 transition-all group"
+          whileHover={{ scale: 1.1 }}
+          whileTap={{ scale: 0.95 }}
+          data-testid="floating-facebook"
+        >
+          <Facebook className="w-5 h-5 text-gray-400 group-hover:text-white" />
+        </motion.a>
+        <motion.a
+          href={INSTAGRAM_URL}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="w-10 h-10 bg-white/10 backdrop-blur-sm rounded-full flex items-center justify-center hover:bg-gradient-to-br hover:from-purple-600 hover:to-pink-500 transition-all group"
+          whileHover={{ scale: 1.1 }}
+          whileTap={{ scale: 0.95 }}
+          data-testid="floating-instagram"
+        >
+          <Instagram className="w-5 h-5 text-gray-400 group-hover:text-white" />
+        </motion.a>
+        <motion.a
+          href={`https://wa.me/${WHATSAPP_NUMBER.replace('+', '')}`}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="w-10 h-10 bg-white/10 backdrop-blur-sm rounded-full flex items-center justify-center hover:bg-green-600 transition-all group"
+          whileHover={{ scale: 1.1 }}
+          whileTap={{ scale: 0.95 }}
+          data-testid="floating-whatsapp-left"
+        >
+          <MessageCircle className="w-5 h-5 text-gray-400 group-hover:text-white" />
+        </motion.a>
+      </div>
+
+      {/* Floating Contact Buttons - Right Side */}
       <div className="fixed bottom-6 right-6 z-50 flex flex-col gap-3">
         <motion.a
           href={`tel:${PHONE_NUMBER}`}
@@ -1446,30 +1487,87 @@ const MarketingLanding = () => {
       </section>
 
       {/* Footer */}
-      <footer className="py-8 bg-[#0F0F10] border-t border-white/5">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 text-center">
-          <div className="flex items-center justify-center gap-2 mb-4">
-            <Crown className="w-6 h-6 text-[#D4AF37]" />
-            <span className="text-lg font-bold text-white" style={{ fontFamily: 'Playfair Display, serif' }}>
-              BITZ Club
-            </span>
+      <footer className="py-12 bg-[#0F0F10] border-t border-white/5">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6">
+          {/* Top Footer */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-8">
+            {/* Brand */}
+            <div className="text-center md:text-left">
+              <div className="flex items-center justify-center md:justify-start gap-2 mb-4">
+                <Crown className="w-8 h-8 text-[#D4AF37]" />
+                <span className="text-xl font-bold text-white" style={{ fontFamily: 'Playfair Display, serif' }}>
+                  BITZ Club
+                </span>
+              </div>
+              <p className="text-gray-400 text-sm">
+                Premium membership club offering exclusive lifestyle benefits and privileges.
+              </p>
+            </div>
+            
+            {/* Contact Info */}
+            <div className="text-center">
+              <h4 className="text-white font-semibold mb-4">Contact Us</h4>
+              <div className="space-y-2">
+                <a href={`tel:${PHONE_NUMBER}`} className="flex items-center justify-center gap-2 text-gray-400 hover:text-[#D4AF37] transition-colors">
+                  <Phone className="w-4 h-4" />
+                  {PHONE_NUMBER}
+                </a>
+                <a href={`mailto:${EMAIL_ADDRESS}`} className="flex items-center justify-center gap-2 text-gray-400 hover:text-[#D4AF37] transition-colors">
+                  <Mail className="w-4 h-4" />
+                  {EMAIL_ADDRESS}
+                </a>
+                <a 
+                  href={`https://wa.me/${WHATSAPP_NUMBER.replace('+', '')}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center justify-center gap-2 text-gray-400 hover:text-green-500 transition-colors"
+                >
+                  <MessageCircle className="w-4 h-4" />
+                  WhatsApp Support
+                </a>
+              </div>
+            </div>
+            
+            {/* Social Media */}
+            <div className="text-center md:text-right">
+              <h4 className="text-white font-semibold mb-4">Follow Us</h4>
+              <div className="flex items-center justify-center md:justify-end gap-4">
+                <a 
+                  href={FACEBOOK_URL}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="w-10 h-10 rounded-full bg-white/10 hover:bg-blue-600 flex items-center justify-center transition-all group"
+                  data-testid="footer-facebook"
+                >
+                  <Facebook className="w-5 h-5 text-gray-400 group-hover:text-white" />
+                </a>
+                <a 
+                  href={INSTAGRAM_URL}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="w-10 h-10 rounded-full bg-white/10 hover:bg-gradient-to-br hover:from-purple-600 hover:to-pink-500 flex items-center justify-center transition-all group"
+                  data-testid="footer-instagram"
+                >
+                  <Instagram className="w-5 h-5 text-gray-400 group-hover:text-white" />
+                </a>
+                <a 
+                  href={`https://wa.me/${WHATSAPP_NUMBER.replace('+', '')}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="w-10 h-10 rounded-full bg-white/10 hover:bg-green-600 flex items-center justify-center transition-all group"
+                  data-testid="footer-whatsapp"
+                >
+                  <MessageCircle className="w-5 h-5 text-gray-400 group-hover:text-white" />
+                </a>
+              </div>
+            </div>
           </div>
-          <p className="text-gray-500 text-sm">
-            © {new Date().getFullYear()} BITZ Club. All rights reserved.
-          </p>
-          <div className="flex items-center justify-center gap-4 mt-4">
-            <a href={`tel:${PHONE_NUMBER}`} className="text-gray-400 hover:text-[#D4AF37] text-sm">
-              {PHONE_NUMBER}
-            </a>
-            <span className="text-gray-600">|</span>
-            <a
-              href={`https://wa.me/${WHATSAPP_NUMBER.replace('+', '')}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-gray-400 hover:text-green-500 text-sm"
-            >
-              WhatsApp
-            </a>
+          
+          {/* Bottom Footer */}
+          <div className="border-t border-white/10 pt-6 text-center">
+            <p className="text-gray-500 text-sm">
+              © {new Date().getFullYear()} BITZ Club. All rights reserved.
+            </p>
           </div>
         </div>
       </footer>

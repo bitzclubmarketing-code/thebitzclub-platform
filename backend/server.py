@@ -1171,8 +1171,23 @@ class EmailService:
                     </ul>
                 </div>
                 
+                <div style="text-align: center; margin-top: 20px; padding: 20px 0; border-top: 1px solid #333;">
+                    <p style="color: #D4AF37; font-size: 14px; margin-bottom: 15px;">Connect with us on social media</p>
+                    <div style="display: inline-block;">
+                        <a href="https://www.facebook.com/bitzclub" target="_blank" style="display: inline-block; margin: 0 10px; text-decoration: none;">
+                            <div style="width: 40px; height: 40px; background: #3b5998; border-radius: 50%; line-height: 40px; color: white; font-size: 18px;">f</div>
+                        </a>
+                        <a href="https://www.instagram.com/bitzclub" target="_blank" style="display: inline-block; margin: 0 10px; text-decoration: none;">
+                            <div style="width: 40px; height: 40px; background: linear-gradient(45deg, #f09433, #e6683c, #dc2743, #cc2366, #bc1888); border-radius: 50%; line-height: 40px; color: white; font-size: 18px;">📷</div>
+                        </a>
+                        <a href="https://wa.me/917812901118" target="_blank" style="display: inline-block; margin: 0 10px; text-decoration: none;">
+                            <div style="width: 40px; height: 40px; background: #25D366; border-radius: 50%; line-height: 40px; color: white; font-size: 18px;">💬</div>
+                        </a>
+                    </div>
+                </div>
+                
                 <div style="text-align: center; margin-top: 20px;">
-                    <p style="color: #666; font-size: 12px;">For support, contact us at hello@bitzclub.com</p>
+                    <p style="color: #666; font-size: 12px;">For support, contact us at info@bitzclub.com or WhatsApp: +91 78129 01118</p>
                 </div>
             </div>
         </body>
