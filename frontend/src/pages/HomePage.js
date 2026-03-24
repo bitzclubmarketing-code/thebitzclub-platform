@@ -23,7 +23,9 @@ import {
   PartyPopper,
   Building2,
   Menu,
-  X
+  X,
+  Download,
+  Smartphone
 } from 'lucide-react';
 import { API } from '@/context/AuthContext';
 
@@ -41,6 +43,7 @@ const HomePage = () => {
   const [settings, setSettings] = useState({});
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [activeGalleryIndex, setActiveGalleryIndex] = useState(0);
+  const [deferredPrompt, setDeferredPrompt] = useState(null);
 
   useEffect(() => {
     fetchPlans();
@@ -49,7 +52,35 @@ const HomePage = () => {
     fetchOffers();
     fetchGallery();
     fetchSettings();
+    
+    // PWA Install prompt handler
+    const handleBeforeInstallPrompt = (e) => {
+      e.preventDefault();
+      setDeferredPrompt(e);
+    };
+    
+    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+    
+    return () => {
+      window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+    };
   }, []);
+
+  const handleInstallApp = async () => {
+    if (!deferredPrompt) {
+      // Show instructions for manual installation
+      alert('To install the app:\n\n• On Android: Tap the menu (⋮) and select "Add to Home Screen"\n• On iOS: Tap Share and select "Add to Home Screen"\n• On Desktop: Click the install icon in the address bar');
+      return;
+    }
+    
+    deferredPrompt.prompt();
+    const { outcome } = await deferredPrompt.userChoice;
+    
+    if (outcome === 'accepted') {
+      console.log('App installed');
+    }
+    setDeferredPrompt(null);
+  };
 
   const fetchPlans = async () => {
     try {
@@ -748,6 +779,99 @@ const HomePage = () => {
               Start Your Journey
               <ArrowRight className="w-5 h-5" />
             </Link>
+          </motion.div>
+        </div>
+      </section>
+
+      {/* App Download Section */}
+      <section className="py-16 sm:py-24 bg-gradient-to-b from-[#0F0F10] to-[#1A1A1C]">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            className="card-dark border border-[#D4AF37]/30 p-6 sm:p-10"
+          >
+            <div className="flex flex-col lg:flex-row items-center gap-8 lg:gap-12">
+              {/* Phone Mockup */}
+              <div className="order-2 lg:order-1 flex-shrink-0">
+                <div className="relative">
+                  <div className="w-52 h-[420px] bg-black rounded-[2.5rem] border-4 border-gray-800 overflow-hidden shadow-2xl shadow-[#D4AF37]/10">
+                    <div className="absolute top-0 left-1/2 -translate-x-1/2 w-20 h-5 bg-black rounded-b-xl z-10" />
+                    <div className="h-full bg-gradient-to-b from-[#1A1A1C] to-[#0F0F10] p-4 pt-8">
+                      <div className="flex items-center gap-2 mb-6">
+                        <Crown className="w-6 h-6 text-[#D4AF37]" />
+                        <span className="text-white font-bold">BITZ Club</span>
+                      </div>
+                      <div className="bg-gradient-to-r from-[#D4AF37]/20 to-[#D4AF37]/10 rounded-xl p-4 mb-4 border border-[#D4AF37]/20">
+                        <p className="text-[#D4AF37] text-xs font-semibold mb-1">MEMBER ID</p>
+                        <p className="text-white font-bold">2607600015</p>
+                        <p className="text-gray-400 text-xs mt-1">Gold Member</p>
+                      </div>
+                      <div className="space-y-3">
+                        {['Digital Card', 'Exclusive Offers', 'Partner Deals', 'Quick Support'].map((item, i) => (
+                          <div key={i} className="bg-white/5 rounded-lg p-3 flex items-center gap-3 border border-white/5">
+                            <div className="w-8 h-8 bg-[#D4AF37]/10 rounded-lg flex items-center justify-center">
+                              <Smartphone className="w-4 h-4 text-[#D4AF37]" />
+                            </div>
+                            <span className="text-white text-sm">{item}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                  {/* Glow effect */}
+                  <div className="absolute -inset-4 bg-[#D4AF37]/5 rounded-[3rem] -z-10 blur-xl" />
+                </div>
+              </div>
+
+              {/* Content */}
+              <div className="order-1 lg:order-2 flex-1 text-center lg:text-left">
+                <div className="inline-flex items-center gap-2 px-4 py-2 bg-[#D4AF37]/10 rounded-full text-[#D4AF37] text-sm font-medium mb-6">
+                  <Download className="w-4 h-4" />
+                  Available Now
+                </div>
+                <h2 
+                  className="text-3xl sm:text-4xl lg:text-5xl font-bold text-white mb-4"
+                  style={{ fontFamily: 'Playfair Display, serif' }}
+                >
+                  Download the <span className="text-[#D4AF37]">BITZ App</span>
+                </h2>
+                <p className="text-gray-400 mb-8 max-w-lg mx-auto lg:mx-0">
+                  Access your membership benefits, digital card, exclusive offers, and partner discounts - all from your phone.
+                </p>
+                
+                <ul className="grid sm:grid-cols-2 gap-3 mb-8 text-left max-w-lg mx-auto lg:mx-0">
+                  {[
+                    'Digital Membership Card',
+                    'Exclusive Member Offers',
+                    'Partner Discount Access',
+                    'Event Notifications',
+                    'Easy Referral Sharing',
+                    '24/7 Support Access'
+                  ].map((feature, i) => (
+                    <li key={i} className="flex items-center gap-2 text-gray-300">
+                      <Check className="w-5 h-5 text-[#D4AF37] flex-shrink-0" />
+                      <span className="text-sm">{feature}</span>
+                    </li>
+                  ))}
+                </ul>
+
+                <div className="flex flex-col sm:flex-row items-center gap-4 justify-center lg:justify-start">
+                  <button
+                    onClick={handleInstallApp}
+                    className="w-full sm:w-auto px-8 py-4 bg-[#D4AF37] hover:bg-[#E6D699] text-black font-bold rounded-lg transition-colors flex items-center justify-center gap-2"
+                    data-testid="install-app-btn"
+                  >
+                    <Download className="w-5 h-5" />
+                    Install App Now
+                  </button>
+                  <p className="text-gray-500 text-sm">
+                    No app store needed • Works on all devices
+                  </p>
+                </div>
+              </div>
+            </div>
           </motion.div>
         </div>
       </section>

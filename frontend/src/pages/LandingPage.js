@@ -6,7 +6,7 @@ import {
   Crown, Star, Play, ArrowRight, MessageCircle, Phone,
   Hotel, UtensilsCrossed, Sparkles, Dumbbell, PartyPopper,
   Waves, Baby, Music, Building2, Users, ChevronRight, 
-  CheckCircle, Loader2, MapPin
+  CheckCircle, Loader2, MapPin, Download, Smartphone
 } from 'lucide-react';
 import { API } from '@/context/AuthContext';
 import { toast } from 'sonner';
@@ -21,10 +21,47 @@ const LandingPage = () => {
   });
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const [deferredPrompt, setDeferredPrompt] = useState(null);
+  const [showInstallBanner, setShowInstallBanner] = useState(false);
 
   useEffect(() => {
     fetchPlans();
+    
+    // PWA Install prompt handler
+    const handleBeforeInstallPrompt = (e) => {
+      e.preventDefault();
+      setDeferredPrompt(e);
+      setShowInstallBanner(true);
+    };
+    
+    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+    
+    // Check if already installed
+    if (window.matchMedia('(display-mode: standalone)').matches) {
+      setShowInstallBanner(false);
+    }
+    
+    return () => {
+      window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+    };
   }, []);
+
+  const handleInstallApp = async () => {
+    if (!deferredPrompt) {
+      // Fallback for browsers that don't support beforeinstallprompt
+      toast.info('To install: Open browser menu and select "Add to Home Screen" or "Install App"');
+      return;
+    }
+    
+    deferredPrompt.prompt();
+    const { outcome } = await deferredPrompt.userChoice;
+    
+    if (outcome === 'accepted') {
+      toast.success('App installed successfully!');
+      setShowInstallBanner(false);
+    }
+    setDeferredPrompt(null);
+  };
 
   const fetchPlans = async () => {
     try {
@@ -449,6 +486,90 @@ const LandingPage = () => {
                 </button>
               </form>
             )}
+          </motion.div>
+        </div>
+      </section>
+
+      {/* App Download Section */}
+      <section className="py-16 bg-gradient-to-b from-[#0F0F10] to-[#1A1A1C]">
+        <div className="max-w-5xl mx-auto px-4 sm:px-6">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            className="glass-gold p-6 sm:p-10 gold-glow-strong"
+          >
+            <div className="flex flex-col md:flex-row items-center gap-8">
+              <div className="flex-1 text-center md:text-left">
+                <div className="flex items-center justify-center md:justify-start gap-3 mb-4">
+                  <div className="w-16 h-16 bg-[#D4AF37] rounded-2xl flex items-center justify-center">
+                    <Crown className="w-8 h-8 text-black" />
+                  </div>
+                  <div>
+                    <h3 className="text-2xl font-bold text-white" style={{ fontFamily: 'Playfair Display, serif' }}>
+                      BITZ Club App
+                    </h3>
+                    <p className="text-gray-400 text-sm">Download Now</p>
+                  </div>
+                </div>
+                <p className="text-gray-300 mb-6">
+                  Get instant access to your membership benefits, digital card, exclusive offers, and more right from your phone.
+                </p>
+                <ul className="grid sm:grid-cols-2 gap-2 mb-6">
+                  {[
+                    'Digital Membership Card',
+                    'Exclusive Member Offers',
+                    'Partner Discounts',
+                    'Event Notifications',
+                    'Easy Referrals',
+                    'Quick Support'
+                  ].map((feature, i) => (
+                    <li key={i} className="flex items-center gap-2 text-gray-300 text-sm">
+                      <CheckCircle className="w-4 h-4 text-[#D4AF37] flex-shrink-0" />
+                      {feature}
+                    </li>
+                  ))}
+                </ul>
+                <button
+                  onClick={handleInstallApp}
+                  className="btn-primary flex items-center justify-center gap-2 w-full sm:w-auto"
+                  data-testid="install-app-btn"
+                >
+                  <Download className="w-5 h-5" />
+                  Install App
+                </button>
+                <p className="text-xs text-gray-500 mt-3">
+                  Works on Android & iOS • No app store needed
+                </p>
+              </div>
+              <div className="hidden md:flex items-center justify-center">
+                <div className="relative">
+                  <div className="w-48 h-96 bg-black rounded-[3rem] border-4 border-gray-800 overflow-hidden shadow-2xl">
+                    <div className="absolute top-0 left-1/2 -translate-x-1/2 w-24 h-6 bg-black rounded-b-2xl z-10" />
+                    <div className="h-full bg-gradient-to-b from-[#1A1A1C] to-[#0F0F10] p-4 pt-8">
+                      <div className="flex items-center gap-2 mb-4">
+                        <Crown className="w-6 h-6 text-[#D4AF37]" />
+                        <span className="text-white font-bold text-sm">BITZ Club</span>
+                      </div>
+                      <div className="bg-[#D4AF37]/20 rounded-lg p-3 mb-3">
+                        <p className="text-[#D4AF37] text-xs font-semibold mb-1">Member ID</p>
+                        <p className="text-white text-sm">BITZ-2607600015</p>
+                      </div>
+                      <div className="space-y-2">
+                        {['My Card', 'Offers', 'Partners', 'Support'].map((item, i) => (
+                          <div key={i} className="bg-white/5 rounded-lg p-2 flex items-center gap-2">
+                            <div className="w-6 h-6 bg-[#D4AF37]/20 rounded flex items-center justify-center">
+                              <Smartphone className="w-3 h-3 text-[#D4AF37]" />
+                            </div>
+                            <span className="text-white text-xs">{item}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
           </motion.div>
         </div>
       </section>

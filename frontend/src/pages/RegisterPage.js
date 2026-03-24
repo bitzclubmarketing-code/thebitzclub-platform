@@ -16,7 +16,7 @@ const RegisterPage = () => {
     dateOfBirth: '',
     password: '',
     confirmPassword: '',
-    referralId: '',
+    referralId: searchParams.get('ref') || searchParams.get('referral') || '',
     planId: searchParams.get('plan') || ''
   });
   const [photoPreview, setPhotoPreview] = useState(null);
