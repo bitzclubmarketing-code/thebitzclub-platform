@@ -2464,12 +2464,22 @@ async def get_family_members(member_id: str, user: dict = Depends(get_current_us
 
 @api_router.post("/members/{member_id}/family")
 async def add_family_member(member_id: str, data: FamilyMemberCreate, user: dict = Depends(get_current_user)):
-    """Add a family member (admin or member can add)"""
-    # Check access
-    if user.get("role") == UserRole.MEMBER:
-        if user.get("member_id") != member_id:
-            raise HTTPException(status_code=403, detail="Access denied")
-    elif user.get("role") not in [UserRole.ADMIN, UserRole.SUPER_ADMIN, UserRole.TELECALLER]:
+    """Add a family member (admin or member can add their own)"""
+    logger.info(f"[FAMILY] Add request - member_id: {member_id}, user_role: {user.get('role')}, user_member_id: {user.get('member_id')}")
+    
+    # Check access - members can only add to their own membership
+    user_role = user.get("role")
+    user_member_id = user.get("member_id")
+    
+    # Allow if user is admin/super_admin/telecaller
+    if user_role in [UserRole.ADMIN, UserRole.SUPER_ADMIN, UserRole.TELECALLER]:
+        pass  # Admins can add family members for any member
+    elif user_role == UserRole.MEMBER:
+        # Members can only add family to their own membership
+        if user_member_id != member_id:
+            logger.warning(f"[FAMILY] Access denied - user_member_id: {user_member_id} != requested member_id: {member_id}")
+            raise HTTPException(status_code=403, detail="You can only add family members to your own membership")
+    else:
         raise HTTPException(status_code=403, detail="Access denied")
     
     # Verify member exists
@@ -2493,6 +2503,7 @@ async def add_family_member(member_id: str, data: FamilyMemberCreate, user: dict
     await db.family_members.insert_one(family_member)
     family_member.pop("_id", None)
     
+    logger.info(f"[FAMILY] Successfully added family member for {member_id}")
     return {"message": "Family member added successfully", "family_member": family_member}
 
 @api_router.put("/family/{family_id}")
